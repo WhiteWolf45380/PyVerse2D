@@ -1,7 +1,7 @@
 # ======================================== IMPORTS ========================================
 
 # ======================================== CLASSE ABSTRAITE ========================================
-class Component:
-    """Classe abstraite des composants"""
+class Shape:
+    """Classe abstraite des formes"""
     def __init__(self):
         pass

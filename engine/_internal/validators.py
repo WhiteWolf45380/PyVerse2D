@@ -3,7 +3,6 @@ from types import UnionType
 from typing import Tuple, get_args, get_origin
 
 # ======================================== TYPE CHECK ========================================
-
 def expect(value: object, types: type | Tuple[type, ...]):
     """
     Vérifie la valeur contre un type supporté :
@@ -26,9 +25,9 @@ def expect(value: object, types: type | Tuple[type, ...]):
     Raises:
         TypeError: si la valeur n'est pas conforme
     """
-
     # (T1, T2, T3)
     if isinstance(types, tuple):
+        types = tuple(type(None) if t is None else t for t in types)
         if not isinstance(value, types):
             readable = " | ".join(t.__name__ for t in types)
             raise TypeError(f"expected ({readable}), got ({type(value).__name__})")
@@ -37,6 +36,7 @@ def expect(value: object, types: type | Tuple[type, ...]):
     # T
     origin = get_origin(types)
     if origin is None:
+        types = type(None) if types is None else types
         if not isinstance(value, types):
             raise TypeError(f"expected ({types.__name__}), got ({type(value).__name__})")
         return value
