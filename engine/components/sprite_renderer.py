@@ -1,15 +1,15 @@
 # ======================================== IMPORTS ========================================
 from .._internal import expect, clamped
-from ..core import Component, Shape
+from ..core import Component
 from ..assets import Image
 
-import pygame
 from typing import Real, Iterator
 
 # ======================================== COMPONENT ========================================
-class Sprite(Component):
+class SpriteRenderer(Component):
     """Composant gérant le rendu"""
     __slots__ = ("_image", "_offset", "_layer", "_z", "_visible", "_alpha")
+
     def __init__(
         self,
         image: Image,

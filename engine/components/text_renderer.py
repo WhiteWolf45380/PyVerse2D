@@ -1,42 +1,42 @@
 # ======================================== IMPORTS ========================================
-from .._internal import expect
-from ..core import Component, Shape
-from ..assets import Image, Text
+from .._internal import expect, clamped
+from ..core import Component
+from ..assets import Text
 
-import pygame
 from typing import Real, Iterator
 
 # ======================================== COMPONENT ========================================
-class Sprite(Component):
+class TextRenderer(Component):
     """Composant gérant le rendu"""
-    __slots__ = ("_image", "_shape", "_width", "_height")
+    __slots__ = ("_text", "_layer", "_z", "_visible", "_alpha")
+
     def __init__(
         self,
-        image: Image | str = None,
-        text: Text | str = None,
-        shape: Shape = None,
-        width: Real = None,
-        height: Real = None,
+        text: Text = None,
+        layer: int = 0,
+        z: int = 0,
+        visible: bool = True,
+        alpha: float = 1.0,
     ):
         """
         Args:
-            image(Image|str, optional): image de rendu
-            text(Text|str, optional)
-            shape(Shape, optional): forme de rendu
-            width(Real, optional): largeur
-            height(Real, optional): hauteur
+            text(Text, optional): texte du rendu
+            layer(int, optional): couche de rendu
+            z(int, optional): ordre de rendu
+            visible(bool, optional): visibilité
+            alpha(float, optional): facteur d'opacité de l'image
         """
         super().__init__()
-        self._image = expect(image, (pygame.Surface, str, None))
-        self._shape = expect(shape, Shape)
-        self._width = float(expect(width, Real))
-        self._height = float(expect(height, Real))
-        self._load()
+        self._text: Text = expect(text, Text)
+        self._layer: int = expect(layer, int)
+        self._z: int = expect(z, int)
+        self._visible: bool = expect(visible, bool)
+        self._alpha: float = clamped(expect(alpha, float))
     
     # ======================================== CONVERSIONS ========================================
     def __repr__(self) -> str:
         """Renvoie une représentation du composant"""
-        return f"Sprite(image={self._image}, shape={self._shape}, width={self._width}, height={self._height})"
+        return f"TextRenderer(text={self._text}, layer={self._layer}, z={self._z}, visible={self._visible}, alpha={self._alpha})"
     
     def __iter__(self) -> Iterator:
         """Renvoie le composant dans un itérateur"""
@@ -46,18 +46,49 @@ class Sprite(Component):
         """Renvoie l'entier hashé du composant"""
         return hash(self.to_tuple())
     
-    def to_tuple(self) -> tuple[pygame.Surface, Shape, float, float]:
+    def to_tuple(self) -> tuple[Text, int, int, bool, float]:
         """Renvoie le composant sous forme de tuple"""
-        return (self._image, self._shape, self._width, self._height)
+        return (self._text, self._layer, self._z, self._visible, self._alpha)
     
     def to_list(self) -> list:
         """Renvoie le composant sous forme de liste"""
-        return [self._image, self._shape, self._width, self._height]
+        return [self._text, self._layer, self._z, self._visible, self._alpha]
     
     # ======================================== GETTERS ========================================
     @property
-    def image(self) -> pygame.Surface:
-        """Retourne l'image du sprite"""
-        return self._image
-
+    def text(self) -> Text:
+        """Renvoie le texte du renderer"""
+        return self._text
+    
+    @property
+    def layer(self) -> int:
+        """Renvoie la couche de rendu"""
+        return self._layer
+    
+    @property
+    def z(self) -> int:
+        """Renvoie l'ordre de rendu"""
+        return self._z
+    
+    def get_alpha(self) -> float:
+        """Renvoie le facteur d'opacité"""
+        return self._alpha
+    
     # ======================================== SETTERS ========================================
+    def set_alpha(self, value: Real):
+        """Fixe le facteur d'opacité"""
+        self._alpha = clamped(float(expect(value, Real)))
+    
+    # ======================================== PREDICATES ========================================
+    def is_visible(self) -> bool:
+        """Vérifie la visibilité"""
+        return self._visible
+
+    # ======================================== PUBLIC METHODS ========================================
+    def show(self):
+        """Montre le texte"""
+        self._visible = True
+
+    def hide(self):
+        """Cache le texte"""
+        self._visible = False

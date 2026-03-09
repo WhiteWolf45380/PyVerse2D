@@ -1,5 +1,5 @@
 # ======================================== IMPORTS ========================================
-from .._internal import expect, positive, clamped
+from .._internal import expect, clamped
 from ..core import Component
 from ..math import Point
 
@@ -10,6 +10,7 @@ from numbers import Real
 class Transform(Component):
     """Composant gérant le positionnement"""
     __slots__ = ("_pos", "anchor", "_rotation", "_scale")
+
     def __init__(
         self,
         pos: Point,

@@ -2,15 +2,16 @@
 from __future__ import annotations
 
 from .._internal import expect, not_null, positive
-
-from .asset import Asset
+from ..core import Asset
 
 import pygame
 
 # ======================================== OBJET ========================================
 class Image(Asset):
     """Image propre au moteur"""
+    __slots__ = ("_name", "_surface")
     _cache: dict[str, pygame.Surface] = {}
+
     def __init__(self, name: str = None, path: str = None, _surface: pygame.Surface = None):
         """
         Args:
