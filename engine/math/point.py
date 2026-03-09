@@ -14,7 +14,11 @@ class Point(MathObject):
     """Objet mathématique 2D abstrait : Point"""
     __slots__ = ("_x", "_y")
     PRECISION = 8
-    def __init__(self, x: Real, y: Real):
+    def __init__(
+            self,
+            x: Real,
+            y: Real
+        ):
         """
         Args:
             x(Real): coordonnée horizontale

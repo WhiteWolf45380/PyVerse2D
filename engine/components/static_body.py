@@ -4,18 +4,15 @@ from ..core import Component
 from numbers import Real
 
 # ======================================== COMPONENT ========================================
-class RigidBody(Component):
-    """Composant gérant un corps dynamique"""
-    __slots__ = ("_mass", "_friction", "_restitution", "_gravity", "_gravity_scale")
+class StaticBody(Component):
+    """Composant gérant un corps immobile"""
+    __slots__ = ("_friction", "_restitution")
     exclusive = True
     requires = ("Transform",)
 
     def __init__(
             self,
-            mass: Real = 1.0,
             friction: Real = 0.5,
             restitution: Real = 0.0,
-            gravity: bool = True,
-            gravity_scale: Real = 1.0,
         ):
         ...

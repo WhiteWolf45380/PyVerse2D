@@ -3,22 +3,25 @@ from .._internal import expect, clamped
 from ..core import Component
 from ..assets import Image
 
+from .transform import Transform
+
 from typing import Real, Iterator
 
 # ======================================== COMPONENT ========================================
 class SpriteRenderer(Component):
     """Composant gérant le rendu"""
     __slots__ = ("_image", "_offset", "_layer", "_z", "_visible", "_alpha")
+    requires = ("Transform",)
 
     def __init__(
-        self,
-        image: Image,
-        offset: tuple[Real, Real] = (0.0, 0.0),
-        layer: int = 0,
-        z: int = 0,
-        visible: bool = True,
-        alpha: float = 1.0,
-    ):
+            self,
+            image: Image,
+            offset: tuple[Real, Real] = (0.0, 0.0),
+            layer: int = 0,
+            z: int = 0,
+            visible: bool = True,
+            alpha: float = 1.0,
+        ):
         """
         Args:
             image(Image): image de rendu
@@ -28,7 +31,6 @@ class SpriteRenderer(Component):
             visible(bool, optional): visibilité
             alpha(float, optional): facteur d'opacité de l'image
         """
-        super().__init__()
         self._image: Image = expect(image, Image)
         self._offset: tuple[Real, Real] = expect(offset, tuple[Real, Real])
         self._layer: int = expect(layer, int)
@@ -49,13 +51,13 @@ class SpriteRenderer(Component):
         """Renvoie l'entier hashé du composant"""
         return hash(self.to_tuple())
     
-    def to_tuple(self) -> tuple[Image, tuple[Real, Real], int, int, bool, float]:
+    def to_tuple(self) -> tuple[Image, tuple[Real, Real], int, int, float]:
         """Renvoie le composant sous forme de tuple"""
-        return (self._image, self._offset, self._layer, self._z, self._visible, self._alpha)
+        return (self._image, self._offset, self._layer, self._z, self._alpha)
     
     def to_list(self) -> list:
         """Renvoie le composant sous forme de liste"""
-        return [self._image, self._offset, self._layer, self._z, self._visible, self._alpha]
+        return [self._image, self._offset, self._layer, self._z, self._alpha]
     
     # ======================================== GETTERS ========================================
     @property

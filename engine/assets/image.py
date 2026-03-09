@@ -12,7 +12,12 @@ class Image(Asset):
     __slots__ = ("_name", "_surface")
     _cache: dict[str, pygame.Surface] = {}
 
-    def __init__(self, name: str = None, path: str = None, _surface: pygame.Surface = None):
+    def __init__(
+            self,
+            name: str = None,
+            path: str = None,
+            _surface: pygame.Surface = None
+        ):
         """
         Args:
             name(str, optional): nom de l'image (par défaut path)

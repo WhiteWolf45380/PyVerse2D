@@ -12,7 +12,14 @@ class Text(Asset):
     __slots__ = ("_text", "_font", "_size", "_color", "_surface")
     _cache: dict[tuple, pygame.Surface] = {}
 
-    def __init__(self, text: str, font: str = None, fontsize: int = 16, color: tuple[int, ...] = (255, 255, 255, 255), _surface: pygame.Surface = None):
+    def __init__(
+            self,
+            text: str,
+            font: str = None,
+            fontsize: int = 16,
+            color: tuple[int, ...] = (255, 255, 255, 255),
+            _surface: pygame.Surface = None
+        ):
         """
         Args:
             text(str): contenu du texte

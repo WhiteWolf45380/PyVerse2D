@@ -14,7 +14,11 @@ from numbers import Real
 class Line(MathObject):
     """Objet mathématique 2D abstrait : Droite"""
     __slots__ = ("_origin", "_vector")
-    def __init__(self, point: Point, vector: Vector):
+    def __init__(
+            self,
+            point: Point,
+            vector: Vector
+        ):
         """
         Args:
             point(Point): origine de la droite

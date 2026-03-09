@@ -13,7 +13,11 @@ class Vector(MathObject):
     """Objet mathématique 2D abstrait : Vecteur"""
     __slots__ = ("_x", "_y")
     PRECISION = 9
-    def __init__(self, x: Real, y: Real):
+    def __init__(
+            self,
+            x: Real,
+            y: Real
+        ):
         """
         Args:
             x(Real): composante x

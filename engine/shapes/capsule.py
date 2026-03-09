@@ -12,7 +12,11 @@ from math import pi
 class Capsule(Shape):
     """Forme géométrique 2D : Capsule"""
     __slots__ = ("_radius", "_height")
-    def __init__(self, radius: Real, height: Real):
+    def __init__(
+            self,
+            radius: Real,
+            height: Real
+        ):
         """
         Args:
             radius(Real): rayon de la capsule

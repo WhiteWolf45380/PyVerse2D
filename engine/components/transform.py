@@ -10,14 +10,15 @@ from numbers import Real
 class Transform(Component):
     """Composant gérant le positionnement"""
     __slots__ = ("_pos", "anchor", "_rotation", "_scale")
+    exclusive = True
 
     def __init__(
-        self,
-        pos: Point,
-        anchor: str = "center",
-        rotation: float = 0.0,
-        scale: float = 1.0,
-    ):
+            self,
+            pos: Point,
+            anchor: str = "center",
+            rotation: float = 0.0,
+            scale: float = 1.0,
+        ):
         """
         Args:
             pos(Point): position
@@ -25,7 +26,6 @@ class Transform(Component):
             rotation(float, optional): angle de rotation en radians
             scale(float, otional): facteur de redimensionnement
         """
-        super().__init__()
         self._pos: Point = expect(pos, Point)
         self._anchor: str = expect(anchor, str)
         self._rotation: float = float(expect(rotation, Real))
