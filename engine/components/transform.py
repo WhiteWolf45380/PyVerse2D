@@ -9,6 +9,7 @@ from numbers import Real
 # ======================================== COMPONENT ========================================
 class Transform(Component):
     """Composant gérant le positionnement"""
+    __slots__ = ("_pos", "anchor", "_rotation", "_scale")
     def __init__(
         self,
         pos: Point,
