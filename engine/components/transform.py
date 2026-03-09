@@ -1,5 +1,5 @@
 # ======================================== IMPORTS ========================================
-from .._internal import expect, positive, inverse
+from .._internal import expect, positive, clamped
 from ..core import Component
 from ..math import Point
 
@@ -28,7 +28,7 @@ class Transform(Component):
         self._pos: Point = expect(pos, Point)
         self._anchor: str = expect(anchor, str)
         self._rotation: float = float(expect(rotation, Real))
-        self._scale: float = float(positive(inverse(expect(scale, Real))))
+        self._scale: float = float(clamped(expect(scale, Real)))
 
     # ======================================== CONVERSIONS ========================================
     def __repr__(self) -> str:
@@ -111,4 +111,4 @@ class Transform(Component):
     @scale.setter
     def scale(self, value: Real):
         """Fixe le facteur de redimensionnement"""
-        self._scale = float(positive(inverse(expect(value, Real))))
+        self._scale = float(clamped(expect(value, Real)))

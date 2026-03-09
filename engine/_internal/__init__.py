@@ -1,5 +1,5 @@
 # ======================================== IMPORTS ========================================
-from .validators import typename, expect, not_null, positive, inverse
+from .validators import typename, expect, not_null, positive, clamped
 
 # ======================================== EXPORTS ========================================
 __all__ = [
@@ -7,5 +7,5 @@ __all__ = [
     "expect",
     "not_null",
     "positive",
-    "inverse",
+    "clamped",
 ]

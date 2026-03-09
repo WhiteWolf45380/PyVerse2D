@@ -9,22 +9,31 @@ import pygame
 
 # ======================================== OBJET ========================================
 class Image(Asset):
-    """Objet lien entre les assets et l'engine"""
+    """Image propre au moteur"""
     _cache: dict[str, pygame.Surface] = {}
     def __init__(self, name: str = None, path: str = None, _surface: pygame.Surface = None):
         """
         Args:
             name(str, optional): nom de l'image (par défaut path)
             path(str, optional): chemin du fichier
-            original(bool, optional): chargement forcé
             _surface(Surface, optional): surface préchargée
         """
         self._name: str = expect(name, str) if name is not None else path
         self._surface: pygame.Surface = expect(_surface, (pygame.Surface, None))
         if self._surface is None and path is not None:
             self._load(expect(path, str))
+    
+    # ======================================== CONVERSIONS ========================================
+    def __repr__(self) -> str:
+        """Renvoie une représentation de l'image"""
+        return f"Image(name={self._name}, width={self.width}, height={self.height})"
 
-    # ======================================== GETTERS ========================================    
+    # ======================================== GETTERS ========================================
+    @property
+    def size(self) -> tuple[float, float]:
+        """Renvoie la taille de l'image"""
+        return (self.width, self.height)
+
     @property
     def width(self) -> float:
         """Renvoie la largeur de l'image"""

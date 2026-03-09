@@ -189,18 +189,20 @@ def positive(value: object, arg: str = "Argument"):
     # Par défaut
     return  value
 
-def inverse(value: object, arg="Argument"):
+def clamped(value: object, min: float = 0.0, max: float = 1.0, arg="Argument"):
     """
-    Vérifie que la valeur soit comprise entre 0 et 1
+    Vérifie que la valeur soit comprise entre min et max
 
     Args:
         value(object): valeur à vérifier
-        arg(str): nom de l'argument à vérifier
+        min(float, optional): valeur minimale autorisée
+        max(float, optional): valeur maximale autorisée
+        arg(str, optional): nom de l'argument à vérifier
     """
     # Nombres
     if isinstance(value, Real):
-        if float(value) < -1.0 or float(value) > 1.0:
-            raise ValueError(f"{arg} must be between -1.0 and 1.0")
+        if float(value) < min or float(value) > max:
+            raise ValueError(f"{arg} must be between {min} and {max}")
         return value
     
     # Par défaut
