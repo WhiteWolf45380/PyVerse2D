@@ -1,6 +1,7 @@
 # ======================================== IMPORTS ========================================
 from types import UnionType
 from typing import Tuple, get_args, get_origin, Union
+from numbers import Real
 
 # ======================================== TYPE CHECK ========================================
 def typename(t: type):
@@ -169,4 +170,38 @@ def not_null(value: object, arg: str = "Argument"):
         return value
     
     # Objet custom
+    return value
+
+def positive(value: object, arg: str = "Argument"):
+    """
+    Vérifie que la valeur soit positive
+
+    Args:
+        value(object): valeur à vérifier
+        arg(str): nom de l'argument à vérifier
+    """
+    # Nombres
+    if isinstance(value, Real):
+        if float(value) < 0:
+            raise ValueError(f"{arg} cannot be negative")
+        return value
+    
+    # Par défaut
+    return  value
+
+def inverse(value: object, arg="Argument"):
+    """
+    Vérifie que la valeur soit comprise entre 0 et 1
+
+    Args:
+        value(object): valeur à vérifier
+        arg(str): nom de l'argument à vérifier
+    """
+    # Nombres
+    if isinstance(value, Real):
+        if float(value) < -1.0 or float(value) > 1.0:
+            raise ValueError(f"{arg} must be between -1.0 and 1.0")
+        return value
+    
+    # Par défaut
     return value
