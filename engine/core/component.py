@@ -5,7 +5,6 @@ from typing import Iterator
 # ======================================== CLASSE ABSTRAITE ========================================
 class Component(ABC):
     """Classe abstraite des composants"""
-    exclusive: bool = False
     requires: tuple[type, ...] = ()
     conflicts: tuple[type, ...] = ()
 

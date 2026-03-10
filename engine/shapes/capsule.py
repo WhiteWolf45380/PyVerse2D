@@ -96,7 +96,7 @@ class Capsule(Shape):
         """Vérifie la correspondance de deux capsules"""
         if isinstance(other, Capsule):
             return self._radius == other._radius and self._height == other._height
-        return NotImplemented
+        return False
     
     # ======================================== PUBLIC METHODS ========================================
     def copy(self) -> Capsule:

@@ -1,5 +1,5 @@
 # ======================================== IMPORTS ========================================
-from .._internal import expect, clamped
+from .._internal import expect, positive, not_null
 from ..core import Component
 from ..math import Point
 
@@ -9,8 +9,7 @@ from numbers import Real
 # ======================================== COMPONENT ========================================
 class Transform(Component):
     """Composant gérant le positionnement"""
-    __slots__ = ("_pos", "anchor", "_rotation", "_scale")
-    exclusive = True
+    __slots__ = ("_pos", "_anchor", "_rotation", "_scale")
 
     def __init__(
             self,
@@ -29,12 +28,12 @@ class Transform(Component):
         self._pos: Point = expect(pos, Point)
         self._anchor: str = expect(anchor, str)
         self._rotation: float = float(expect(rotation, Real))
-        self._scale: float = float(clamped(expect(scale, Real)))
+        self._scale: float = float(not_null(positive(expect(scale, Real))))
 
     # ======================================== CONVERSIONS ========================================
     def __repr__(self) -> str:
         """Renvoie une représentation du composant"""
-        return f"Transform(x={self._point.x}, y={self._point.x}, anchor={self._anchor}, rotation={self._rotation}, scale={self._scale})"
+        return f"Transform(x={self._pos.x}, y={self._pos.x}, anchor={self._anchor}, rotation={self._rotation}, scale={self._scale})"
     
     def __iter__(self) -> Iterator:
         """Renvoie le composant dans un itérateur"""
@@ -56,12 +55,12 @@ class Transform(Component):
     @property
     def x(self) -> float:
         """Renvoie la coordonnée horizontale"""
-        return self._point.x
+        return self._pos.x
     
     @property
     def y(self) -> float:
         """Renvoie la coordonnée verticale"""
-        return self._point.y
+        return self._pos.y
     
     @property
     def pos(self) -> Point:
@@ -112,4 +111,4 @@ class Transform(Component):
     @scale.setter
     def scale(self, value: Real):
         """Fixe le facteur de redimensionnement"""
-        self._scale = float(clamped(expect(value, Real)))
+        self._scale = float(not_null(positive(expect(value, Real))))

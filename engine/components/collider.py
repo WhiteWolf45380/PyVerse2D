@@ -11,7 +11,6 @@ from typing import Iterator
 class Collider(Component):
     """Composant gérant la hitbox"""
     __slots__ = ("_shape", "_offset", "_category", "_mask", "_trigger", "_active")
-    exclusive = True
     requires = ("Transform",)
 
     def __init__(

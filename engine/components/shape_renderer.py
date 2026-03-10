@@ -2,8 +2,6 @@
 from .._internal import expect, clamped
 from ..core import Shape, Component
 
-from .transform import Transform
-
 from typing import Real, Iterator
 
 # ======================================== COMPONENT ========================================
@@ -50,7 +48,7 @@ class ShapeRenderer(Component):
         """Renvoie l'entier hashé du composant"""
         return hash(self.to_tuple())
     
-    def to_tuple(self) -> tuple[Shape, int, int, float]:
+    def to_tuple(self) -> tuple[Shape, tuple[Real, Real], int, int, float]:
         """Renvoie le composant sous forme de tuple"""
         return (self._shape, self._offset, self._layer, self._z, self._alpha)
     

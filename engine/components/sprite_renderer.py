@@ -3,8 +3,6 @@ from .._internal import expect, clamped
 from ..core import Component
 from ..assets import Image
 
-from .transform import Transform
-
 from typing import Real, Iterator
 
 # ======================================== COMPONENT ========================================
@@ -41,7 +39,7 @@ class SpriteRenderer(Component):
     # ======================================== CONVERSIONS ========================================
     def __repr__(self) -> str:
         """Renvoie une représentation du composant"""
-        return f"Sprite(image={self._image}, offset={self._offset}, layer={self._layer}, z={self._z}, visible={self._visible}, alpha={self._alpha})"
+        return f"SpriteRenderer(image={self._image}, offset={self._offset}, layer={self._layer}, z={self._z}, visible={self._visible}, alpha={self._alpha})"
     
     def __iter__(self) -> Iterator:
         """Renvoie le composant dans un itérateur"""
