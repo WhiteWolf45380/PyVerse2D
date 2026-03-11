@@ -1,6 +1,6 @@
 # ======================================== IMPORTS ========================================
 from .._internal import expect, clamped
-from ..core import Shape, Component
+from .._core import Shape, Component
 
 from typing import Real, Iterator
 

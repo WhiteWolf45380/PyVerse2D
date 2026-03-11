@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from .._internal import expect, not_null, positive
-from ..core import Asset
+from .._core import Asset
 
 from numbers import Real
 

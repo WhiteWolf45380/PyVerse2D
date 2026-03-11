@@ -1,7 +1,7 @@
 # ======================================== IMPORTS ========================================
 from .._internal import expect
-from ..core import System
-from ..rendering import Camera, Viewport
+from .._core import System
+from .._rendering import Camera, Viewport
 
 # ======================================== SYSTEM ========================================
 class RenderSystem(System):

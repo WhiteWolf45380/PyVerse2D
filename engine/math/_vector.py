@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from .._internal import expect
-from ..core import MathObject
+from .._core import MathObject
 
 from numbers import Real
 from typing import Iterator

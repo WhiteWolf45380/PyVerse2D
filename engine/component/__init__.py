@@ -7,7 +7,7 @@ from ._transform import Transform
 
 # ======================================== EXPORTS ========================================
 __all__ = [
-    "Collide",
+    "Collider",
     "RigidBody",
     "ShapeRenderer",
     "TextRenderer",

@@ -1,11 +1,11 @@
 from engine._window import Window
 
-from core import (
+from _core import (
     Entity,
     World
 )
 
-from rendering import (
+from _rendering import (
     Camera,
     Viewport
 )
