@@ -3,7 +3,8 @@ from .._internal import expect, clamped
 from .._core import Component
 from ..asset import Image
 
-from typing import Real, Iterator
+from typing import Iterator
+from numbers import Real
 
 # ======================================== COMPONENT ========================================
 class SpriteRenderer(Component):

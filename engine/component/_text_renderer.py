@@ -3,7 +3,8 @@ from .._internal import expect, clamped
 from .._core import Component
 from ..asset import Text
 
-from typing import Real, Iterator
+from typing import Iterator
+from numbers import Real
 
 # ======================================== COMPONENT ========================================
 class TextRenderer(Component):

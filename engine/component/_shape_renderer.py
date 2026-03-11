@@ -2,7 +2,8 @@
 from .._internal import expect, clamped
 from .._core import Shape, Component
 
-from typing import Real, Iterator
+from typing import Iterator
+from numbers import Real
 
 # ======================================== COMPONENT ========================================
 class ShapeRenderer(Component):
