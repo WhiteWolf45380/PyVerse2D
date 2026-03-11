@@ -8,8 +8,7 @@ version = "0.0.5"
 description = "2D pygame engine"
 authors = [{ name = "WhiteWolf45380" }]
 dependencies = [
-    "pygame",
-    "pygame_manager @ https://github.com/WhiteWolf45380/Pygame-Manager/archive/refs/heads/main.zip",
+    "pyglet",
 ]
 
 [tool.setuptools.packages.find]
