@@ -11,7 +11,7 @@ import math
 # ======================================== SHAPE ========================================
 class Circle(Shape):
     """Forme géométrique 2D : Cercle"""
-    __slots__ = ("_radius")
+    __slots__ = ("_radius",)
     def __init__(
             self,
             radius: Real,
@@ -38,7 +38,7 @@ class Circle(Shape):
     
     def to_tuple(self) -> tuple[float]:
         """Renvoie le rect sous forme de tuple"""
-        return (self._radius)
+        return (self._radius,)
     
     def to_list(self) -> list[float]:
         """Renvoie le rect sous forme de liste"""
@@ -93,4 +93,4 @@ class Circle(Shape):
         factor = float(expect(factor, Real))
         if factor <= 0:
             raise ValueError("factor cannot be negative or null")
-        self._factor *= factor
+        self._radius *= factor

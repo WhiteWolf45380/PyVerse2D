@@ -77,7 +77,7 @@ class Rect(Shape):
     @width.setter
     def width(self, value: Real):
         """Fixe la largeur du rect"""
-        self._radius = float(positive(not_null(expect(value, Real))))
+        self._width = float(positive(not_null(expect(value, Real))))
 
     @height.setter
     def height(self, value: Real):

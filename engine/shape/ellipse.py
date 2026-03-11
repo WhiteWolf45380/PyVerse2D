@@ -29,7 +29,7 @@ class Ellipse(Shape):
     # ======================================== CONVERSION ========================================
     def __repr__(self) -> str:
         """Renvoie une représentation d"""
-        return f"Ellipse(rx={self._width}, ry={self._height})"
+        return f"Ellipse(rx={self._rx}, ry={self._ry})"
     
     def __iter__(self) -> Iterator[float]:
         """Renvoie l'ellipse dans un itérateur"""
