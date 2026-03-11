@@ -2,16 +2,16 @@
 from .capsule import Capsule
 from .circle import Circle
 from .ellipse import Ellipse
+from .polygon import Polygon
+from .rect import Rect
 from .segment import Segment
-from rect import Rect
-from .triangle import Triangle
 
 # ======================================== EXPORTS ========================================
 __all__ = [
     "Capsule",
     "Circle",
     "Ellipse",
-    "Segment",
+    "Polygon",
     "Rect",
-    "Triangle",
+    "Segment",
 ]

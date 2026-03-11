@@ -10,9 +10,7 @@ from rendering import (
     Viewport
 )
 
-import shape
-import component
-import system
+from . import shape, component, system
 
 __all__ = [
     "Window",
