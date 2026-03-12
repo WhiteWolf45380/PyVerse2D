@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 from .._internal import expect
-
+from .._flags import UpdatePhase
 from ..abc import Component, System
+
 from ._entity import Entity
-from ._update_phase import UpdatePhase
 
 from typing import Type
 

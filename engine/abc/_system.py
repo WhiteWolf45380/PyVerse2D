@@ -1,13 +1,13 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from ..ecs._update_phase import UpdatePhase
+from .._flags import UpdatePhase
 
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..ecs._world import World
+    from ..ecs import World
 
 # ======================================== ABSTRACT CLASS ========================================
 class System(ABC):

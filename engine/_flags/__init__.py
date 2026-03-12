@@ -1,9 +1,9 @@
 # ======================================== IMPORTS ========================================
-from ._entity import Entity
-from ._world import World
+from ._stack_mode import StackMode
+from ._update_phase import UpdatePhase
 
 # ======================================== EXPORTS ========================================
 __all__ = [
-    "Entity",
-    "World",
+    "StackMode",
+    "UpdatePhase",
 ]

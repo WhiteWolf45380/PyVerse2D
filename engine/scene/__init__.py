@@ -1,10 +1,9 @@
 # ======================================== IMPORTS ========================================
 from .._internal import expect
-from ..abc import Layer
+from .._flags import StackMode
 
 from ._world_layer import WorldLayer
 from ._scene import Scene
-from ._stack_mode import StackMode
 
 # ======================================== STATE ========================================
 _stack: list[tuple[Scene, StackMode]] = []
