@@ -7,7 +7,7 @@ import pyglet.sprite
 import pyglet.text
 import pyglet.image
 
-from ..ecs import System, World
+from ..ecs import System, World, UpdatePhase
 from ..component import Transform, SpriteRenderer, ShapeRenderer, TextRenderer
 from ..shape import Capsule, Circle, Rect, Ellipse, Segment, Polygon
 
@@ -20,57 +20,10 @@ _ORDER_SHAPE  = 0
 _ORDER_SPRITE = 1
 _ORDER_LABEL  = 2
 
-# ======================================== INTERNAL RENDERING SHAPES ========================================
-class _CapsuleShape:
-    def __init__(self, x, y, radius, spine, batch=None, group=None):
-        self._rect = pyglet.shapes.Rectangle(x - radius, y, radius * 2, spine, batch=batch, group=group)
-        self._top = pyglet.shapes.Circle(x, y + spine, radius, batch=batch, group=group)
-        self._bottom = pyglet.shapes.Circle(x, y, radius, batch=batch, group=group)
-
-    @property
-    def visible(self):
-        return self._rect.visible
-
-    @visible.setter
-    def visible(self, v):
-        self._rect.visible = self._top.visible = self._bottom.visible = v
-
-    @property
-    def x(self):
-        return self._bottom.x
-
-    @x.setter
-    def x(self, v):
-        self._bottom.x = v
-        self._top.x = v
-        self._rect.x = v - self._bottom.radius
-
-    @property
-    def y(self):
-        return self._bottom.y
-
-    @y.setter
-    def y(self, v):
-        self._bottom.y = v
-        self._top.y = v + self._rect.height
-        self._rect.y = v
-
-    @property
-    def opacity(self):
-        return self._rect.opacity
-
-    @opacity.setter
-    def opacity(self, v):
-        self._rect.opacity = self._top.opacity = self._bottom.opacity = v
-
-    def delete(self):
-        self._rect.delete()
-        self._top.delete()
-        self._bottom.delete()
-
 # ======================================== SYSTEM ========================================
 class RenderSystem(System):
     """Système gérant le rendu des entités avec cache"""
+    phase = UpdatePhase.LATE
 
     def __init__(self):
         self._sprites: dict[str, pyglet.sprite.Sprite] = {}
@@ -243,3 +196,51 @@ class RenderSystem(System):
         except FileNotFoundError:
             print(f"[RenderSystem] Cannot load image: {path}")
             return None
+
+# ======================================== INTERNAL RENDERING SHAPES ========================================
+class _CapsuleShape:
+    def __init__(self, x, y, radius, spine, batch=None, group=None):
+        self._rect = pyglet.shapes.Rectangle(x - radius, y, radius * 2, spine, batch=batch, group=group)
+        self._top = pyglet.shapes.Circle(x, y + spine, radius, batch=batch, group=group)
+        self._bottom = pyglet.shapes.Circle(x, y, radius, batch=batch, group=group)
+
+    @property
+    def visible(self):
+        return self._rect.visible
+
+    @visible.setter
+    def visible(self, v):
+        self._rect.visible = self._top.visible = self._bottom.visible = v
+
+    @property
+    def x(self):
+        return self._bottom.x
+
+    @x.setter
+    def x(self, v):
+        self._bottom.x = v
+        self._top.x = v
+        self._rect.x = v - self._bottom.radius
+
+    @property
+    def y(self):
+        return self._bottom.y
+
+    @y.setter
+    def y(self, v):
+        self._bottom.y = v
+        self._top.y = v + self._rect.height
+        self._rect.y = v
+
+    @property
+    def opacity(self):
+        return self._rect.opacity
+
+    @opacity.setter
+    def opacity(self, v):
+        self._rect.opacity = self._top.opacity = self._bottom.opacity = v
+
+    def delete(self):
+        self._rect.delete()
+        self._top.delete()
+        self._bottom.delete()
