@@ -1,7 +1,7 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from .._flags import UpdatePhase
+from .._flag import UpdatePhase
 
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING

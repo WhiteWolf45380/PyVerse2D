@@ -1,6 +1,6 @@
 # ======================================== IMPORTS ========================================
 from .._internal import expect
-from .._flags import StackMode
+from .._flag import StackMode
 
 from ._world_layer import WorldLayer
 from ._scene import Scene

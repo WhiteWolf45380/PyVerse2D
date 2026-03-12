@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from .._internal import expect
-from .._flags import UpdatePhase
+from .._flag import UpdatePhase
 from ..abc import Component, System
 
 from ._entity import Entity

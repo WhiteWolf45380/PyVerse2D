@@ -1,8 +1,9 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
+from .._flag import UpdatePhase
 from ..abc import System
-from ..ecs import UpdatePhase, World
+from ..ecs import World
 from ..component import Transform, RigidBody, Collider
 from ..math import Vector
 from ..shape import Circle, Rect, Capsule, Ellipse, Segment, Polygon
