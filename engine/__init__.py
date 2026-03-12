@@ -1,13 +1,13 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-import pyglet
+from . import abc, math, shape, asset, component, system, ecs, scene
 
 from ._window import Window
 from ._rendering._camera import Camera
 from ._rendering._viewport import Viewport
 
-from . import abc, math, shape, asset, component, system, ecs, scene
+import pyglet
 
 # ======================================== STATE ========================================
 _window: Window | None = None

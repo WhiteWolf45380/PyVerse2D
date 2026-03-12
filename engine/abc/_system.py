@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..ecs import World
+    from ..ecs._world import World
 
 # ======================================== ABSTRACT CLASS ========================================
 class System(ABC):
