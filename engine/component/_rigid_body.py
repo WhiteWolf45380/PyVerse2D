@@ -1,4 +1,6 @@
 # ======================================== IMPORTS ========================================
+from __future__ import annotations
+
 from .._internal import expect, clamped, positive
 from ..ecs import Component
 from ..math import Vector
@@ -6,10 +8,18 @@ from ..math import Vector
 from numbers import Real
 from typing import Iterator
 
+# ======================================== CONSTANTES ========================================
+_SLEEP_THRESHOLD     = 0.5   # vitesse (px/s) en dessous de laquelle le timer démarre
+_SLEEP_DELAY         = 0.3   # secondes consécutives sous le seuil avant mise en veille
+
 # ======================================== COMPONENT ========================================
 class RigidBody(Component):
     """Composant gérant un corps dynamique"""
-    __slots__ = ("_mass", "_friction", "_restitution", "_gravity", "_gravity_scale", "_velocity", "_acceleration")
+    __slots__ = (
+        "_mass", "_friction", "_restitution", "_gravity", "_gravity_scale",
+        "_velocity", "_acceleration", "_prev_x", "_prev_y",
+        "_sleeping", "_sleep_timer",
+    )
     requires = ("Transform",)
 
     def __init__(
@@ -22,45 +32,48 @@ class RigidBody(Component):
         ):
         """
         Args:
-            mass(Real, optional): masse du corps (0 ou inf pour un corps statique)
-            friction(float, optional): résistance au glissement
-            restitution(float, optional): facteur de rebond
+            mass(Real, optional): masse du corps en kg (0 ou inf pour un corps statique)
+            friction(Real, optional): résistance au glissement [0, 1]
+            restitution(Real, optional): facteur de rebond [0, 1]
             gravity(bool, optional): soumission à la gravité
             gravity_scale(Real, optional): facteur de gravité
         """
-        self._mass: float = float(positive(expect(mass, Real)))
-        self._friction: float = float(clamped(expect(friction, Real)))
-        self._restitution: float = float(positive(expect(restitution, Real)))
-        self._gravity: bool = expect(gravity, bool)
-        self._gravity_scale: float = float(expect(gravity_scale, Real))
-        self._velocity: Vector = Vector(0.0, 0.0)
-        self._acceleration: Vector = Vector(0.0, 0.0)
+        self._mass         = float(positive(expect(mass, Real)))
+        self._friction     = float(clamped(expect(friction, Real)))
+        self._restitution  = float(positive(expect(restitution, Real)))
+        self._gravity      = expect(gravity, bool)
+        self._gravity_scale = float(expect(gravity_scale, Real))
+        self._velocity     = Vector(0.0, 0.0)
+        self._acceleration = Vector(0.0, 0.0)
+        self._prev_x       = 0.0
+        self._prev_y       = 0.0
+        self._sleeping     = False
+        self._sleep_timer  = 0.0   # secondes consécutives sous _SLEEP_THRESHOLD
 
     # ======================================== CONVERSIONS ========================================
-    def __repr__(self):
-        """Renvoie une représentation du composant"""
-        return f"RigidBody(mass={self._mass}, friction={self._friction}, restitution={self._restitution}, gravity={self._gravity}, gravity_scale={self._gravity_scale})"
+    def __repr__(self) -> str:
+        return (
+            f"RigidBody(mass={self._mass}, friction={self._friction}, "
+            f"restitution={self._restitution}, gravity={self._gravity}, "
+            f"gravity_scale={self._gravity_scale})"
+        )
 
     def __iter__(self) -> Iterator:
-        """Renvoie le composant dans un itérateur"""
         return iter(self.to_tuple())
 
     def __hash__(self) -> int:
-        """Renvoie l'entier hashé du composant"""
         return hash(self.to_tuple())
 
-    def to_tuple(self) -> tuple[float, float, float, bool, float]:
-        """Renvoie le composant sous forme de tuple"""
+    def to_tuple(self) -> tuple:
         return (self._mass, self._friction, self._restitution, self._gravity, self._gravity_scale)
 
     def to_list(self) -> list:
-        """Renvoie le composant sous forme de liste"""
         return [self._mass, self._friction, self._restitution, self._gravity, self._gravity_scale]
 
     # ======================================== GETTERS ========================================
     @property
     def mass(self) -> float:
-        """Renvoie la masse du corps"""
+        """Renvoie la masse du corps en kg"""
         return self._mass
 
     @property
@@ -88,35 +101,44 @@ class RigidBody(Component):
         """Renvoie l'accélération du corps"""
         return self._acceleration
 
+    @property
+    def prev_x(self) -> float:
+        """Renvoie la position x de la frame précédente"""
+        return self._prev_x
+
+    @property
+    def prev_y(self) -> float:
+        """Renvoie la position y de la frame précédente"""
+        return self._prev_y
+
+    @property
+    def sleep_timer(self) -> float:
+        """Renvoie le temps cumulé sous le seuil de vélocité (en secondes)"""
+        return self._sleep_timer
+
     # ======================================== SETTERS ========================================
     @mass.setter
     def mass(self, value: Real):
-        """Fixe la masse du corps"""
         self._mass = float(positive(expect(value, Real)))
 
     @friction.setter
     def friction(self, value: Real):
-        """Fixe le facteur de friction du corps"""
         self._friction = float(clamped(expect(value, Real)))
 
     @restitution.setter
     def restitution(self, value: Real):
-        """Fixe le facteur de restitution du corps"""
         self._restitution = float(positive(expect(value, Real)))
 
     @gravity_scale.setter
     def gravity_scale(self, value: Real):
-        """Fixe le facteur de gravité"""
         self._gravity_scale = float(expect(value, Real))
 
     @velocity.setter
-    def velocity(self, value: Vector):
-        """Fixe la vélocité du corps"""
+    def velocity(self, value):
         self._velocity = Vector(value)
 
     @acceleration.setter
-    def acceleration(self, value: Vector):
-        """Fixe l'accélération du corps"""
+    def acceleration(self, value):
         self._acceleration = Vector(value)
 
     # ======================================== PREDICATES ========================================
@@ -128,6 +150,58 @@ class RigidBody(Component):
         """Vérifie la soumission à la gravité"""
         return self._gravity
 
+    def is_sleeping(self) -> bool:
+        """Vérifie si le corps est en veille"""
+        return self._sleeping
+
+    # ======================================== SLEEP ========================================
+    def sleep(self):
+        """Met le corps en veille et remet sa vélocité et son timer à zéro"""
+        self._sleeping    = True
+        self._sleep_timer = 0.0
+        self._velocity    = Vector(0.0, 0.0)
+        self._acceleration = Vector(0.0, 0.0)
+
+    def wake(self):
+        """Réveille le corps et remet le timer à zéro"""
+        self._sleeping    = False
+        self._sleep_timer = 0.0
+
+    # ======================================== FORCES ========================================
+    def apply_force(self, force: Vector):
+        """
+        Applique une force au corps et le réveille si nécessaire.
+
+        Args:
+            force(Vector): force à appliquer en N
+        """
+        if self.is_static():
+            return
+        if self._sleeping:
+            self.wake()
+        self._acceleration = self._acceleration + Vector(force) * (1.0 / self._mass)
+
+    def reset_acceleration(self):
+        """Remet l'accélération à zéro"""
+        self._acceleration = Vector(0.0, 0.0)
+
+    # ======================================== INTERNALS ========================================
+    def _save_prev(self, x: float, y: float):
+        """Sauvegarde la position courante comme position précédente (appelé par PhysicsSystem)"""
+        self._prev_x = x
+        self._prev_y = y
+
+    def _tick_sleep(self, dt: float):
+        """Incrémente le timer de mise en veille et endort le corps si le délai"""
+        vx = self._velocity.x
+        vy = self._velocity.y
+        if vx * vx + vy * vy < _SLEEP_THRESHOLD * _SLEEP_THRESHOLD:
+            self._sleep_timer += dt
+            if self._sleep_timer >= _SLEEP_DELAY:
+                self.sleep()
+        else:
+            self._sleep_timer = 0.0
+
     # ======================================== PUBLIC METHODS ========================================
     def enable_gravity(self):
         """Active la gravité"""
@@ -136,18 +210,3 @@ class RigidBody(Component):
     def disable_gravity(self):
         """Désactive la gravité"""
         self._gravity = False
-
-    def apply_force(self, force: Vector):
-        """
-        Applique une force au corps
-
-        Args:
-            force(Vector): force à appliquer
-        """
-        if self.is_static():
-            return
-        self._acceleration += Vector(force) * (1.0 / self._mass)
-
-    def reset_acceleration(self):
-        """Remet l'accélération à zéro"""
-        self._acceleration = Vector(0.0, 0.0)

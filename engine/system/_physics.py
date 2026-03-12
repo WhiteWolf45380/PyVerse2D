@@ -6,13 +6,13 @@ from ..component import Transform, RigidBody
 
 # ======================================== SYSTEM ========================================
 class PhysicsSystem(System):
-    """Système appliquant la physique des corps dynamiques"""
+    """Système intégrant la physique des corps dynamiques"""
     phase = UpdatePhase.LATE
 
     # ======================================== UPDATE ========================================
     def update(self, world: World, dt: float):
         """
-        Intègre la physique de tous les corps dynamiques
+        Intègre la physique de tous les corps dynamiques actifs
 
         Args:
             world(World): monde à mettre à jour
@@ -22,13 +22,19 @@ class PhysicsSystem(System):
             rb: RigidBody = entity.get(RigidBody)
             tr: Transform = entity.get(Transform)
 
-            # Actualisation de la vélocité
-            if rb.is_static():
+            if rb.is_static() or rb.is_sleeping():
                 continue
+
+            # Sauvegarde de la position pour le sweep test anti-tunneling
+            rb._save_prev(tr.x, tr.y)
+
+            # Intégration semi-implicite d'Euler
             rb.velocity = rb.velocity + rb.acceleration * dt
 
-            # Applicatin de la vélocité
-            tr.pos += rb.velocity * dt
+            # Intégration de la position
+            tr.x += rb.velocity.x * dt
+            tr.y += rb.velocity.y * dt
 
-            # Reset accélération
+            # Reset accélération et vérification du sleep
             rb.reset_acceleration()
+            rb._tick_sleep(dt)

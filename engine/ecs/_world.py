@@ -15,12 +15,14 @@ class World:
     """Gère le monde virtuel et l'organisation des entités"""
     def __init__(self):
         self._all_entities: dict[str, Entity] = {}
-        self._all_systems: list[System]       = []
+        self._all_systems: list[System] = []
+        self._query_cache: dict[tuple, list[Entity]] = {}
+        self._cache_dirty: bool = True
 
     # ======================================== CONVERSIONS ========================================
     def __repr__(self) -> str:
         """Renvoie une représentation du monde"""
-        return f"World(entities=[{', '.join(str(e) for e in self._all_entities.values())}], systems=[{', '.join(str(s) for s in self._all_systems)}])"
+        return f"World(entities={self.entity_count}, systems={self.system_count})"
 
     def __str__(self) -> str:
         """Renvoie une description du monde"""
@@ -36,7 +38,7 @@ class World:
         Actualise le monde en respectant l'ordre des phases
 
         Args:
-            dt(float): delta time, temps écoulé depuis la dernière frame en secondes
+            dt(float): delta time en secondes
         """
         for phase in UpdatePhase:
             for system in self._all_systems:
@@ -53,6 +55,7 @@ class World:
         """
         expect(entity, Entity)
         self._all_entities[entity.id] = entity
+        self._cache_dirty = True
 
     def remove_entity(self, entity: Entity):
         """
@@ -62,6 +65,7 @@ class World:
             entity(Entity): entité à supprimer
         """
         self._all_entities.pop(entity.id, None)
+        self._cache_dirty = True
 
     @property
     def entity_count(self) -> int:
@@ -72,31 +76,46 @@ class World:
         """Vérifie que le monde comporte une entité donnée"""
         return expect(entity, Entity).id in self._all_entities
 
+    def invalidate_cache(self):
+        """Invalide le cache de query manuellement"""
+        self._cache_dirty = True
+
     def query(self, *component_types: Type[Component]) -> list[Entity]:
         """
-        Recherche filtrée par composants des entités
+        Recherche filtrée par composants des entités.
+        Résultat mis en cache jusqu'à la prochaine modification du monde.
 
         Args:
             component_types(Type[Component]): types des composants requis
         """
-        result = []
-        for entity in self._all_entities.values():
-            if entity.is_active() and all(entity.has(T) for T in component_types):
-                result.append(entity)
+        key = component_types
+
+        if not self._cache_dirty and key in self._query_cache:
+            return self._query_cache[key]
+
+        result = [
+            entity for entity in self._all_entities.values()
+            if entity.is_active() and all(entity.has(T) for T in component_types)
+        ]
+
+        if self._cache_dirty:
+            self._query_cache.clear()
+            self._cache_dirty = False
+
+        self._query_cache[key] = result
         return result
 
     def query_tags(self, *tags: str) -> list[Entity]:
         """
-        Recherche filtrée par labels des entités
+        Recherche filtrée par tags des entités
 
         Args:
-            tags(str): labels requis
+            tags(str): tags requis
         """
-        result = []
-        for entity in self._all_entities.values():
-            if entity.is_active() and all(entity.has_tag(t) for t in tags):
-                result.append(entity)
-        return result
+        return [
+            entity for entity in self._all_entities.values()
+            if entity.is_active() and all(entity.has_tag(t) for t in tags)
+        ]
 
     # ======================================== SYSTEMS ========================================
     def add_system(self, system: System):
