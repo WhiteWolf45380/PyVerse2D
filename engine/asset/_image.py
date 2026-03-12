@@ -8,7 +8,18 @@ from numbers import Real
 
 # ======================================== OBJET ========================================
 class Image(Asset):
-    """Descripteur d'image"""
+    """
+    Descripteur d'image
+
+    Args:
+        path(str): chemin du fichier
+        width(Real, optional): largeur cible en pixels
+        height(Real, optional): hauteur cible en pixels
+        scale(Real, optional): facteur de redimensionnement
+        flip_x(bool, optional): miroir horizontal
+        flip_y(bool, optional): miroir vertical
+        rotation(Real, optional): angle de rotation en degrés
+    """
     __slots__ = ("_path", "_width", "_height", "_scale", "_flip_x", "_flip_y", "_rotation")
 
     def __init__(
@@ -21,16 +32,6 @@ class Image(Asset):
             flip_y: bool = False,
             rotation: Real = 0.0,
         ):
-        """
-        Args:
-            path(str): chemin du fichier
-            width(Real, optional): largeur cible en pixels
-            height(Real, optional): hauteur cible en pixels
-            scale(Real, optional): facteur de redimensionnement
-            flip_x(bool, optional): miroir horizontal
-            flip_y(bool, optional): miroir vertical
-            rotation(Real, optional): angle de rotation en degrés
-        """
         self._path: str = expect(path, str)
         self._width: float | None = float(positive(expect(width, Real))) if width is not None else None
         self._height: float | None = float(positive(expect(height, Real))) if height is not None else None

@@ -3,9 +3,7 @@ from __future__ import annotations
 
 from . import abc, math, shape, asset, world, map, ui, scene
 
-from ._window import Window
-from ._rendering._camera import Camera
-from ._rendering._viewport import Viewport
+from ._rendering import Camera, Viewport, Screen, Window
 
 import pyglet
 
@@ -16,7 +14,7 @@ _fps: int = 60
 # ======================================== SETTERS ========================================
 def set_window(window: Window):
     """
-    Définit la fenêtre du moteur. Doit être appelé avant run().
+    Définit la fenêtre du moteur
 
     Args:
         window (Window): fenêtre à utiliser
@@ -33,7 +31,7 @@ def set_window(window: Window):
 
 def set_fps(fps: int):
     """
-    Définit le nombre de mises à jour par seconde.
+    Définit le nombre de mises à jour par seconde
 
     Args:
         fps (int): fps cible
@@ -43,10 +41,7 @@ def set_fps(fps: int):
 
 # ======================================== LOOP ========================================
 def run():
-    """
-    Démarre la loop — bloque jusqu'à fermeture de la fenêtre.
-    set_window() doit avoir été appelé avant.
-    """
+    """Démarre la boucle de mise à jour"""
     if _window is None:
         raise RuntimeError("No window set — call engine.set_window() before engine.run()")
     pyglet.clock.schedule_interval(_update, 1 / _fps)
@@ -59,6 +54,7 @@ def _update(dt: float):
 __all__ = [
     "Camera",
     "Viewport",
+    "Screen",
     "Window",
 
     "abc",

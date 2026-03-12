@@ -6,7 +6,15 @@ from ..abc import Asset
 
 # ======================================== OBJET ========================================
 class Text(Asset):
-    """Descripteur de texte"""
+    """
+    Descripteur de texte
+
+    Args:
+        text(str): contenu du texte
+        font(str, optional): nom ou chemin de la police
+        fontsize(int, optional): taille de la police
+        color(tuple, optional): couleur RGBA
+    """
     __slots__ = ("_text", "_font", "_fontsize", "_color")
 
     def __init__(
@@ -16,13 +24,6 @@ class Text(Asset):
             fontsize: int = 16,
             color: tuple[int, ...] = (255, 255, 255, 255),
         ):
-        """
-        Args:
-            text(str): contenu du texte
-            font(str, optional): nom ou chemin de la police
-            fontsize(int, optional): taille de la police
-            color(tuple, optional): couleur RGBA
-        """
         self._text: str = expect(text, str)
         self._font: str = expect(font, (str, None))
         self._fontsize: int = positive(not_null(expect(fontsize, int)))

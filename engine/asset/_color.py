@@ -5,6 +5,7 @@ from ..abc import Asset
 
 # ======================================== ASSET ========================================
 class Color(tuple, Asset):
+    """Descripteur de Couleur RGBA"""
     __slots__ = ()
 
     def __new__(cls, value, argument: str = "Argument"):
