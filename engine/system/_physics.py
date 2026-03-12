@@ -1,13 +1,15 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from ..ecs import System, UpdatePhase, World
+from ..abc import System
+from ..ecs import UpdatePhase, World
 from ..component import Transform, RigidBody
 
 # ======================================== SYSTEM ========================================
 class PhysicsSystem(System):
     """Système intégrant la physique des corps dynamiques"""
     phase = UpdatePhase.LATE
+    exclusive = True
 
     # ======================================== UPDATE ========================================
     def update(self, world: World, dt: float):

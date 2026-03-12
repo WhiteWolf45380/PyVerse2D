@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from .._internal import expect, not_null, positive
-from ._shape import Shape
+from ..abc import Shape
 
 from numbers import Real
 from typing import Iterator

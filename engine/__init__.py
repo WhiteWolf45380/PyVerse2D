@@ -7,7 +7,7 @@ from ._window import Window
 from ._rendering._camera import Camera
 from ._rendering._viewport import Viewport
 
-from . import math, shape, asset, component, system, scene
+from . import abc, math, shape, asset, component, system, ecs, scene
 
 # ======================================== STATE ========================================
 _window: Window | None = None
@@ -61,11 +61,13 @@ __all__ = [
     "Viewport",
     "Window",
 
+    "abc",
     "math",
     "shape",
     "asset",
     "component",
     "system",
+    "ecs",
     "scene",
 
     "set_window",

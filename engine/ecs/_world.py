@@ -3,9 +3,8 @@ from __future__ import annotations
 
 from .._internal import expect
 
-from ._component import Component
+from ..abc import Component, System
 from ._entity import Entity
-from ._system import System
 from ._update_phase import UpdatePhase
 
 from typing import Type
@@ -125,6 +124,22 @@ class World:
         Args:
             system(System): système à ajouter
         """
+        T = type(system)
+
+        # Exclusivité
+        if system.exclusive and self.has_system(T):
+            raise ValueError(f"Can only have 1 {T} component")
+
+        # Prérequis
+        for req in system.requires:
+            if not self.has_system(req):
+                raise ValueError(f"{T.__name__} requires {req}")
+
+        # Conflits
+        for conflict in system.conflicts:
+            if self.has_system(conflict):
+                raise ValueError(f"{T.__name__} conflicts with {conflict}")
+            
         self._all_systems.append(expect(system, System))
 
     def remove_system(self, system: System):
@@ -134,7 +149,8 @@ class World:
         Args:
             system(System): système à supprimer
         """
-        self._all_systems.remove(expect(system, System))
+        if system in self._all_systems:
+            self._all_systems.remove(expect(system, System))
 
     @property
     def system_count(self) -> int:

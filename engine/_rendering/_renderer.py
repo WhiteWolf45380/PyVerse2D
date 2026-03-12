@@ -8,7 +8,7 @@ from pyglet.graphics import Batch, Group
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..scene import Scene
+    from ..scene._scene import Scene
 
 # ======================================== RENDERER ========================================
 class Renderer:

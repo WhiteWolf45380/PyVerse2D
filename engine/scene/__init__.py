@@ -1,9 +1,9 @@
 # ======================================== IMPORTS ========================================
 from .._internal import expect
+from ..abc import Layer
 
-from ._scene import Scene
-from ._layer import Layer
 from ._world_layer import WorldLayer
+from ._scene import Scene
 from ._stack_mode import StackMode
 
 # ======================================== STATE ========================================
@@ -63,9 +63,8 @@ def draw():
 
 # ======================================== EXPORTS ========================================
 __all__ = [
-    "Scene",
-    "Layer",
     "WorldLayer",
+    "Scene",
     "StackMode",
 
     "get_current",

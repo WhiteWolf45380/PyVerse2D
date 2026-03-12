@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from .._internal import expect, not_null, positive
-from ._shape import Shape
+from ..abc import Shape
 from ..math import Point, Vector
 
 from numbers import Real

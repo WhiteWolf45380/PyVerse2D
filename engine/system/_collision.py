@@ -1,15 +1,17 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from math import sqrt, cos, sin, atan2, pi as _PI
-
-from ..ecs import System, UpdatePhase, World
-from ..component import Transform, RigidBody
-from ..component._collider import Collider
+from ..abc import System
+from ..ecs import UpdatePhase, World
+from ..component import Transform, RigidBody, Collider
 from ..math import Vector
 from ..shape import Circle, Rect, Capsule, Ellipse, Segment, Polygon
 
-from typing import NamedTuple
+from math import sqrt, cos, sin, atan2, pi as _PI
+from typing import NamedTuple, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ._physics import PhysicsSystem
 
 # ======================================== SYSTEM ========================================
 class CollisionSystem(System):
@@ -29,6 +31,8 @@ class CollisionSystem(System):
         broadphase(bool): active la grille spatiale (False = brute-force, debug)
     """
     phase = UpdatePhase.UPDATE
+    exclusive = True
+    requires = (PhysicsSystem,)
 
     def __init__(self, broadphase: bool = True):
         self._hash: _SpatialHash | None = _SpatialHash() if broadphase else None

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from .._internal import expect, positive, not_null
-from ..ecs import Component
+from ..abc import Component
 from ..math import Point, Vector
 
 from typing import Iterator

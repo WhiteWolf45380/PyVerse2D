@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from .._internal import expect
-from ._math_object import MathObject
+from ..abc import MathObject
 
 from ._vector import Vector
 from ._point import Point

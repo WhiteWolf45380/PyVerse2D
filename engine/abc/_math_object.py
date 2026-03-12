@@ -1,6 +1,8 @@
 # ======================================== IMPORTS ========================================
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import Iterator, Self, Any
+from typing import Iterator, Any
 
 # ======================================== CLASSE ABSTRAITE ========================================
 class MathObject(ABC):
@@ -34,4 +36,4 @@ class MathObject(ABC):
 
     # ======================================== PUBLIC METHODS ========================================
     @abstractmethod
-    def copy(self) -> Self: ...
+    def copy(self) -> MathObject: ...

@@ -1,11 +1,16 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from ..ecs import System, UpdatePhase, World
+from ..abc import System
+from ..ecs import UpdatePhase, World
 from ..component import Transform, RigidBody
 from ..math import Vector
 
 from numbers import Real
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ._physics import PhysicsSystem
 
 # ======================================== SYSTEM ========================================
 class GravitySystem(System):
@@ -16,6 +21,8 @@ class GravitySystem(System):
         gravity(Real): force gravitationnelle en N/kg
     """
     phase = UpdatePhase.EARLY
+    exclusive = False
+    requires = (PhysicsSystem,)
 
     def __init__(self, gravity: Real = 9.8):
         self._gravity: float = float(gravity)

@@ -4,8 +4,7 @@ from __future__ import annotations
 from .._internal import expect
 from ..math import Point
 from .._rendering import Camera, Viewport, Renderer
-
-from ._layer import Layer
+from ..abc import Layer
 
 import bisect
 

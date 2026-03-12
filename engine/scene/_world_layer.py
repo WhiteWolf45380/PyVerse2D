@@ -3,8 +3,7 @@ from .._internal import expect
 from ..ecs import World
 from .._rendering import Renderer
 from ..system import RenderSystem
-
-from ._layer import Layer
+from ..abc import Layer
 
 # ======================================== LAYER ========================================
 class WorldLayer(Layer):

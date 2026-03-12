@@ -1,21 +1,22 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
+from ..abc import System
+from ..ecs import World, UpdatePhase
+from ..component import Transform, SpriteRenderer, ShapeRenderer, TextRenderer
+from ..shape import Capsule, Circle, Rect, Ellipse, Segment, Polygon
+
 import pyglet
 import pyglet.shapes
 import pyglet.sprite
 import pyglet.text
 import pyglet.image
-
-from ..ecs import System, World, UpdatePhase
-from ..component import Transform, SpriteRenderer, ShapeRenderer, TextRenderer
-from ..shape import Capsule, Circle, Rect, Ellipse, Segment, Polygon
-
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from .._rendering import Renderer
 
-# ======================================== ORDRE DE RENDU ========================================
+# ======================================== RENDER ORDER ========================================
 _ORDER_SHAPE  = 0
 _ORDER_SPRITE = 1
 _ORDER_LABEL  = 2
@@ -24,6 +25,7 @@ _ORDER_LABEL  = 2
 class RenderSystem(System):
     """Système gérant le rendu des entités avec cache"""
     phase = UpdatePhase.LATE
+    exclusive = True
 
     def __init__(self):
         self._sprites: dict[str, pyglet.sprite.Sprite] = {}
@@ -65,7 +67,6 @@ class RenderSystem(System):
                 active_labels.add(eid)
                 self._sync_text(entity, tr, renderer)
 
-        # Nettoyage des entités supprimées
         for eid in list(self._sprites):
             if eid not in active_sprites:
                 self._sprites.pop(eid).delete()
@@ -197,7 +198,7 @@ class RenderSystem(System):
             print(f"[RenderSystem] Cannot load image: {path}")
             return None
 
-# ======================================== INTERNAL RENDERING SHAPES ========================================
+# ======================================== INTERNALS ========================================
 class _CapsuleShape:
     def __init__(self, x, y, radius, spine, batch=None, group=None):
         self._rect = pyglet.shapes.Rectangle(x - radius, y, radius * 2, spine, batch=batch, group=group)

@@ -1,7 +1,7 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from ._asset import Asset
+from ..abc import Asset
 
 # ======================================== ASSET ========================================
 class Color(tuple, Asset):

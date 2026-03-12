@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from .._internal import expect
-from ._shape import Shape
+from ..abc import Shape
 from ..math import Point
 
 from numbers import Real

@@ -1,7 +1,6 @@
 # ======================================== IMPORTS ========================================
 from .._internal import expect, clamped
-from ..ecs import Component
-from ..shape import Shape
+from ..abc import Component, Shape
 
 from typing import Iterator
 from numbers import Real
