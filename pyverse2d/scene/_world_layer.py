@@ -48,4 +48,4 @@ class WorldLayer(Layer):
     def draw(self, pipeline: Pipeline):
         """Affichage du layer"""
         if self._world is not None and self._world.has_system(RenderSystem):
-            self._world.get_system(RenderSystem).draw(pipeline)
+            self._world.get_system(RenderSystem).draw(self._world, pipeline)

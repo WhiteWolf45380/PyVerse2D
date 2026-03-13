@@ -128,17 +128,17 @@ class World:
 
         # Exclusivité
         if system.exclusive and self.has_system(T):
-            raise ValueError(f"Can only have 1 {T} component")
+            raise ValueError(f"Can only have 1 {type(T).__name__} component")
 
         # Prérequis
         for req in system.requires:
             if not self.has_system(req):
-                raise ValueError(f"{T.__name__} requires {req}")
+                raise ValueError(f"{type(T).__name__} requires {type(req).__name__}")
 
         # Conflits
         for conflict in system.conflicts:
             if self.has_system(conflict):
-                raise ValueError(f"{T.__name__} conflicts with {conflict}")
+                raise ValueError(f"{type(T).__name__} conflicts with {type(conflict).__name__}")
             
         self._all_systems.append(expect(system, System))
 
