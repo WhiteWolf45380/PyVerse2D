@@ -16,8 +16,10 @@ class Viewport:
         y (Real): position verticale dans l'espace virtuel
         width (Real): largeur dans l'espace virtuel (0.0 = tout)
         height (Real): hauteur dans l'espace virtuel (0.0 = tout)
+        border_width(int): épaisseur de la bordure
+        border_color(Color): couleur de la bordure
     """
-    __slots__ = ("_x", "_y", "_width", "_height", "_border")
+    __slots__ = ("_x", "_y", "_width", "_height", "_border", "border_width", "_border_color")
 
     def __init__(
         self,

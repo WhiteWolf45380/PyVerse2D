@@ -71,6 +71,9 @@ class Color(tuple, Asset):
             raise TypeError(f"{argument}: invalid alpha component ({a})")
 
         return tuple.__new__(cls, (r, g, b, a))
+    
+    def __init__(self, value, argument: str = "Argument"):
+        ...
 
     # ======================================== GETTERS ========================================
     @property

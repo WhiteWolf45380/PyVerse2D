@@ -15,7 +15,7 @@ class WorldLayer(Layer):
         world(World, optional): monde assigné
     """
     def __init__(self, world: World = None, camera_mode: CameraMode = CameraMode.WORLD):
-        super.__init__(camera_mode)
+        super().__init__(camera_mode)
         self._world: World | None = expect(world, (World, None))
     
     # ======================================== GETTERS ========================================
