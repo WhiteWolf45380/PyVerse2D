@@ -122,17 +122,9 @@ class Camera:
         self._pos += Vector(vector)
 
     # ======================================== RENDU ========================================
-    def view_matrix(self, virtual_width: int, virtual_height: int) -> Mat4:
-        """
-        Produit la matrice de vue à appliquer à la fenêtre
-
-        Args:
-            virtual_width (int): largeur de l'espace virtuel
-            virtual_height (int): hauteur de l'espace virtuel
-        """
-        cx = virtual_width  / 2
-        cy = virtual_height / 2
+    def view_matrix(self) -> Mat4:
+        """Produit la matrice de vue à appliquer à l'écran"""
         fx, fy = self.final_pos
-        translate = Mat4.from_translation(Vec3(cx - fx, cy - fy, 0))
+        translate = Mat4.from_translation(Vec3(-fx, -fy, 0))
         scale = Mat4.from_scale(Vec3(self._zoom, self._zoom, 1))
         return translate @ scale

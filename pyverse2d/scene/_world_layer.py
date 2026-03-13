@@ -1,7 +1,9 @@
 # ======================================== IMPORTS ========================================
 from .._internal import expect
-from ..world import World, RenderSystem
+from .._flag import CameraMode
 from .._rendering._pipeline import Pipeline
+
+from ..world import World, RenderSystem
 from ..abc import Layer
 
 # ======================================== LAYER ========================================
@@ -12,7 +14,8 @@ class WorldLayer(Layer):
     Args:
         world(World, optional): monde assigné
     """
-    def __init__(self, world: World = None):
+    def __init__(self, world: World = None, camera_mode: CameraMode = CameraMode.WORLD):
+        super.__init__(camera_mode)
         self._world: World | None = expect(world, (World, None))
     
     # ======================================== GETTERS ========================================

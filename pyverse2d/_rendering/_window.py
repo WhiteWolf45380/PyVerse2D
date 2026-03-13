@@ -78,42 +78,6 @@ class Window:
         def on_resize(w: int, h: int):
             self._apply_projection(w, h)
 
-    # ======================================== PROJECTION ========================================
-    def _apply_projection(self, win_w: int, win_h: int):
-        """Letterboxing + projection orthogonale vers l'espace logique"""
-        if win_w <= 0 or win_h <= 0:
-            return
-
-        screen_ratio = self._screen.ratio
-        win_ratio    = win_w / win_h
-
-        # Bandes latérales
-        if win_ratio > screen_ratio:
-            h = win_h
-            w = int(h * screen_ratio)
-            x = (win_w - w) // 2
-            y = 0
-        
-        # Bandes horizontales
-        else:
-            w = win_w
-            h = int(w / screen_ratio)
-            x = 0
-            y = (win_h - h) // 2
-
-        # Matrice de projection
-        self._viewport = (x, y, w, h)
-        gl.glViewport(x, y, w, h)
-
-        self._window.projection = Mat4.orthogonal_projection(
-            left=0,
-            right=self._screen.width,
-            bottom=0,
-            top=self._screen.height,
-            z_near=-1,
-            z_far=1,
-        )
-
     # ======================================== GETTERS ========================================
     @property
     def screen(self) -> Screen:
@@ -141,7 +105,7 @@ class Window:
 
     @property
     def native(self) -> pyglet.window.Window: # type: ignore
-        """Fenêtre pyglet brute — usage interne uniquement"""
+        """Renvoie la fenêtre pyglet"""
         return self._window
 
     # ======================================== CONVERSIONS ========================================
@@ -171,7 +135,7 @@ class Window:
         sy = self._screen.height / vh
         return (x - vx) * sx, (y - vy) * sy
 
-    # ======================================== MÉTHODES ========================================
+    # ======================================== SETTERS ========================================
     def clear(self):
         """Efface le contenu de la fenêtre"""
         self._window.clear()
@@ -206,7 +170,40 @@ class Window:
         self._window.close()
 
     def __repr__(self) -> str:
-        return (
-            f"Window({self._window.width}x{self._window.height}, "
-            f"screen={self._screen})"
+        return (f"Window({self._window.width}x{self._window.height}, screen={self._screen})")
+    
+    # ======================================== PROJECTION ========================================
+    def _apply_projection(self, win_w: int, win_h: int):
+        """Letterboxing + projection orthogonale vers l'espace logique"""
+        if win_w <= 0 or win_h <= 0:
+            return
+
+        screen_ratio = self._screen.ratio
+        win_ratio    = win_w / win_h
+
+        # Bandes latérales
+        if win_ratio > screen_ratio:
+            h = win_h
+            w = int(h * screen_ratio)
+            x = (win_w - w) // 2
+            y = 0
+        
+        # Bandes horizontales
+        else:
+            w = win_w
+            h = int(w / screen_ratio)
+            x = 0
+            y = (win_h - h) // 2
+
+        # Matrice de projection
+        self._viewport = (x, y, w, h)
+        gl.glViewport(x, y, w, h)
+
+        self._window.projection = Mat4.orthogonal_projection(
+            left=-self._screen.half_width,
+            right=self._screen.half_width,
+            bottom=-self._screen.half_height,
+            top=self._screen.half_height,
+            z_near=-1,
+            z_far=1,
         )

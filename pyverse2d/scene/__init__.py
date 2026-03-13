@@ -1,6 +1,7 @@
 # ======================================== IMPORTS ========================================
 from .._internal import expect
 from .._flag import StackMode, CameraMode
+from .._rendering._pipeline import Pipeline
 
 from ._camera import Camera
 from ._viewport import Viewport
@@ -37,7 +38,7 @@ def push(scene: Scene, mode: StackMode = StackMode.PAUSE):
     """Empile une scene par dessus l'active"""
     if _stack:
         below = _stack[-1][0]
-        if mode == StackMode.PAUSE:
+        if expect(mode, StackMode) == StackMode.PAUSE:
             below.on_stop()
         elif mode == StackMode.SUSPEND:
             below.suspend()
@@ -58,9 +59,9 @@ def update(dt: float):
         if mode != StackMode.PAUSE:
             scene.update(dt)
 
-def draw():
+def draw(pipeline: Pipeline):
     for scene, _ in _stack:
-        scene.draw()
+        scene.draw(pipeline)
 
 # ======================================== EXPORTS ========================================
 __all__ = [

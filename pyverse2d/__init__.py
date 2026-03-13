@@ -4,11 +4,13 @@ from __future__ import annotations
 from . import abc, math, shape, asset, world, map, ui, scene
 
 from ._rendering import Screen, Window
+from ._rendering._pipeline import Pipeline
 
 import pyglet
 
 # ======================================== STATE ========================================
 _window: Window | None = None
+_pipeline: Pipeline | None = None
 _fps: int = 60
 
 # ======================================== SETTERS ========================================
@@ -23,11 +25,12 @@ def set_window(window: Window):
     if not isinstance(window, Window):
         raise TypeError("Expected a Window instance")
     _window = window
+    _pipeline = Pipeline(Window)
 
     @_window.native.event
     def on_draw():
         _window.clear()
-        scene.draw()
+        scene.draw(_pipeline)
 
 def set_fps(fps: int):
     """
@@ -43,7 +46,7 @@ def set_fps(fps: int):
 def run():
     """Démarre la boucle de mise à jour"""
     if _window is None:
-        raise RuntimeError("No window set — call engine.set_window() before engine.run()")
+        raise RuntimeError("No window set - call set_window() before run()")
     pyglet.clock.schedule_interval(_update, 1 / _fps)
     pyglet.app.run()
 

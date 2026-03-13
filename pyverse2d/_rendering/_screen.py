@@ -39,6 +39,31 @@ class Screen:
         """Renvoie la taille de l'écran"""
         return self._width, self._height
     
+    @property
+    def half_width(self) -> float:
+        """Renvoie la demi-largeur de l'écran"""
+        return self._width * 0.5
+    
+    @property
+    def half_height(self) -> float:
+        """Renvoie la demi-hauteur de l'écran"""
+        return self._height * 0.5
+
+    @property
+    def center(self) -> tuple[float, float]:
+        """Renvoie la position du centre de l'écran"""
+        return (self._width * 0.5, self._height * 0.5)
+    
+    @property
+    def centerx(self) -> float:
+        """Renvoie le centre x de l'écran"""
+        return self._width * 0.5
+    
+    @property
+    def centery(self) -> float:
+        """Renvoie le centrey de l'écran"""
+        return self._height * 0.5
+    
     # ======================================== PUBLIC METHODS ========================================
     def copy(self) -> Screen:
         """Renvoie une copie de l'écran"""
