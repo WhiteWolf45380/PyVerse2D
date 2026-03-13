@@ -4,14 +4,14 @@ import subprocess
 from pathlib import Path
 
 # ------------------------------
-# 1️⃣ Arguments et fichiers
+# Arguments et fichiers
 # ------------------------------
 bump = sys.argv[1] if len(sys.argv) > 1 else "patch"
 version_file = Path(__file__).parent / "pyverse2d" / "_version.py"
 pyproject_file = Path(__file__).parent / "pyproject.toml"
 
 # ------------------------------
-# 2️⃣ Lire et incrémenter _version.py
+# Incrémentation de  _version.py
 # ------------------------------
 with open(version_file, "r") as f:
     content = f.read()
@@ -36,7 +36,7 @@ else:
 
 new_version = f"{major}.{minor}.{patch_num}"
 
-# Update _version.py
+# Update de _version.py
 new_content = re.sub(r'__version__\s*=\s*"\d+\.\d+\.\d+"',
                      f'__version__ = "{new_version}"', content)
 with open(version_file, "w") as f:
@@ -45,7 +45,7 @@ with open(version_file, "w") as f:
 print(f"[+] _version.py mis à jour → {new_version}")
 
 # ------------------------------
-# 3️⃣ Mettre à jour pyproject.toml
+# Mise à jour du pyproject.toml
 # ------------------------------
 with open(pyproject_file, "r") as f:
     pyproject_content = f.read()
@@ -59,7 +59,7 @@ with open(pyproject_file, "w") as f:
 print(f"[+] pyproject.toml mis à jour → {new_version}")
 
 # ------------------------------
-# 4️⃣ Nettoyer dist/
+# Nettoyage de dist/
 # ------------------------------
 dist_dir = Path(__file__).parent / "dist"
 if dist_dir.exists():
@@ -68,19 +68,19 @@ if dist_dir.exists():
     print("[+] dist/ nettoyé")
 
 # ------------------------------
-# 5️⃣ Build
+# Build
 # ------------------------------
 subprocess.run(["python", "-m", "build"], check=True)
 print("[+] Build terminé")
 
 # ------------------------------
-# 6️⃣ Upload sur PyPI
+# Upload PyPI
 # ------------------------------
 subprocess.run(["python", "-m", "twine", "upload", "dist/*"], check=True)
 print("[+] Upload PyPI terminé")
 
 # ------------------------------
-# 7️⃣ Git commit & push
+# Git commit & push
 # ------------------------------
 subprocess.run(["git", "add", "."])
 subprocess.run(["git", "commit", "-m", f"chore(version): bump to version {new_version}"])
