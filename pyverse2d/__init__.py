@@ -1,5 +1,6 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
+from ._version import __version__
 
 from . import abc, math, shape, asset, world, map, ui, scene
 
