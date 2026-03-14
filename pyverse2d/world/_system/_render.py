@@ -17,6 +17,7 @@ import pyglet.image
 import pyglet.gl
 from pyglet.graphics import Batch, Group
 from typing import TYPE_CHECKING
+import math
 
 if TYPE_CHECKING:
     from ..._rendering._pipeline import Pipeline
@@ -141,11 +142,11 @@ class RenderSystem(System):
 
         if eid not in self._shapes:
             group = pipeline.get_group(sr.z * 3 + _ORDER_SHAPE)
-            obj = _ShapeObject(sr.shape, x, y, scale, sr, pipeline.batch, group)
+            obj = _ShapeObject(sr.shape, x, y, scale, tr.rotation, sr, pipeline.batch, group)
             self._shapes[eid] = obj
 
         obj = self._shapes[eid]
-        obj.update(x, y, scale, sr)
+        obj.update(x, y, scale, tr.rotation, sr)
 
     # ======================================== SYNC LABEL ========================================
     def _sync_text(self, entity: Entity, tr: Transform, pipeline: Pipeline) -> None:
@@ -180,8 +181,9 @@ class RenderSystem(System):
                 batch=pipeline.batch,
                 group=group,
             )
-            self._labels[eid].x = tr.x - (tr.anchor[0] * label.content_width  + tc.offset[0]) * tr.scale
-            self._labels[eid].y = tr.y - (tr.anchor[1] * label.content_height + tc.offset[1]) * tr.scale
+            label = self._labels[eid]
+            label.x = tr.x - (tr.anchor[0] * label.content_width  + tc.offset[0]) * tr.scale
+            label.y = tr.y - (tr.anchor[1] * label.content_height + tc.offset[1]) * tr.scale
             return
 
         # Mise à jour
@@ -217,16 +219,16 @@ class RenderSystem(System):
 # ======================================== SHAPE OBJECT ========================================
 class _ShapeObject:
     """Wrapper unifié pour le rendu d'une shape géométrique"""
-    def __init__(self, shape: Shape, x: float, y: float, scale: float, sr: ShapeRenderer, batch: pyglet.graphics.Batch, group: pyglet.graphics.Group):
+    def __init__(self, shape: Shape, x: float, y: float, scale: float, rotation: float, sr: ShapeRenderer, batch: pyglet.graphics.Batch, group: pyglet.graphics.Group):
         self._shape = shape
         self._fill = None
         self._border = None
         self._batch = batch
         self._group = group
         self._poly_scale = None
-        self._build(x, y, scale, sr)
+        self._build(x, y, scale, rotation, sr)
 
-    def _build(self, x: float, y: float, scale: float, sr: ShapeRenderer):
+    def _build(self, x: float, y: float, scale: float, rotation: float, sr: ShapeRenderer):
         """Instancie fill et/ou border selon la config du ShapeRenderer"""
         shape = self._shape
 
@@ -238,30 +240,37 @@ class _ShapeObject:
                 self._fill = _CapsuleShape(x, y, shape.radius * s, shape.spine * s, color=color, batch=self._batch, group=self._group)
             elif isinstance(shape, Circle):
                 self._fill = pyglet.shapes.Circle(x, y, shape.radius * s, color=color, batch=self._batch, group=self._group)
+                self._fill.rotation = rotation
             elif isinstance(shape, Rect):
                 self._fill = pyglet.shapes.Rectangle(x, y, shape.width * s, shape.height * s, color=color, batch=self._batch, group=self._group)
+                self._fill.rotation = rotation
             elif isinstance(shape, Ellipse):
                 self._fill = pyglet.shapes.Ellipse(x, y, shape.rx * s, shape.ry * s, color=color, batch=self._batch, group=self._group)
+                self._fill.rotation = rotation
             elif isinstance(shape, Segment):
-                self._fill = pyglet.shapes.Line(x + shape.A.x * s, y + shape.A.y * s, x + shape.B.x * s, y + shape.B.y * s, thickness=shape.width * s, color=color, batch=self._batch, group=self._group)
+                ax, ay = x + shape.A.x * s, y + shape.A.y * s
+                bx, by = x + shape.B.x * s, y + shape.B.y * s
+                cx, cy = (ax + bx) / 2, (ay + by) / 2
+                ax, ay = _rotate(ax, ay, cx, cy, rotation)
+                bx, by = _rotate(bx, by, cx, cy, rotation)
+                self._fill = pyglet.shapes.Line(ax, ay, bx, by, thickness=shape.width * s, color=color, batch=self._batch, group=self._group)
             elif isinstance(shape, Polygon):
-                pts = [(x + p.x * s, y + p.y * s) for p in shape.points]
+                pts = [_rotate(x + p.x * s, y + p.y * s, x, y, rotation) for p in shape.points]
                 self._fill = pyglet.shapes.Polygon(*pts, color=color, batch=self._batch, group=self._group)
                 self._poly_scale = s
 
         # Bordure
         if sr.border_width > 0:
-            self._border = _BorderObject(shape, x, y, scale, sr.border_color.rgba8, sr.border_width, self._batch, self._group)
+            self._border = _BorderObject(shape, x, y, scale, rotation, sr.border_color.rgba8, sr.border_width, self._batch, self._group)
 
-    def update(self, x: float, y: float, scale: float, sr: ShapeRenderer):
+    def update(self, x: float, y: float, scale: float, rotation: float, sr: ShapeRenderer):
         """Met à jour position, scale, couleurs et visibilité"""
         shape = self._shape
         opacity = int(round(255 * sr.opacity))
-        s = scale
 
         # Remplissage
         if sr.filling and self._fill is None:
-            self._build(x, y, scale, sr)
+            self._build(x, y, scale, rotation, sr)
             return
         if not sr.filling and self._fill is not None:
             self._fill.delete()
@@ -272,32 +281,32 @@ class _ShapeObject:
             self._fill.opacity = opacity
             self._fill.color = sr.filling_color.rgba8
             if isinstance(shape, Polygon):
-                if self._poly_scale != s:
+                if self._poly_scale != scale:
                     self._fill.delete()
-                    pts = [(x + p.x * s, y + p.y * s) for p in shape.points]
-                    self._fill = pyglet.shapes.Polygon(*pts, color=sr.filling_color.rgba8, batch=self._batch, group=self._group)
+                    pts = [_rotate(x + p.x * scale, y + p.y * scale, x, y, rotation) for p in shape.points]
+                    self._fill = pyglet.shapes.Polygon(*pts, color=sr.filling_color.rgb8, batch=self._batch, group=self._group)
                     self._fill.opacity = opacity
-                    self._poly_scale = s
+                    self._poly_scale = scale
                 else:
                     ox = self._fill.x - x
                     oy = self._fill.y - y
                     if ox != 0.0 or oy != 0.0:
                         self._fill.delete()
-                        pts = [(x + p.x * s, y + p.y * s) for p in shape.points]
-                        self._fill = pyglet.shapes.Polygon(*pts, color=sr.filling_color.rgba8, batch=self._batch, group=self._group)
+                        pts = [_rotate(x + p.x * scale, y + p.y * scale, x, y, rotation) for p in shape.points]
+                        self._fill = pyglet.shapes.Polygon(*pts, color=sr.filling_color.rgb8, batch=self._batch, group=self._group)
                         self._fill.opacity = opacity
             else:
-                _apply_fill_position(self._fill, shape, x, y, s)
+                _apply_fill_position(self._fill, shape, x, y, scale, rotation)
 
         # Bordure
         if sr.border_width > 0 and self._border is None:
-            self._border = _BorderObject(shape, x, y, scale, sr.border_color.rgba8, sr.border_width, self._batch, self._group)
+            self._border = _BorderObject(shape, x, y, scale, rotation, sr.border_color.rgba8, sr.border_width, self._batch, self._group)
         if sr.border_width == 0 and self._border is not None:
             self._border.delete()
             self._border = None
 
         if self._border is not None:
-            self._border.update(shape, x, y, scale, sr.border_color.rgba8, sr.border_width, opacity)
+            self._border.update(shape, x, y, scale, rotation, sr.border_color.rgba8, sr.border_width, sr.opacity)
 
     @property
     def visible(self):
@@ -322,8 +331,7 @@ class _ShapeObject:
 # ======================================== BORDER OBJECT ========================================
 class _BorderObject:
     """Bordure d'une shape via GL_LINE_LOOP sur ses vertices()"""
-
-    def __init__(self, shape: Shape, x: float, y: float, scale: float, color: tuple[int, ...], width: int, batch: Batch, group: Group):
+    def __init__(self, shape: Shape, x: float, y: float, scale: float, rotation: float, color: tuple[int, ...], width: int, batch: Batch, group: Group):
         self._vlist: list = None
         self._visible: bool = True
         self._color: tuple[int, ...] = color
@@ -331,25 +339,27 @@ class _BorderObject:
         self._n: int = 0
         self._batch: Batch = batch
         self._group: Group = group
-        self._build(shape, x, y, scale, color, width)
+        self._build(shape, x, y, scale, rotation, color, width)
 
-    def _build(self, shape: Shape, x: float, y: float, scale: float, color: tuple[int, ...], width: int):
+    def _build(self, shape: Shape, x: float, y: float, scale: float, rotation: float, color: tuple[int, ...], width: int):
         pts = shape.vertices(scale)
         self._n = len(pts)
         flat = []
         for px, py in pts:
-            flat += [x + px, y + py]
+            rx, ry = _rotate(x + px, y + py, x, y, rotation)
+            flat += [rx, ry]
         self._vlist = self._batch.add(self._n, pyglet.gl.GL_LINE_LOOP, self._group, ('v2f', flat), ('c4B', color * self._n))
         pyglet.gl.glLineWidth(width)
 
-    def update(self, shape: Shape, x: float, y: float, scale: float, color: tuple[int, ...], width: int, opacity: float):
+    def update(self, shape: Shape, x: float, y: float, scale: float, rotation: float, color: tuple[int, ...], width: int, opacity: float):
         if self._vlist is None:
             return
         self._color = color
         pts = shape.vertices(scale)
         flat = []
         for px, py in pts:
-            flat += [x + px, y + py]
+            rx, ry = _rotate(x + px, y + py, x, y, rotation)
+            flat += [rx, ry]
         self._vlist.vertices[:] = flat
         r, g, b, a = color
         self._vlist.colors[:] = (r, g, b, int(a * opacity)) * self._n
@@ -377,38 +387,56 @@ class _BorderObject:
             self._vlist = None
 
 # ======================================== INTERNALS ========================================
-def _apply_fill_position(obj, shape, x, y, scale: float):
+def _apply_fill_position(obj: object, shape: Shape, x: float, y: float, scale: float, rotation: float = 0.0):
     """Met à jour la position et les dimensions du fill pyglet"""
     if isinstance(shape, Circle):
         obj.x = x
         obj.y = y
         obj.radius = shape.radius * scale
+        obj.rotation = rotation
+
     elif isinstance(shape, Rect):
         obj.x = x
         obj.y = y
         obj.width = shape.width * scale
         obj.height = shape.height * scale
+        obj.rotation = rotation
+
     elif isinstance(shape, Ellipse):
         obj.x = x
         obj.y = y
         obj.a = shape.rx * scale
         obj.b = shape.ry * scale
+        obj.rotation = rotation
+
     elif isinstance(shape, Capsule):
         obj.x = x
         obj.y = y
         obj.set_scale(scale)
+
     elif isinstance(shape, Segment):
         s = scale
-        obj.x = x + shape.A.x * s
-        obj.y = y + shape.A.y * s
-        obj.x2 = x + shape.B.x * s
-        obj.y2 = y + shape.B.y * s
+        cx = x + (shape.A.x + shape.B.x) / 2 * s
+        cy = y + (shape.A.y + shape.B.y) / 2 * s
+        ax, ay = _rotate(x + shape.A.x * s, y + shape.A.y * s, cx, cy, rotation)
+        bx, by = _rotate(x + shape.B.x * s, y + shape.B.y * s, cx, cy, rotation)
+        obj.x  = ax
+        obj.y  = ay
+        obj.x2 = bx
+        obj.y2 = by
         obj.thickness = shape.width * s
 
 def _final_color(renderer: TextRenderer) -> tuple[int, int, int, int]:
     """Fusionne color et opacity en un seul RGBA8"""
     r, g, b, a = renderer.color.rgba8
     return (r, g, b, int(a * renderer.opacity))
+
+def _rotate(px: float, py: float, cx: float, cy: float, angle: float) -> tuple[float, float]:
+    """Fait tourner (px, py) autour de (cx, cy) d'un angle en degrés"""
+    rad = math.radians(angle)
+    cos_a, sin_a = math.cos(rad), math.sin(rad)
+    dx, dy = px - cx, py - cy
+    return cx + dx * cos_a - dy * sin_a, cy + dx * sin_a + dy * cos_a
 
 # ======================================== CAPSULE SHAPE ========================================
 class _CapsuleShape:
