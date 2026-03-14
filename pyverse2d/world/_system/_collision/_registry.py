@@ -1,16 +1,18 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from math import sqrt, cos, sin, atan2
+from math import sqrt, cos, sin, atan2, pi as _PI
 from typing import NamedTuple, Callable
 
 from ....math import Vector
-from ....shape import Capsule, Ellipse, Segment
-from ....abc import Shape
+from ....shape import Circle, Rect, Capsule, Ellipse, Segment, Polygon
 
 # ======================================== CONTACT ========================================
 class Contact(NamedTuple):
-    """Résultat d'une détection de collision"""
+    """
+    Résultat d'une détection de collision
+    Convention : normal pointe de B vers A (pousse A hors de B)
+    """
     normal: Vector
     depth: float
 
@@ -18,18 +20,14 @@ class Contact(NamedTuple):
 _handlers: dict[tuple[type, type], Callable] = {}
 
 def register(type_a: type, type_b: type):
-    """
-    Décore une fonction de narrowphase pour la paire (type_a, type_b)
-    """
+    """Décore une fonction de narrowphase pour la paire (type_a, type_b)"""
     def decorator(fn: Callable) -> Callable:
         _handlers[(type_a, type_b)] = fn
         return fn
     return decorator
 
 def dispatch(sa, ax: float, ay: float, sb, bx: float, by: float) -> Contact | None:
-    """
-    Dispatche vers le bon handler de narrowphase
-    """
+    """Dispatche vers le bon handler de narrowphase"""
     key = (type(sa), type(sb))
     fn = _handlers.get(key)
     if fn is not None:
@@ -95,7 +93,7 @@ def _circle_pts(cx: float, cy: float, cr: float, pts: list) -> Contact | None:
 
 
 def _sat(pts_a: list, pts_b: list) -> Contact | None:
-    """SAT pour deux polygones convexes"""
+    """SAT pour deux polygones convexess."""
     min_depth = float("inf")
     best_nx, best_ny = 0.0, 1.0
 
@@ -136,10 +134,51 @@ def _sat(pts_a: list, pts_b: list) -> Contact | None:
 def _ellipse_vs_convex_pts(ex: float, ey: float, rx: float, ry: float, pts: list) -> Contact | None:
     """Ellipse vs polygone convexe"""
     n = len(pts)
+    min_ov = float("inf")
+    best_nx, best_ny = 0.0, 1.0
 
-    # Point du polygone le plus proche du centre de l'ellipse
+    # Centroïde du polygone
+    pg_cx = sum(p[0] for p in pts) / n
+    pg_cy = sum(p[1] for p in pts) / n
+
+    def _test_axis(nx: float, ny: float) -> bool:
+        nonlocal min_ov, best_nx, best_ny
+        le = sqrt(nx * nx + ny * ny)
+        if le < 1e-10:
+            return True
+        nx /= le; ny /= le
+        h = sqrt(rx * rx * nx * nx + ry * ry * ny * ny)
+        ec = ex * nx + ey * ny
+        projs = [px * nx + py * ny for px, py in pts]
+        min_p, max_p = min(projs), max(projs)
+        ov = min(ec + h, max_p) - max(ec - h, min_p)
+        if ov <= 0:
+            return False
+        if ov < min_ov:
+            min_ov = ov
+            mid = (min_p + max_p) * 0.5
+            if abs(ec - mid) > 1e-6:
+                if ec > mid:
+                    best_nx, best_ny = nx, ny
+                else:
+                    best_nx, best_ny = -nx, -ny
+            else:
+                dx = ex - pg_cx; dy = ey - pg_cy
+                if dx * nx + dy * ny > 0:
+                    best_nx, best_ny = nx, ny
+                else:
+                    best_nx, best_ny = -nx, -ny
+        return True
+
+    # Axes des arêtes du polygone
+    for i in range(n):
+        x1, y1 = pts[i]
+        x2, y2 = pts[(i + 1) % n]
+        if not _test_axis(-(y2 - y1), x2 - x1):
+            return None
+
     min_d2 = float("inf")
-    best_px, best_py = pts[0]
+    cpx, cpy = pts[0]
     for i in range(n):
         x1, y1 = pts[i]
         x2, y2 = pts[(i + 1) % n]
@@ -147,52 +186,17 @@ def _ellipse_vs_convex_pts(ex: float, ey: float, rx: float, ry: float, pts: list
         d2 = (px - ex) ** 2 + (py - ey) ** 2
         if d2 < min_d2:
             min_d2 = d2
-            best_px, best_py = px, py
-
-    lx, ly = (best_px - ex) / rx, (best_py - ey) / ry
-    poly_pt_inside = lx * lx + ly * ly < 1.0
-    center_in_poly = _point_in_convex_poly(ex, ey, pts)
-
-    if not poly_pt_inside and not center_in_poly:
+            cpx, cpy = px, py
+    if not _test_axis(cpx - ex, cpy - ey):
         return None
 
-    if center_in_poly:
-        # SAT avec fonction support de l'ellipse
-        min_ov = float("inf")
-        best_nx, best_ny = 0.0, 1.0
-        for i in range(n):
-            x1, y1 = pts[i]
-            x2, y2 = pts[(i + 1) % n]
-            edx, edy = x2 - x1, y2 - y1
-            le = sqrt(edx * edx + edy * edy) or 1e-10
-            nx, ny = -edy / le, edx / le
-            # Projection de l'ellipse via sa fonction support
-            h = sqrt(rx * rx * nx * nx + ry * ry * ny * ny)
-            ec_proj = ex * nx + ey * ny
-            projs = [qx * nx + qy * ny for qx, qy in pts]
-            min_p, max_p = min(projs), max(projs)
-            ov = min(ec_proj + h, max_p) - max(ec_proj - h, min_p)
-            if ov <= 0:
-                return None
-            if ov < min_ov:
-                min_ov = ov
-                if ec_proj < (min_p + max_p) * 0.5:
-                    best_nx, best_ny = -nx, -ny
-                else:
-                    best_nx, best_ny = nx, ny
-        return Contact(Vector(best_nx, best_ny), min_ov)
-
-    # Point du polygone à l'intérieur de l'ellipse
-    qx, qy = _closest_pt_on_ellipse(ex, ey, rx, ry, best_px, best_py)
-    ddx, ddy = qx - best_px, qy - best_py
-    dist = sqrt(ddx * ddx + ddy * ddy) or 1e-8
-    return Contact(Vector(ddx / dist, ddy / dist), dist)
-
+    return Contact(Vector(best_nx, best_ny), min_ov)
 
 # ======================================== HELPERS GÉOMÉTRIQUES ========================================
 def _rect_corners(x: float, y: float, w: float, h: float) -> list:
     """Renvoie les 4 sommets d'un Rect en coordonnées monde"""
     return [(x, y), (x + w, y), (x + w, y + h), (x, y + h)]
+
 
 def _seg_corners(x: float, y: float, seg: Segment) -> list:
     """Renvoie les 4 sommets OBB d'un Segment en coordonnées monde"""
@@ -220,7 +224,10 @@ def _seg_corners(x: float, y: float, seg: Segment) -> list:
     ]
 
 
-def _closest_pt_on_seg(sx: float, sy: float, sdx: float, sdy: float,px: float, py: float) -> tuple[float, float]:
+def _closest_pt_on_seg(
+    sx: float, sy: float, sdx: float, sdy: float,
+    px: float, py: float,
+) -> tuple[float, float]:
     """Point le plus proche de (px,py) sur le segment (sx,sy)→(sx+sdx,sy+sdy)"""
     len_sq = sdx * sdx + sdy * sdy
     if len_sq < 1e-10:
@@ -229,8 +236,11 @@ def _closest_pt_on_seg(sx: float, sy: float, sdx: float, sdy: float,px: float, p
     return sx + t * sdx, sy + t * sdy
 
 
-def _closest_pt_seg_to_seg(ax: float, ay: float, adx: float, ady: float,bx: float, by: float, bdx: float, bdy: float,) -> tuple[float, float]:
-    """Point sur le segment A le plus proche du segment B"""
+def _closest_pt_seg_to_seg(
+    ax: float, ay: float, adx: float, ady: float,
+    bx: float, by: float, bdx: float, bdy: float,
+) -> tuple[float, float]:
+    """Algorithme Ericson"""
     a_len_sq = adx * adx + ady * ady
     b_len_sq = bdx * bdx + bdy * bdy
     rx, ry = ax - bx, ay - by
@@ -257,8 +267,14 @@ def _closest_pt_seg_to_seg(ax: float, ay: float, adx: float, ady: float,bx: floa
     return bx + s * bdx, by + s * bdy
 
 
-def _closest_pt_on_ellipse(cx: float, cy: float, rx: float, ry: float,px: float, py: float,) -> tuple[float, float]:
-    """Point le plus proche sur l'ellipse (cx,cy,rx,ry) du point (px,py)"""
+def _closest_pt_on_ellipse(
+    cx: float, cy: float, rx: float, ry: float,
+    px: float, py: float,
+) -> tuple[float, float]:
+    """
+    Point le plus proche sur l'ellipse (cx,cy,rx,ry) du point (px,py).
+    Newton-Raphson — converge en ≤ 25 itérations.
+    """
     lx = px - cx
     ly = py - cy
     if abs(lx) < 1e-12 and abs(ly) < 1e-12:
@@ -284,7 +300,7 @@ def _closest_pt_on_ellipse(cx: float, cy: float, rx: float, ry: float,px: float,
 
 
 def _point_in_convex_poly(px: float, py: float, pts: list) -> bool:
-    """Vérifie si (px,py) est à l'intérieur d'un polygone convexe"""
+    """Vérifie si (px,py) est à l'intérieur d'un polygone convexe (agnostique au sens)"""
     n = len(pts)
     sign = None
     for i in range(n):
@@ -301,10 +317,26 @@ def _point_in_convex_poly(px: float, py: float, pts: list) -> bool:
     return sign is not None
 
 
-def _half_extents(shape: Shape) -> tuple[float, float]:
+def _half_extents(shape) -> tuple[float, float]:
     """Demi-dimensions AABB d'une shape"""
-    _, _, w, h = shape.bounding_box()
-    return 0.5 * w, 0.5 * h
+    if isinstance(shape, Circle):
+        return shape.radius, shape.radius
+    if isinstance(shape, Rect):
+        return shape.width * 0.5, shape.height * 0.5
+    if isinstance(shape, Capsule):
+        return shape.radius, (shape.spine + shape.radius * 2) * 0.5
+    if isinstance(shape, Ellipse):
+        return shape.rx, shape.ry
+    if isinstance(shape, Polygon):
+        xs = [p.x for p in shape.points]
+        ys = [p.y for p in shape.points]
+        return (max(xs) - min(xs)) * 0.5, (max(ys) - min(ys)) * 0.5
+    if isinstance(shape, Segment):
+        dx = abs(shape.B.x - shape.A.x)
+        dy = abs(shape.B.y - shape.A.y)
+        return dx * 0.5 + shape.width * 0.5, dy * 0.5 + shape.width * 0.5
+    return 32.0, 32.0
+
 
 def _aabb_fallback(sa, ax: float, ay: float, sb, bx: float, by: float) -> Contact | None:
     """Fallback AABB pour les paires sans narrowphase dédiée"""
@@ -323,6 +355,7 @@ def _aabb_fallback(sa, ax: float, ay: float, sb, bx: float, by: float) -> Contac
     ax2, ay2, aw, ah = _bounds(sa, ax, ay)
     bx2, by2, bw, bh = _bounds(sb, bx, by)
 
+    # Rect vs Rect inline
     a_cx, a_cy = ax2 + aw * 0.5, ay2 + ah * 0.5
     b_cx, b_cy = bx2 + bw * 0.5, by2 + bh * 0.5
     dx, dy = a_cx - b_cx, a_cy - b_cy
