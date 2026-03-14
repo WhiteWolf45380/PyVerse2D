@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from ....math import Vector
-from ....shape import Ellipse, Circle, Rect, Capsule, Polygon, Segment
+from ....shape import Ellipse, Rect, Capsule, Polygon, Segment
 
 from ._registry import (
     Contact, register,

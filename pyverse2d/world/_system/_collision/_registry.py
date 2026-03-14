@@ -5,7 +5,8 @@ from math import sqrt, cos, sin, atan2
 from typing import NamedTuple, Callable
 
 from ....math import Vector
-from ....shape import Shape, Capsule, Ellipse, Segment
+from ....shape import Capsule, Ellipse, Segment
+from ....abc import Shape
 
 # ======================================== CONTACT ========================================
 class Contact(NamedTuple):

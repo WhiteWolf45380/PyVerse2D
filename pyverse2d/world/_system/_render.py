@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 from ..._flag import UpdatePhase
-from ...abc import System
-from ...shape import Shape, Capsule, Circle, Rect, Ellipse, Segment, Polygon
+from ...abc import System, Shape
+from ...shape import Capsule, Circle, Rect, Ellipse, Segment, Polygon
 
 from .._world import World, Entity
 from .._component import Transform, SpriteRenderer, ShapeRenderer, TextRenderer

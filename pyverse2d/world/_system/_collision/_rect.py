@@ -9,8 +9,6 @@ from ._registry import (
     _sat, _rect_corners, _seg_corners
 )
 
-from math import sqrt
-
 # ======================================== Rect × Rect ========================================
 @register(Rect, Rect)
 def rect_rect(sa: Rect, ax, ay, sb: Rect, bx, by) -> Contact | None:
