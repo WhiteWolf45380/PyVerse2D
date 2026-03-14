@@ -16,8 +16,30 @@ from . import _circle, _rect, _capsule, _polygon, _segment, _ellipse  # noqa: F4
 from math import sqrt
 
 # ======================================== CONSTANTES ========================================
-_SLOP        = 1.0
-_BAUMGARTE   = 0.8
+_SLOP      = 1.0   # pénétration ignorée (pixels) — évite la jitter au repos
+_BAUMGARTE = 0.8   # fraction de correction appliquée par frame
+
+# ======================================== HELPERS ========================================
+def _shape_world_origin(tr: Transform, col: Collider) -> tuple[float, float]:
+    """Retourne la position de l'origine locale de la shape dans l'espace monde"""
+    ox, oy, bw, bh = col.shape.bounding_box()
+    x = tr.x + (-ox - tr.anchor.x * bw) + col.offset[0]
+    y = tr.y + (-oy - tr.anchor.y * bh) + col.offset[1]
+    return x, y
+
+
+def _bbox_center_world(tr: Transform, col: Collider) -> tuple[float, float, float, float]:
+    """
+    Retourne le centre monde du bounding box et ses demi-dimensions.
+    Utilisé pour le pre-reject AABB.
+    """
+    ox, oy, bw, bh = col.shape.bounding_box()
+    wx = tr.x + (-ox - tr.anchor.x * bw) + col.offset[0]
+    wy = tr.y + (-oy - tr.anchor.y * bh) + col.offset[1]
+    cx = wx + ox + bw * 0.5
+    cy = wy + oy + bh * 0.5
+    return cx, cy, bw * 0.5, bh * 0.5
+
 
 # ======================================== SYSTEM ========================================
 class CollisionSystem(System):
@@ -66,29 +88,26 @@ class CollisionSystem(System):
                 self._resolve(a, b, contact)
 
     # ======================================== DÉTECTION ========================================
-    def _detect(self, col_a: Collider, tr_a: Transform, col_b: Collider, tr_b: Transform) -> Contact | None:
-        ax = tr_a.x + col_a.offset[0]
-        ay = tr_a.y + col_a.offset[1]
-        bx = tr_b.x + col_b.offset[0]
-        by = tr_b.y + col_b.offset[1]
-        sa = col_a.shape
-        sb = col_b.shape
+    def _detect(
+        self,
+        col_a: Collider, tr_a: Transform,
+        col_b: Collider, tr_b: Transform,
+    ) -> Contact | None:
+        # Origine monde de chaque shape
+        ax, ay = _shape_world_origin(tr_a, col_a)
+        bx, by = _shape_world_origin(tr_b, col_b)
 
         # Pre-reject AABB
-        aox, aoy, aw, ah = sa.bounding_box()
-        box, boy, bw, bh = sb.bounding_box()
-        a_cx = ax + aox + aw * 0.5
-        a_cy = ay + aoy + ah * 0.5
-        b_cx = bx + box + bw * 0.5
-        b_cy = by + boy + bh * 0.5
-        if abs(a_cx - b_cx) > (aw + bw) * 0.5 or abs(a_cy - b_cy) > (ah + bh) * 0.5:
+        a_cx, a_cy, ahw, ahh = _bbox_center_world(tr_a, col_a)
+        b_cx, b_cy, bhw, bhh = _bbox_center_world(tr_b, col_b)
+        if abs(a_cx - b_cx) > ahw + bhw or abs(a_cy - b_cy) > ahh + bhh:
             return None
 
-        return dispatch(sa, ax, ay, sb, bx, by)
+        return dispatch(col_a.shape, ax, ay, col_b.shape, bx, by)
 
     # ======================================== RÉSOLUTION ========================================
     def _resolve(self, a, b, contact: Contact):
-        """Correction de position (Baumgarte + slop), impulsion, friction, annulation acc"""
+        """Correction de position (Baumgarte+slop), impulsion, friction, annulation acc"""
         has_rb_a = a.has(RigidBody)
         has_rb_b = b.has(RigidBody)
         rb_a: RigidBody | None = a.get(RigidBody) if has_rb_a else None
@@ -107,10 +126,11 @@ class CollisionSystem(System):
         tr_a: Transform = a.get(Transform)
         tr_b: Transform = b.get(Transform)
         normal = contact.normal
-        depth  = contact.depth
+        depth = contact.depth
 
         # Correction de position
         correction = max(depth - _SLOP, 0.0) * _BAUMGARTE
+
         if correction > 0:
             if static_a:
                 tr_b.x -= normal.x * correction
@@ -119,8 +139,8 @@ class CollisionSystem(System):
                 tr_a.x += normal.x * correction
                 tr_a.y += normal.y * correction
             else:
-                inv_a   = 1.0 / rb_a.mass
-                inv_b   = 1.0 / rb_b.mass
+                inv_a = 1.0 / rb_a.mass
+                inv_b = 1.0 / rb_b.mass
                 inv_sum = inv_a + inv_b
                 if inv_sum > 0:
                     ra = inv_a / inv_sum
@@ -133,16 +153,16 @@ class CollisionSystem(System):
         if not has_rb_a or not has_rb_b:
             return
 
-        rel_vx   = rb_a.velocity.x - rb_b.velocity.x
-        rel_vy   = rb_a.velocity.y - rb_b.velocity.y
+        rel_vx = rb_a.velocity.x - rb_b.velocity.x
+        rel_vy = rb_a.velocity.y - rb_b.velocity.y
         vel_along = rel_vx * normal.x + rel_vy * normal.y
 
         if vel_along > 0:
             return
 
         restitution = min(rb_a.restitution, rb_b.restitution)
-        inv_a   = 0.0 if static_a else 1.0 / rb_a.mass
-        inv_b   = 0.0 if static_b else 1.0 / rb_b.mass
+        inv_a = 0.0 if static_a else 1.0 / rb_a.mass
+        inv_b = 0.0 if static_b else 1.0 / rb_b.mass
         inv_sum = inv_a + inv_b
 
         if inv_sum == 0:
@@ -202,6 +222,7 @@ class CollisionSystem(System):
             self._hash._cell_size = None
             self._hash.clear_static()
 
+
 # ======================================== SPATIAL HASH ========================================
 class _SpatialHash:
     """Grille spatiale broadphase"""
@@ -221,10 +242,8 @@ class _SpatialHash:
         for e in entities:
             _, _, w, h = e.get(Collider).shape.bounding_box()
             hw, hh = w * 0.5, h * 0.5
-            if hw > max_extent:
-                max_extent = hw
-            if hh > max_extent:
-                max_extent = hh
+            if hw > max_extent: max_extent = hw
+            if hh > max_extent: max_extent = hh
         self._cell_size = max(max_extent * 2.0, 1.0)
 
     def update_dynamic(self, entities: list):
@@ -245,24 +264,26 @@ class _SpatialHash:
             self._static_built = True
 
     def _insert(self, cells, entity, col: Collider, tr: Transform, rb):
-        x = tr.x + col.offset[0]
-        y = tr.y + col.offset[1]
+        ox, oy, bw, bh = col.shape.bounding_box()
         cs = self._cell_size
 
-        # Bbox : origine locale + dimensions
-        ox, oy, w, h = col.shape.bounding_box()
+        # Position monde de l'origine locale
+        wx = tr.x + (-ox - tr.anchor.x * bw) + col.offset[0]
+        wy = tr.y + (-oy - tr.anchor.y * bh) + col.offset[1]
+
         if rb is not None and not rb.is_static():
-            px = rb.prev_x + col.offset[0]
-            py = rb.prev_y + col.offset[1]
-            min_x = min(x + ox, px + ox)
-            max_x = max(x + ox + w, px + ox + w)
-            min_y = min(y + oy, py + oy)
-            max_y = max(y + oy + h, py + oy + h)
+            # Swept AABB
+            pwx = rb.prev_x + (-ox - tr.anchor.x * bw) + col.offset[0]
+            pwy = rb.prev_y + (-oy - tr.anchor.y * bh) + col.offset[1]
+            min_x = min(wx + ox, pwx + ox)
+            max_x = max(wx + ox + bw, pwx + ox + bw)
+            min_y = min(wy + oy, pwy + oy)
+            max_y = max(wy + oy + bh, pwy + oy + bh)
         else:
-            min_x = x + ox
-            max_x = x + ox + w
-            min_y = y + oy
-            max_y = y + oy + h
+            min_x = wx + ox
+            max_x = wx + ox + bw
+            min_y = wy + oy
+            max_y = wy + oy + bh
 
         for cx in range(int(min_x // cs), int(max_x // cs) + 1):
             for cy in range(int(min_y // cs), int(max_y // cs) + 1):
