@@ -16,7 +16,7 @@ from . import _circle, _rect, _capsule, _polygon, _segment, _ellipse  # noqa: F4
 from math import sqrt
 
 # ======================================== CONSTANTES ========================================
-_SLOP      = 1.0   # pénétration ignorée (pixels) — évite la jitter au repos
+_SLOP      = 1.0   # pénétration ignorée (pixels)
 _BAUMGARTE = 0.8   # fraction de correction appliquée par frame
 
 # ======================================== HELPERS ========================================

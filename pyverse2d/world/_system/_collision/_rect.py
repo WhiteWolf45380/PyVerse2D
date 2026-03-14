@@ -1,12 +1,15 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
+from math import sqrt
+
 from ....math import Vector
 from ....shape import Rect, Capsule, Polygon, Segment
 
 from ._registry import (
     Contact, register,
-    _sat, _rect_corners, _seg_corners
+    _sat, _rect_corners, _seg_corners,
+    _closest_pt_seg_to_seg, _closest_pt_on_seg,
 )
 
 # ======================================== Rect × Rect ========================================
@@ -34,7 +37,8 @@ def rect_capsule(sa: Rect, ax, ay, sb: Capsule, bx, by) -> Contact | None:
     """Rect vs Capsule"""
     from ._capsule import _capsule_convex
     pts = _rect_corners(ax, ay, sa.width, sa.height)
-    return _capsule_convex(bx, by, sb.spine, sb.radius, pts)
+    c = _capsule_convex(bx, by, sb.spine, sb.radius, pts)
+    return Contact(-c.normal, c.depth) if c is not None else None
 
 
 # ======================================== Rect × Polygon ========================================
@@ -45,7 +49,6 @@ def rect_polygon(sa: Rect, ax, ay, sb: Polygon, bx, by) -> Contact | None:
         _rect_corners(ax, ay, sa.width, sa.height),
         [(bx + p.x, by + p.y) for p in sb.points],
     )
-
 
 # ======================================== Rect × Segment ========================================
 @register(Rect, Segment)
