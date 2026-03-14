@@ -247,7 +247,7 @@ class _ShapeObject:
     def update(self, x: float, y: float, scale: float, sr: ShapeRenderer):
         """Met à jour position, scale, couleurs et visibilité"""
         shape = self._shape
-        opacity = int(round(255 * opacity))
+        opacity = int(round(255 * sr.opacity))
         s = scale
 
         # Remplissage
