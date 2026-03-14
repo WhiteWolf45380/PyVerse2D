@@ -10,8 +10,8 @@ from typing import Iterator
 from math import exp
 
 # ======================================== CONSTANTES ========================================
-_SLEEP_THRESHOLD     = 0.5   # vitesse (px/s) en dessous de laquelle le timer démarre
-_SLEEP_DELAY         = 0.3   # secondes consécutives sous le seuil avant mise en veille
+_SLEEP_THRESHOLD     = 0.05  # vitesse (m/s) en dessous de laquelle le timer démarre
+_SLEEP_DELAY         = 0.8   # secondes consécutives sous le seuil avant mise en veille
 
 # ======================================== COMPONENT ========================================
 class RigidBody(Component):
@@ -47,7 +47,7 @@ class RigidBody(Component):
         self._restitution   = float(positive(expect(restitution, Real)))
         self._gravity       = expect(gravity, bool)
         self._gravity_scale = float(expect(gravity_scale, Real))
-        self._linear_damping = float(positive(expect(linear_damping, Real)))
+        self._linear_damping = float(max(0.0, expect(linear_damping, Real)))
         self._velocity      = Vector(0.0, 0.0)
         self._acceleration  = Vector(0.0, 0.0)
         self._prev_x        = 0.0
@@ -152,7 +152,7 @@ class RigidBody(Component):
 
     @linear_damping.setter
     def linear_damping(self, value: Real):
-        self._linear_damping = float(positive(expect(value, Real)))
+        self._linear_damping = float(max(0.0, expect(value, Real)))
 
     @velocity.setter
     def velocity(self, value):
@@ -189,6 +189,18 @@ class RigidBody(Component):
         self._sleep_timer = 0.0
 
     # ======================================== FORCES ========================================
+    def apply_acceleration(self, acc: Vector):
+        """
+        Applique une accélération directement, sans réveiller le corps.
+        Réservé aux forces passives (gravité) qui ne doivent pas perturber le sleep.
+
+        Args:
+            acc(Vector): accélération à appliquer en px/s²
+        """
+        if self.is_static() or self._sleeping:
+            return
+        self._acceleration = self._acceleration + Vector(acc)
+
     def apply_force(self, force: Vector):
         """
         Applique une force au corps et le réveille si nécessaire.
@@ -213,7 +225,11 @@ class RigidBody(Component):
         self._prev_y = y
 
     def _apply_damping(self, dt: float):
-        """Applique la résistance de l'air via décroissance exponentielle"""
+        """
+        Applique la résistance de l'air via décroissance exponentielle.
+        Utilise exp(-b·dt) plutôt que (1 - b·dt) pour rester stable
+        quel que soit dt.
+        """
         if self._linear_damping == 0.0:
             return
         factor = exp(-self._linear_damping * dt)
