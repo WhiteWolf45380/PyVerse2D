@@ -120,6 +120,11 @@ class Circle(PrimitiveShape):
         self._radius *= factor
         self._invalidate_cache()
 
+    def world_bounding_box(self, x: float = 0.0, y: float = 0.0, scale: float = 1.0, rotation: float = 0.0) -> tuple[float, float, float, float]:
+        """Renvoie (x_min, y_min, x_max, y_max) en coordonnées monde"""
+        cx, cy, r = self.world_transform(x, y, scale, rotation)
+        return cx - r, cy - r, cx + r, cy + r
+
     # ======================================== INTERNALS ========================================
     def _compute_world(self, x: float, y: float, scale: float, rotation: float) -> tuple[float, float, float]:
         """Calcule les paramètres monde"""

@@ -77,6 +77,9 @@ class PrimitiveShape(Shape):
         self._cache_world  = self._compute_world(x, y, scale, rotation)
         self._cache_params = params
         return self._cache_world
+    
+    @abstractmethod
+    def world_bounding_box(self, x: float, y: float, scale: float, rotation: float) -> tuple[float, float, float, float]: ...
 
     # ======================================== INTERNALS ========================================
     @abstractmethod

@@ -41,3 +41,6 @@ class Shape(ABC):
 
     @abstractmethod
     def scale(self, factor: float): ...
+
+    @abstractmethod
+    def world_bounding_box(self, x: float, y: float, scale: float, rotation: float) -> tuple[float, float, float, float]: ...

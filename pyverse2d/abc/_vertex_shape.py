@@ -147,6 +147,13 @@ class VertexShape(Shape):
         self._cache_world = self._cache_transformation + np.array([x, y], dtype=np.float32)
         self._cache_pos = (x, y)
         return self._cache_world
+    
+    def world_bounding_box(self, x: float = 0.0, y: float = 0.0, scale: float = 1.0, rotation: float = 0.0) -> tuple[float, float, float, float]:
+        """Renvoie (x_min, y_min, x_max, y_max) en coordonnées monde"""
+        pts = self.world_vertices(x, y, scale, rotation)
+        xs = pts[:, 0]
+        ys = pts[:, 1]
+        return float(xs.min()), float(ys.min()), float(xs.max()), float(ys.max())
 
     # ======================================== INTERNALS ========================================
     @abstractmethod

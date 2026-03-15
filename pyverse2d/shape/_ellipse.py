@@ -145,6 +145,15 @@ class Ellipse(PrimitiveShape):
         self._ry *= factor
         self._invalidate_cache()
 
+    def world_bounding_box(self, x: float = 0.0, y: float = 0.0, scale: float = 1.0, rotation: float = 0.0) -> tuple[float, float, float, float]:
+        """Renvoie (x_min, y_min, x_max, y_max) en coordonnées monde"""
+        cx, cy, rx, ry, angle = self.world_transform(x, y, scale, rotation)
+        rad = math.radians(angle)
+        c, s = abs(math.cos(rad)), abs(math.sin(rad))
+        hw = rx * c + ry * s
+        hh = rx * s + ry * c
+        return cx - hw, cy - hh, cx + hw, cy + hh
+
     # ======================================== INTERNALS ========================================
     def _compute_world(self, x: float, y: float, scale: float, rotation: float) -> tuple[float, float, float, float, float]:
         """Calcule les paramètres monde"""

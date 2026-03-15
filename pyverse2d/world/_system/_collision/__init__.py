@@ -165,14 +165,10 @@ class CollisionSystem(System):
         cx_a, cy_a = world_center(col_a.shape, tr_a, col_a.offset)
         cx_b, cy_b = world_center(col_b.shape, tr_b, col_b.offset)
 
-        x_min_a, y_min_a, x_max_a, y_max_a = col_a.shape.bounding_box
-        x_min_b, y_min_b, x_max_b, y_max_b = col_b.shape.bounding_box
-        ahw = (x_max_a - x_min_a) * 0.5 * tr_a.scale
-        ahh = (y_max_a - y_min_a) * 0.5 * tr_a.scale
-        bhw = (x_max_b - x_min_b) * 0.5 * tr_b.scale
-        bhh = (y_max_b - y_min_b) * 0.5 * tr_b.scale
+        ax_min, ay_min, ax_max, ay_max = col_a.shape.world_bounding_box(cx_a, cy_a, tr_a.scale, tr_a.rotation)
+        bx_min, by_min, bx_max, by_max = col_b.shape.world_bounding_box(cx_b, cy_b, tr_b.scale, tr_b.rotation)
 
-        if abs(cx_a - cx_b) > ahw + bhw or abs(cy_a - cy_b) > ahh + bhh:
+        if ax_min > bx_max or bx_min > ax_max or ay_min > by_max or by_min > ay_max:
             return None
 
         return dispatch(
@@ -305,7 +301,10 @@ class _SpatialHash:
         """Calibre la taille des cellules sur les shapes présentes"""
         max_extent = 0.0
         for e in entities:
-            x_min, y_min, x_max, y_max = e.get(Collider).shape.bounding_box
+            col: Collider = e.get(Collider)
+            tr: Transform = e.get(Transform)
+            cx_, cy_ = world_center(col.shape, tr, col.offset)
+            x_min, y_min, x_max, y_max = col.shape.world_bounding_box(cx_, cy_, tr.scale, tr.rotation)
             hw = (x_max - x_min) * 0.5
             hh = (y_max - y_min) * 0.5
             if hw > max_extent:
@@ -335,24 +334,23 @@ class _SpatialHash:
 
     def _insert(self, cells, entity, col: Collider, tr: Transform, rb):
         """Insère une entité dans les cellules qu'elle occupe"""
-        x_min, y_min, x_max, y_max = col.shape.bounding_box
         cs = self._cell_size
         cx_, cy_ = world_center(col.shape, tr, col.offset)
-        hw = (x_max - x_min) * 0.5 * tr.scale
-        hh = (y_max - y_min) * 0.5 * tr.scale
+        w_min_x, w_min_y, w_max_x, w_max_y = col.shape.world_bounding_box(cx_, cy_, tr.scale, tr.rotation)
 
         if rb is not None and not rb.is_static():
             prev_cx = rb.prev_x - (tr.x - cx_)
             prev_cy = rb.prev_y - (tr.y - cy_)
-            min_x = min(cx_ - hw, prev_cx - hw)
-            max_x = max(cx_ + hw, prev_cx + hw)
-            min_y = min(cy_ - hh, prev_cy - hh)
-            max_y = max(cy_ + hh, prev_cy + hh)
+            prev_min_x, prev_min_y, prev_max_x, prev_max_y = col.shape.world_bounding_box(prev_cx, prev_cy, tr.scale, tr.rotation)
+            min_x = min(w_min_x, prev_min_x)
+            max_x = max(w_max_x, prev_max_x)
+            min_y = min(w_min_y, prev_min_y)
+            max_y = max(w_max_y, prev_max_y)
         else:
-            min_x = cx_ - hw
-            max_x = cx_ + hw
-            min_y = cy_ - hh
-            max_y = cy_ + hh
+            min_x = w_min_x
+            max_x = w_max_x
+            min_y = w_min_y
+            max_y = w_max_y
 
         for gx in range(int(min_x // cs), int(max_x // cs) + 1):
             for gy in range(int(min_y // cs), int(max_y // cs) + 1):

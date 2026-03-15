@@ -163,6 +163,11 @@ class Capsule(CompositeShape):
         yield (ComponentType.CIRCLE,  bx, by, r)
         yield (ComponentType.SEGMENT, ax, ay, bx, by, r)
 
+    def world_bounding_box(self, x: float = 0.0, y: float = 0.0, scale: float = 1.0, rotation: float = 0.0) -> tuple[float, float, float, float]:
+        """Renvoie (x_min, y_min, x_max, y_max) en coordonnées monde"""
+        ax, ay, bx, by, r = self.world_transform(x, y, scale, rotation)
+        return min(ax, bx) - r, min(ay, by) - r, max(ax, bx) + r, max(ay, by) + r
+
     # ======================================== INTERNALS ========================================
     def _compute_world(self, x: float, y: float, scale: float, rotation: float) -> tuple[float, float, float, float, float]:
         """Calcule les paramètres monde de la capsule"""
