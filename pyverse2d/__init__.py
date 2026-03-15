@@ -45,15 +45,18 @@ def set_fps(fps: int):
     _fps = int(fps)
 
 # ======================================== LOOP ========================================
-def run():
+def run(update: callable = None):
     """Démarre la boucle de mise à jour"""
     if _window is None:
         raise RuntimeError("No window set - call set_window() before run()")
+
+    def _update(dt: float):
+        scene.update(dt)
+        if update is not None:
+            update(dt)
+
     pyglet.clock.schedule_interval(_update, 1 / _fps)
     pyglet.app.run()
-
-def _update(dt: float):
-    scene.update(dt)
 
 # ======================================== EXPORTS ========================================
 __all__ = [
