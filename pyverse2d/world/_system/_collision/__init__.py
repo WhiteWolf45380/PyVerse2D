@@ -1,4 +1,4 @@
-# ======================================== IMPORTS ========================================
+# ======================================== IMPORTSs ========================================
 from __future__ import annotations
 
 from ...._flag import UpdatePhase
@@ -108,8 +108,12 @@ class CollisionSystem(System):
                     mny = ny * mix + pny * (1.0 - mix)
                     n_len = sqrt(mnx * mnx + mny * mny) or 1.0
                     nx, ny = mnx / n_len, mny / n_len
+                elif dot < 0:
+                    cached.jn = 0.0
+                    cached.jt = 0.0
+
             cached.normal = (nx, ny)
-            contact = Contact(type(contact.normal)(nx, ny), contact.depth)
+            contact = Contact(Vector(nx, ny), contact.depth)
 
             if contact.depth > max_depth:
                 max_depth = contact.depth
@@ -242,7 +246,8 @@ class CollisionSystem(System):
                     tr_b.x -= nx * correction * rb
                     tr_b.y -= ny * correction * rb
 
-        restitution = min(rb_a.restitution, rb_b.restitution)
+        restitution = min(rb_a.restitution, rb_b.restitution) if not static_a and not static_b else (rb_b.restitution if static_a else rb_a.restitution)
+
         if vel_along < -0.5:
             j_delta_n = -(1.0 + restitution) * vel_along / inv_sum
         else:
@@ -253,7 +258,7 @@ class CollisionSystem(System):
         cached.jn = max(0.0, old_jn + j_delta_n)
         j_delta_n = cached.jn - old_jn
 
-        friction = (rb_a.friction + rb_b.friction) * 0.5
+        friction = (rb_a.friction + rb_b.friction) * 0.5 if not static_a and not static_b else (rb_b.friction if static_a else rb_a.friction)
         vel_tan = rel_vx * tx + rel_vy * ty
         j_delta_t = -vel_tan / inv_sum
         old_jt = cached.jt
@@ -332,7 +337,7 @@ class _SpatialHash:
         """Insère une entité dans les cellules qu'elle occupe"""
         x_min, y_min, x_max, y_max = col.shape.bounding_box
         cs = self._cell_size
-        cx_, cy_ = world_center(col.shape, tr)
+        cx_, cy_ = world_center(col.shape, tr, col.offset)
         hw = (x_max - x_min) * 0.5 * tr.scale
         hh = (y_max - y_min) * 0.5 * tr.scale
 

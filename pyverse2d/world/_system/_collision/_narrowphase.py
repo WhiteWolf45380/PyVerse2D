@@ -1,4 +1,4 @@
-# ======================================== IMPORTS ========================================
+# _narrowphase.py
 from __future__ import annotations
 
 from math import sqrt
@@ -9,7 +9,8 @@ from ....shape import Circle, Ellipse, Capsule
 
 from ._registry import (
     Contact,
-    closest_pt_on_seg, closest_pt_seg_to_seg, point_in_convex_poly,
+    closest_pt_on_seg, closest_pt_seg_to_seg,
+    closest_pt_on_ellipse, point_in_convex_poly,
 )
 
 # ======================================== VERTEX HELPERS ========================================
@@ -182,53 +183,62 @@ def capsule_vs_pts(ax: float, ay: float, bx: float, by: float, r: float, pts: li
     mid_x = ax + spine_dx * 0.5
     mid_y = ay + spine_dy * 0.5
     min_dist = float("inf")
+    best_nx, best_ny = 0.0, 1.0
     best_sx, best_sy = mid_x, mid_y
-    best_ex, best_ey = pts[0]
 
     for i in range(n):
         px1, py1 = pts[i]
         px2, py2 = pts[(i + 1) % n]
         edx = px2 - px1
         edy = py2 - py1
+        le = sqrt(edx * edx + edy * edy)
+        if le < 1e-10:
+            continue
+        enx, eny = -edy / le, edx / le
+
         sp_x, sp_y = closest_pt_seg_to_seg(ax, ay, spine_dx, spine_dy, px1, py1, edx, edy)
         ep_x, ep_y = closest_pt_on_seg(px1, py1, edx, edy, sp_x, sp_y)
         ddx = sp_x - ep_x
         ddy = sp_y - ep_y
         dist = sqrt(ddx * ddx + ddy * ddy)
+
         if dist < min_dist:
             min_dist = dist
             best_sx, best_sy = sp_x, sp_y
-            best_ex, best_ey = ep_x, ep_y
+            if dist > 1e-8:
+                best_nx, best_ny = ddx / dist, ddy / dist
+            else:
+                best_nx, best_ny = enx, eny
 
     if min_dist > 1e-6 and point_in_convex_poly(mid_x, mid_y, pts):
         near_dist = float("inf")
-        near_ex, near_ey = pts[0]
+        near_nx, near_ny = 0.0, 1.0
         for i in range(n):
             px1, py1 = pts[i]
             px2, py2 = pts[(i + 1) % n]
-            ep_x, ep_y = closest_pt_on_seg(px1, py1, px2 - px1, py2 - py1, mid_x, mid_y)
+            edx = px2 - px1
+            edy = py2 - py1
+            le = sqrt(edx * edx + edy * edy)
+            if le < 1e-10:
+                continue
+            ep_x, ep_y = closest_pt_on_seg(px1, py1, edx, edy, mid_x, mid_y)
             ddx = mid_x - ep_x
             ddy = mid_y - ep_y
             d = sqrt(ddx * ddx + ddy * ddy)
             if d < near_dist:
                 near_dist = d
-                near_ex, near_ey = ep_x, ep_y
-        ddx = mid_x - near_ex
-        ddy = mid_y - near_ey
-        d = sqrt(ddx * ddx + ddy * ddy) or 1e-8
-        return Contact(Vector(ddx / d, ddy / d), r + near_dist)
+                if d > 1e-8:
+                    near_nx, near_ny = ddx / d, ddy / d
+                else:
+                    near_nx, near_ny = -edy / le, edx / le
+        return Contact(Vector(near_nx, near_ny), r + near_dist)
 
     if min_dist >= r:
         return None
 
-    depth = r - min_dist
-    ddx = best_sx - best_ex
-    ddy = best_sy - best_ey
-    dist = sqrt(ddx * ddx + ddy * ddy)
-    if dist < 1e-8:
-        cent_x = sum(p[0] for p in pts) / n
-        cent_y = sum(p[1] for p in pts) / n
-        ddx = mid_x - cent_x
-        ddy = mid_y - cent_y
-        dist = sqrt(ddx * ddx + ddy * ddy) or 1e-8
-    return Contact(Vector(ddx / dist, ddy / dist), depth)
+    to_mid_x = mid_x - best_sx
+    to_mid_y = mid_y - best_sy
+    if best_nx * to_mid_x + best_ny * to_mid_y < 0:
+        best_nx, best_ny = -best_nx, -best_ny
+
+    return Contact(Vector(best_nx, best_ny), r - min_dist)

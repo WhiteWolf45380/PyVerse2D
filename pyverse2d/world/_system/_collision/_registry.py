@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from typing import Callable, NamedTuple
-from math import cos, sin, atan2
+from math import sqrt, cos, sin, atan2
 
 from ....math import Vector
 from ....abc import VertexShape
@@ -38,11 +38,11 @@ def dispatch(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b) -> Contact 
         return sat_vertex_vertex(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b)
 
     if a_is_vertex:
-        return dispatch_vertex_primitive(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b)
+        c = dispatch_vertex_primitive(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b)
+        return Contact(Vector(-c.normal.x, -c.normal.y), c.depth) if c is not None else None
 
     if b_is_vertex:
-        c = dispatch_vertex_primitive(sb, bx, by, scale_b, rot_b, sa, ax, ay, scale_a, rot_a)
-        return Contact(Vector(-c.normal.x, -c.normal.y), c.depth) if c is not None else None
+        return dispatch_vertex_primitive(sb, bx, by, scale_b, rot_b, sa, ax, ay, scale_a, rot_a)
 
     key = (type(sa), type(sb))
     fn = _handlers.get(key)
@@ -57,7 +57,6 @@ def dispatch(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b) -> Contact 
 
     return None
 
-# ======================================== WORLD CENTER ========================================
 def world_center(shape, tr, offset=(0.0, 0.0)) -> tuple[float, float]:
     """Calcule le centre géométrique monde depuis transform, bounding_box et offset"""
     x_min, y_min, x_max, y_max = shape.bounding_box
