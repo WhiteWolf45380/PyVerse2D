@@ -1,169 +1,80 @@
-# ======================================== IMPORTS ========================================
+# _polygon.py
 from __future__ import annotations
 
 from .._internal import expect
-from ..abc import Shape
+from ..abc import VertexShape
 from ..math import Point
 
 from numbers import Real
-from typing import Iterator
+import numpy as np
+from numpy.typing import NDArray
 
-# ======================================== SHAPE ========================================
-class Polygon(Shape):
-    """Forme géométrique 2D : Polygone"""
-    __slots__ = ("_points",)
-    def __init__(
-            self,
-            *points: Point, 
-        ):
-        super().__init__()
-        self._points: tuple[Point, ...] = tuple(Point(point) for point in points)
-        if len(self._points) < 3:
+
+class Polygon(VertexShape):
+    """
+    Forme géométrique 2D avec sommets : Polygone
+
+    Args:
+        points(Point): sommets du polygone (minimum 3)
+    """
+    __slots__ = ("_source_vertices",)
+
+    def __init__(self, *points: Point):
+        if len(points) < 3:
             raise ValueError("Polygon must have at least 3 points")
-        if self._has_duplicate_points():
-            raise ValueError("Polygon cannot have duplicate consecutive points")
-        
-    # ======================================== CONVERSION ========================================
+        if len(set(points)) != len(points):
+            raise ValueError("Polygon must not have duplicate points")
+        self._source_vertices: NDArray[np.float32] = np.array(
+            [(p.x, p.y) for p in points], dtype=np.float32
+        )
+        super().__init__()
+
+    # ======================================== CONVERSIONS ========================================
     def __repr__(self) -> str:
         """Renvoie une représentation du polygone"""
-        return f"Polygon({', '.join(map(str, self._points))})"
-    
+        pts = [tuple(v) for v in self._vertices]
+        return f"Polygon(points={pts})"
+
     def __str__(self) -> str:
+        """Renvoie une description lisible du polygone"""
         return f"Polygon[{len(self)} pts | area={self.area:.4g} | perimeter={self.perimeter:.4g}]"
-    
-    def __iter__(self) -> Iterator[float]:
-        """Renvoie le polygone dans un itérateur"""
-        return iter(self._points)
-
-    def __hash__(self):
-        """Renvoie l'entier hashé du polygone"""
-        return hash(self._points)
-    
-    def to_tuple(self) -> tuple[Point, Point, float]:
-        """Renvoie le polygone sous forme de tuple"""
-        return self._points
-     
-    def to_list(self) -> list:
-        """Renvoie le polygone sous forme de liste"""
-        return list(self._points)
-
-    # ======================================== GETTERS ========================================
-    @property
-    def points(self) -> tuple[Point, ...]:
-        """Renvoie le point de départ du polygone"""
-        return self._points
-    
-    def get_edges(self) -> tuple[tuple[Point, Point], ...]:
-        """Renvoie les arêtes du polygone sous forme de paires de points"""
-        n = len(self._points)
-        return tuple((self._points[i], self._points[(i + 1) % n]) for i in range(n))
-    
-    def __getitem__(self, key: int | slice) -> Point | tuple[Point]:
-        """Renvoie le point d'indice key ou le slice correspondant"""
-        return self._points[key]
-    
-    def __len__(self) -> int:
-        """Renvoie le nombre de points du polygone"""
-        return len(self._points)
-    
-    @property
-    def barycenter(self) -> Point:
-        """Renvoie le centre local du polygone"""
-        return self[0].barycenter(self[1:])
-    
-    @property
-    def perimeter(self) -> float:
-        """Renvoie le périmètre du polygone"""
-        n = len(self._points)
-        return sum(self._points[i].distance_to(self._points[(i + 1) % n]) for i in range(n))
-
-    @property
-    def area(self) -> float:
-        """Renvoie l'aire du polygone"""
-        pts = self._points
-        n = len(pts)
-        return 0.5 * sum(pts[i].x * pts[(i + 1) % n].y - pts[(i + 1) % n].x * pts[i].y for i in range(n))
-
-    @property
-    def is_convex(self) -> bool:
-        """Vérifie si le polygone est convexe"""
-        pts = self._points
-        n = len(pts)
-        sign = None
-        for i in range(n):
-            o = pts[i]
-            a = pts[(i + 1) % n]
-            b = pts[(i + 2) % n]
-            cross = (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x)
-            if cross != 0:
-                s = cross > 0
-                if sign is None:
-                    sign = s
-                elif sign != s:
-                    return False
-        return True
-
-    @property
-    def is_clockwise(self) -> bool:
-        """Renvoie True si les sommets sont ordonnés dans le sens horaire"""
-        return self.area < 0
 
     # ======================================== COMPARATORS ========================================
     def __eq__(self, other: object) -> bool:
-        """Vérifie l'égalité géométrique de deux polygones"""
-        if isinstance(other, Polygon):
-            if len(self) != len(other):
-                return False
-            n = len(self._points)
-            sp = self._points
-            op = other._points
-            return any(all(sp[i] == op[(i + offset) % n] for i in range(n)) for offset in range(n))
-        return False
+        """
+        Vérifie l'égalité géométrique de deux polygones, insensible à l'offset de départ
+
+        Args:
+            other(object): objet à comparer
+        """
+        if not isinstance(other, Polygon) or len(self) != len(other):
+            return False
+        n = len(self)
+        return any(
+            np.allclose(self._vertices, np.roll(other._vertices, offset, axis=0))
+            for offset in range(n)
+        )
 
     # ======================================== PUBLIC METHODS ========================================
     def copy(self) -> Polygon:
         """Renvoie une copie du polygone"""
-        return Polygon(*self._points)
+        return Polygon(*[Point(v[0], v[1]) for v in self._source_vertices])
 
-    def scale(self, factor: Real, origin: Point | None = None) -> Polygon:
+    def scale(self, factor: Real) -> None:
         """
-        Redimensionne le polygone par rapport à un point d'origine
+        Redimensionne le polygone
 
         Args:
-            factor (Real): facteur de redimensionnement
-            origin (Point | None): centre de la mise à l'échelle
+            factor(Real): facteur de redimensionnement
         """
         factor = float(expect(factor, Real))
         if factor <= 0:
             raise ValueError("factor must be strictly positive")
-        center = origin if origin is not None else self.barycenter
-        new_points = tuple(
-            Point(
-                center.x + (p.x - center.x) * factor,
-                center.y + (p.y - center.y) * factor,
-            )
-            for p in self._points
-        )
-        self._points = new_points
+        self._vertices *= factor
+        self._source_vertices *= factor
+        self._cache_sr = None
 
-    def reverse(self) -> Polygon:
-        """Inverse l'ordre des sommets"""
-        return Polygon(*reversed(self._points))
-
-    def normalize(self) -> Polygon:
-        """Normalise l'orientation du polygone en sens anti-horaire"""
-        return self if self.area >= 0 else self.reverse()
-
-    # ======================================== INTERAL METHODS ========================================
-    def _has_duplicate_points(self) -> bool:
-        """Vérifie la présence de points consécutifs identiques"""
-        n = len(self._points)
-        return any(self._points[i] == self._points[(i + 1) % n] for i in range(n))
-    
-    def bounding_box(self) -> tuple[float, float, float, float]:
-        """Renvoie le AABB de la shape"""
-        min_x = min(p.x for p in self._points)
-        min_y = min(p.y for p in self._points)
-        max_x = max(p.x for p in self._points)
-        max_y = max(p.y for p in self._points)
-        return min_x, min_y, max_x - min_x, max_y - min_y
+    # ======================================== INTERNALS ========================================
+    def _compute_vertices(self) -> NDArray[np.float32]:
+        """Renvoie les sommets bruts depuis les points source"""
+        return self._source_vertices.copy()

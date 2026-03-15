@@ -18,12 +18,6 @@ class Shape(ABC):
     @abstractmethod
     def __hash__(self) -> int: ...
 
-    @abstractmethod
-    def to_tuple(self) -> tuple: ...
-
-    @abstractmethod
-    def to_list(self) -> list: ...
-
     # ======================================== GETTERS ========================================
     @property
     @abstractmethod

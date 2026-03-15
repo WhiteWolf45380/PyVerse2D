@@ -4,7 +4,13 @@ from ._circle import Circle
 from ._ellipse import Ellipse
 from ._polygon import Polygon
 from ._rect import Rect
-from ._segment import Segment
+from ._regular_polygon import (
+    RegularPolygon,
+    RegularTriangle,
+    RegularPentagon,
+    RegularHexagon,
+    RegularOctagon,
+)
 
 # ======================================== EXPORTS ========================================
 __all__ = [
@@ -13,5 +19,9 @@ __all__ = [
     "Ellipse",
     "Polygon",
     "Rect",
-    "Segment",
+    "RegularPolygon",
+    "RegularTriangle",
+    "RegularPentagon",
+    "RegularHexagon",
+    "RegularOctagon",
 ]
