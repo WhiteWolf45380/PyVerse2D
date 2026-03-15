@@ -3,11 +3,11 @@ from __future__ import annotations
 
 from ._shape import Shape
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from numbers import Real
 
 # ======================================== SHAPE ========================================
-class PrimitiveShape(ABC, Shape):
+class PrimitiveShape(Shape):
     """Classe abstraite des formes définies par des paramètres analytiques"""
     __slots__ = ("_cache_params", "_cache_world")
 

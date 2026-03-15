@@ -4,7 +4,7 @@ from __future__ import annotations
 from ._shape import Shape
 from ._vertex import Vertex
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from typing import Iterator
 
 import numpy as np
@@ -12,7 +12,7 @@ from numpy.typing import NDArray
 import math
 
 # ======================================== SHAPE ========================================
-class VertexShape(ABC, Shape):
+class VertexShape(Shape):
     """Classe abstraite des formes définies par leurs sommets"""
     __slots__ = ("_vertices", "_cache_sr", "_cache_transformation", "_cache_pos", "_cache_world")
 

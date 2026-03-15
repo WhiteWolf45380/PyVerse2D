@@ -3,12 +3,12 @@ from __future__ import annotations
 
 from ._shape import Shape
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from typing import Iterator
 from numbers import Real
 
 # ======================================== CONVERSIONS ========================================
-class CompositeShape(ABC, Shape):
+class CompositeShape(Shape):
     """Classe abstraite des formes définies par composition de primitives analytiques"""
     __slots__ = ("_cache_params", "_cache_world")
 
