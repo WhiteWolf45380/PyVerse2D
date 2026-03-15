@@ -4,13 +4,16 @@ from __future__ import annotations
 from ...._flag import UpdatePhase
 from ....abc import System
 from ....math import Vector
+
 from ..._world import World
 from ..._component import Transform, RigidBody, Collider, GroundSensor
+
 from .._physics import PhysicsSystem
+
 from ._registry import dispatch, Contact, world_center
 from . import _circle, _ellipse, _capsule  # noqa: F401
 
-from math import sqrt
+from math import sqrt, acos, degrees
 
 # ======================================== CONSTANTES ========================================
 _SLOP = 0.5
@@ -215,7 +218,6 @@ class CollisionSystem(System):
     # ======================================== RESOLUTION ========================================
     def _resolve(self, a, b, contact: Contact, cached: _CachedContact, dt: float):
         """Sequential Impulse Solver avec vitesse prédictive"""
-
         # Récupération des RigidBody et statuts statiques
         has_rb_a = a.has(RigidBody)
         has_rb_b = b.has(RigidBody)
@@ -300,26 +302,28 @@ class CollisionSystem(System):
         cached.jn = max(0.0, old_jn + j_delta_n)
         j_delta_n = cached.jn - old_jn
 
-        # Friction conditionnelle : desactivee sur les surfaces verticales
-        # abs(ny) < 0.3 indique un mur, la friction annulerait la chute
-        friction_factor = abs(ny)
-        if friction_factor < 0.3:
-            cached.jt = 0.0
+        # Calcul de l'angle de la surface et de l'angle max grimpable
+        surface_angle = degrees(acos(min(abs(ny), 1.0)))
+        max_angle = 90.0
+        for entity in (a, b):
+            if entity.has(GroundSensor):
+                max_angle = entity.get(GroundSensor).max_climb_angle
+                break
 
-            # Application de l'impulsion normale uniquement
-            ix = nx * j_delta_n
-            iy = ny * j_delta_n
+        # Friction scale : proportionnelle a la force normale (abs(ny) = cos(angle))
+        # Coupee a zero au dela de max_climb_angle
+        if surface_angle > max_angle:
+            friction_scale = 0.0
+        else:
+            friction_scale = abs(ny)
 
-            if not static_a:
-                rb_a.velocity = Vector(rb_a.velocity.x + ix * inv_a, rb_a.velocity.y + iy * inv_a)
-            if not static_b:
-                rb_b.velocity = Vector(rb_b.velocity.x - ix * inv_b, rb_b.velocity.y - iy * inv_b)
-            return
-
-        # Calcul et application de la friction tangentielle
+        # Calcul des coefficients de friction avec scale
         friction_dynamic = (rb_a.friction + rb_b.friction) * 0.5 if not static_a and not static_b else (rb_b.friction if static_a else rb_a.friction)
         friction_static = friction_dynamic * 1.5
+        friction_dynamic *= friction_scale
+        friction_static *= friction_scale
 
+        # Calcul et application de la friction tangentielle
         vel_tan = rel_vx * tx + rel_vy * ty
         j_delta_t_needed = -vel_tan / inv_sum
         old_jt = cached.jt
