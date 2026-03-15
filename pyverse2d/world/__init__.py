@@ -9,6 +9,7 @@ from ._component import (
     TextRenderer,
     Collider,
     RigidBody,
+    GroundSensor,
 )
 
 from ._system import (
@@ -29,6 +30,7 @@ __all__ = [
     "TextRenderer",
     "Collider",
     "RigidBody",
+    "GroundSensor",
 
     "PhysicsSystem",
     "GravitySystem",
