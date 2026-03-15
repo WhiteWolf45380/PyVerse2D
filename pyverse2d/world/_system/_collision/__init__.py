@@ -352,7 +352,6 @@ class CollisionSystem(System):
         """Vide le cache d'impulsions"""
         self._cache.clear()
 
-
 # ======================================== SPATIAL HASH ========================================
 class _SpatialHash:
     """Broadphase par grille spatiale"""
