@@ -27,6 +27,10 @@ class Shape(ABC):
     @abstractmethod
     def area(self) -> float: ...
 
+    @property
+    @abstractmethod
+    def bounding_box(self) -> tuple[float, float, float, float]: ...
+
     # ======================================== COMPARATORS ========================================
     @abstractmethod
     def __eq__(self, other: Any) -> bool: ...
@@ -37,6 +41,3 @@ class Shape(ABC):
 
     @abstractmethod
     def scale(self, factor: float): ...
-
-    @abstractmethod
-    def bounding_box(self) -> tuple[float, float, float, float]: ...
