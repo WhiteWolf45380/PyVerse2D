@@ -1,4 +1,4 @@
-# _ground_sensor.py
+# ======================================== IMPORTS ========================================
 from __future__ import annotations
 
 from ..._internal import expect, clamped
@@ -16,15 +16,15 @@ class GroundSensor(Component):
 
     Args:
         threshold(float): composante Y minimale de la normale pour considérer sol (0 à 1)
-        max_climb_angle(float): angle maximal en degrés que l'entité peut gravir (0 à 90)
+        stability_angle(float): angle maximal en degrés auquel l'entité peut ne pas glisser (0 à 75)
         ground_damping(float): amortissement horizontal appliqué uniquement au sol
     """
-    __slots__ = ("_threshold", "_max_climb_angle", "_ground_damping", "_grounded", "_climb_ny_min", "_ground_normal")
+    __slots__ = ("_threshold", "_stability_angle", "_ground_damping", "_grounded", "_climb_ny_min", "_ground_normal")
     requires = ("Transform", "Collider")
 
-    def __init__(self, threshold: Real = 0.65, max_climb_angle: Real = 90.0, ground_damping: Real = 0.0):
+    def __init__(self, threshold: Real = 0.65, stability_angle: Real = 90.0, ground_damping: Real = 0.0):
         self._threshold: float = float(clamped(expect(threshold, Real)))
-        self._max_climb_angle: float = abs(float(expect(max_climb_angle, Real)))
+        self._stability_angle: float = abs(float(expect(stability_angle, Real)))
         self._ground_damping: float = float(max(0.0, expect(ground_damping, Real)))
         self._grounded: bool = False
         self._compute()
@@ -32,20 +32,20 @@ class GroundSensor(Component):
     # ======================================== CONVERSIONS ========================================
     def __repr__(self) -> str:
         """Renvoie une représentation du composant"""
-        return f"GroundSensor(grounded={self._grounded}, threshold={self._threshold}, max_climb_angle={self._max_climb_angle}, ground_damping={self._ground_damping})"
+        return f"GroundSensor(grounded={self._grounded}, threshold={self._threshold}, stability_angle={self._stability_angle}, ground_damping={self._ground_damping})"
 
     def __iter__(self) -> Iterator:
         """Renvoie le composant dans un itérateur"""
-        return iter((self._grounded, self._threshold, self._max_climb_angle, self._ground_damping))
+        return iter((self._grounded, self._threshold, self._stability_angle, self._ground_damping))
 
     def __hash__(self) -> int:
         """Renvoie l'entier hashé du composant"""
-        return hash((self._threshold, self._max_climb_angle, self._ground_damping))
+        return hash((self._threshold, self._stability_angle, self._ground_damping))
 
     def __eq__(self, other: GroundSensor) -> bool:
         """Vérifie la correspondance des deux composants"""
         if isinstance(other, GroundSensor):
-            return self._threshold == other._threshold and self._max_climb_angle == other._max_climb_angle and self._ground_damping == other._ground_damping
+            return self._threshold == other._threshold and self._stability_angle == other._stability_angle and self._ground_damping == other._ground_damping
         return False
     
     # ======================================== GETTERS ========================================
@@ -55,9 +55,9 @@ class GroundSensor(Component):
         return self._threshold
     
     @property
-    def max_climb_angle(self) -> float:
+    def stability_angle(self) -> float:
         """Renvoie l'angle maximale grimpable"""
-        return self._max_climb_angle
+        return self._stability_angle
     
     @property
     def ground_damping(self) -> float:
@@ -75,10 +75,10 @@ class GroundSensor(Component):
         """Fixe le seuil de support"""
         self._threshold = float(clamped(expect(value, Real)))
 
-    @max_climb_angle.setter
-    def max_climb_angle(self, value: Real):
+    @stability_angle.setter
+    def stability_angle(self, value: Real):
         """Fixe l'angle maximal grimpable"""
-        self._max_climb_angle = abs(float(expect(value, Real)))
+        self._stability_angle = abs(float(expect(value, Real)))
 
     @ground_damping.setter
     def ground_damping(self, value: Real):
@@ -93,5 +93,5 @@ class GroundSensor(Component):
     # ======================================== INTERNALS ========================================
     def _compute(self) -> None:
         """Précalcul"""
-        self._climb_ny_min: float = cos(radians(self._max_climb_angle))
+        self._stability_ny_min: float = cos(radians(self._stability_angle))
         self._ground_normal: Vector | None = None
