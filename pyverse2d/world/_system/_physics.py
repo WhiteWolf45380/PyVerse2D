@@ -59,8 +59,8 @@ class PhysicsSystem(System):
             # Amortissement horizontal au sol uniquement
             if entity.has(GroundSensor):
                 gs: GroundSensor = entity.get(GroundSensor)
-                if gs.grounded and gs.ground_damping > 0.0:
-                    factor = exp(-gs.ground_damping * dt)
+                if gs._grounded and gs._ground_damping > 0.0:
+                    factor = exp(-gs._ground_damping * dt)
                     rb.velocity = rb.velocity.__class__(rb.velocity.x * factor, rb.velocity.y)
 
             # Intégration de la position
