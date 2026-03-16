@@ -18,7 +18,7 @@ class GroundSensor(Component):
         max_climb_angle(float): angle maximal en degrés que l'entité peut gravir (0 à 90)
         ground_damping(float): amortissement horizontal appliqué uniquement au sol
     """
-    __slots__ = ("grounded", "threshold", "max_climb_angle", "_climb_ny_min", "ground_damping")
+    __slots__ = ("_threshold", "_max_climb_angle", "_ground_damping", "_grounded", "_climb_ny_min")
     requires = ("Transform", "Collider")
 
     def __init__(self, threshold: Real = 0.65, max_climb_angle: Real = 90.0, ground_damping: Real = 0.0):
@@ -26,6 +26,7 @@ class GroundSensor(Component):
         self._max_climb_angle: float = abs(float(expect(max_climb_angle, Real)))
         self._ground_damping: float = float(max(0.0, expect(ground_damping, Real)))
         self._grounded: bool = False
+        self._compute()
 
     # ======================================== CONVERSIONS ========================================
     def __repr__(self) -> str:
