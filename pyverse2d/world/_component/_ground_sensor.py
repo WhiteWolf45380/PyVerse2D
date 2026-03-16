@@ -32,20 +32,20 @@ class GroundSensor(Component):
     # ======================================== CONVERSIONS ========================================
     def __repr__(self) -> str:
         """Renvoie une représentation du composant"""
-        return f"GroundSensor(grounded={self.grounded}, threshold={self.threshold}, max_climb_angle={self.max_climb_angle}, ground_damping={self.ground_damping})"
+        return f"GroundSensor(grounded={self._grounded}, threshold={self._threshold}, max_climb_angle={self._max_climb_angle}, ground_damping={self._ground_damping})"
 
     def __iter__(self) -> Iterator:
         """Renvoie le composant dans un itérateur"""
-        return iter((self.grounded, self.threshold, self.max_climb_angle, self.ground_damping))
+        return iter((self._grounded, self._threshold, self._max_climb_angle, self._ground_damping))
 
     def __hash__(self) -> int:
         """Renvoie l'entier hashé du composant"""
-        return hash((self.threshold, self.max_climb_angle, self.ground_damping))
+        return hash((self._threshold, self._max_climb_angle, self._ground_damping))
 
     def __eq__(self, other: GroundSensor) -> bool:
         """Vérifie la correspondance des deux composants"""
         if isinstance(other, GroundSensor):
-            return self.threshold == other.threshold and self.max_climb_angle == other.max_climb_angle and self.ground_damping == other.ground_damping
+            return self._threshold == other._threshold and self._max_climb_angle == other._max_climb_angle and self._ground_damping == other._ground_damping
         return False
     
     # ======================================== GETTERS ========================================
