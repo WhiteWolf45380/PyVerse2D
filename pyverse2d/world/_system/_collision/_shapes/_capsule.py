@@ -1,15 +1,15 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from math import sqrt
+from .....math import Vector
+from .....shape import Capsule
 
-from ....math import Vector
-from ....shape import Capsule
-
-from ._registry import (
+from .._registry import (
     Contact, register,
     closest_pt_on_seg, closest_pt_seg_to_seg,
 )
+
+from math import sqrt
 
 # ======================================== Capsule × Capsule ========================================
 @register(Capsule, Capsule)

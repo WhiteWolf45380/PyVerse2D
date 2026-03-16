@@ -1,7 +1,5 @@
-# _narrowphase.py
+# ======================================== IMPORTS ========================================
 from __future__ import annotations
-
-from math import sqrt
 
 from ....math import Vector
 from ....abc import VertexShape
@@ -12,6 +10,8 @@ from ._registry import (
     closest_pt_on_seg, closest_pt_seg_to_seg,
     closest_pt_on_ellipse, point_in_convex_poly,
 )
+
+from math import sqrt
 
 # ======================================== VERTEX HELPERS ========================================
 def vertex_world_pts(sv: VertexShape, x, y, scale, rotation) -> list[tuple[float, float]]:

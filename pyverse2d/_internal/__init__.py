@@ -8,6 +8,8 @@ from .validators import (
     rgba
 )
 
+from .pipeline import Pipeline
+
 # ======================================== EXPORTS ========================================
 __all__ = [
     "typename",
@@ -16,4 +18,6 @@ __all__ = [
     "positive",
     "clamped",
     "rgba",
+
+    "Pipeline",
 ]

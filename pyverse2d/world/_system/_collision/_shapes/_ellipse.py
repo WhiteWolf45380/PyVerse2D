@@ -1,15 +1,15 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from math import sqrt, cos, sin, atan2, pi as _PI
+from .....math import Vector
+from .....shape import Ellipse, Capsule
 
-from ....math import Vector
-from ....shape import Ellipse, Capsule
-
-from ._registry import (
+from .._registry import (
     Contact, register,
     closest_pt_on_seg, closest_pt_on_ellipse,
 )
+
+from math import sqrt, cos, sin, atan2, pi as _PI
 
 # ======================================== Ellipse × Ellipse ========================================
 @register(Ellipse, Ellipse)
