@@ -4,16 +4,13 @@ from __future__ import annotations
 from ...._flag import UpdatePhase
 from ....abc import System
 from ....math import Vector
-
 from ..._world import World
 from ..._component import Transform, RigidBody, Collider, GroundSensor
-
 from .._physics import PhysicsSystem
-
 from ._registry import dispatch, Contact, world_center
 from . import _circle, _ellipse, _capsule  # noqa: F401
 
-from math import sqrt, acos, degrees
+from math import sqrt
 
 # ======================================== CONSTANTES ========================================
 _SLOP = 0.5
@@ -23,6 +20,8 @@ _MAX_CORRECTION = 8.0
 _EXTRA_ITER_THRESHOLD = 4.0
 _EXTRA_ITER = 4
 _MAX_MASS_RATIO = 0.95
+_RESTITUTION_THRESHOLD = 1.0
+_RESTITUTION_MAX_VEL = 10.0
 
 # ======================================== CACHED CONTACT ========================================
 class _CachedContact:
@@ -183,11 +182,22 @@ class CollisionSystem(System):
         if abs(jn) < 1e-4 and abs(jt) < 1e-4:
             return
 
+        # Calcul de la vitesse relative selon la normale
+        inv_a = 0.0 if static_a else 1.0 / rb_a.mass
+        inv_b = 0.0 if static_b else 1.0 / rb_b.mass
+        rel_vx = rb_a.velocity.x - rb_b.velocity.x
+        rel_vy = rb_a.velocity.y - rb_b.velocity.y
+        vel_along = rel_vx * nx + rel_vy * ny
+
+        # Skip warm start si les objets s'éloignent : rebond en cours
+        if vel_along > 0:
+            cached.jn = 0.0
+            cached.jt = 0.0
+            return
+
         # Application des impulsions précédentes
         ix = nx * jn + tx * jt
         iy = ny * jn + ty * jt
-        inv_a = 0.0 if static_a else 1.0 / rb_a.mass
-        inv_b = 0.0 if static_b else 1.0 / rb_b.mass
 
         if not static_a:
             rb_a.velocity = Vector(rb_a.velocity.x + ix * inv_a, rb_a.velocity.y + iy * inv_a)
@@ -290,40 +300,40 @@ class CollisionSystem(System):
 
         # Calcul de l'impulsion normale avec restitution
         restitution = min(rb_a.restitution, rb_b.restitution) if not static_a and not static_b else (rb_b.restitution if static_a else rb_a.restitution)
-
-        if vel_along < -0.5:
-            j_delta_n = -(1.0 + restitution) * vel_along / inv_sum
-        else:
+        if vel_along < -_RESTITUTION_THRESHOLD:
+            t = min((-vel_along - _RESTITUTION_THRESHOLD) / (_RESTITUTION_MAX_VEL - _RESTITUTION_THRESHOLD), 1.0)
+            effective_restitution = restitution * t
+            j_delta_n = -(1.0 + effective_restitution) * vel_along / inv_sum
+        elif vel_along < 0:
             bias = _BAUMGARTE * max(depth - _SLOP, 0.0)
             j_delta_n = -(vel_along + bias) / inv_sum
+        else:
+            j_delta_n = 0.0
 
         # Clamping de l'impulsion normale (pas de traction)
         old_jn = cached.jn
         cached.jn = max(0.0, old_jn + j_delta_n)
         j_delta_n = cached.jn - old_jn
 
-        # Calcul de l'angle de la surface et de l'angle max grimpable
-        surface_angle = degrees(acos(min(abs(ny), 1.0)))
-        max_angle = 90.0
-        for entity in (a, b):
-            if entity.has(GroundSensor):
-                max_angle = entity.get(GroundSensor).max_climb_angle
-                break
+        # Friction conditionnelle : desactivee sur les surfaces verticales
+        friction_factor = abs(ny)
+        if friction_factor < 0.3:
+            cached.jt = 0.0
 
-        # Friction scale : proportionnelle a la force normale (abs(ny) = cos(angle))
-        # Coupee a zero au dela de max_climb_angle
-        if surface_angle > max_angle:
-            friction_scale = 0.0
-        else:
-            friction_scale = abs(ny)
+            # Application de l'impulsion normale uniquement
+            ix = nx * j_delta_n
+            iy = ny * j_delta_n
 
-        # Calcul des coefficients de friction avec scale
-        friction_dynamic = (rb_a.friction + rb_b.friction) * 0.5 if not static_a and not static_b else (rb_b.friction if static_a else rb_a.friction)
-        friction_static = friction_dynamic * 1.5
-        friction_dynamic *= friction_scale
-        friction_static *= friction_scale
+            if not static_a:
+                rb_a.velocity = Vector(rb_a.velocity.x + ix * inv_a, rb_a.velocity.y + iy * inv_a)
+            if not static_b:
+                rb_b.velocity = Vector(rb_b.velocity.x - ix * inv_b, rb_b.velocity.y - iy * inv_b)
+            return
 
         # Calcul et application de la friction tangentielle
+        friction_dynamic = (rb_a.friction + rb_b.friction) * 0.5 if not static_a and not static_b else (rb_b.friction if static_a else rb_a.friction)
+        friction_static = friction_dynamic * 1.5
+
         vel_tan = rel_vx * tx + rel_vy * ty
         j_delta_t_needed = -vel_tan / inv_sum
         old_jt = cached.jt
