@@ -4,8 +4,6 @@ from __future__ import annotations
 from ....math import Vector
 from ....abc import VertexShape
 
-from ._narrowphase import sat_vertex_vertex, dispatch_vertex_primitive
-
 from typing import Callable, NamedTuple
 from math import cos, sin, atan2
 
@@ -31,6 +29,8 @@ def register(type_a: type, type_b: type):
 
 def dispatch(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b) -> Contact | None:
     """Dispatche vers le bon handler de narrowphase"""
+    from ._narrowphase import sat_vertex_vertex, dispatch_vertex_primitive
+
     a_is_vertex = isinstance(sa, VertexShape)
     b_is_vertex = isinstance(sb, VertexShape)
 
