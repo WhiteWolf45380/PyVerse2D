@@ -2,19 +2,18 @@
 from __future__ import annotations
 
 from ..._component import Transform, RigidBody, Collider
-
 from ._registry import world_center
 
 # ======================================== SPATIAL HASH ========================================
 class SpatialHash:
     """Broadphase par grille spatiale"""
+
     def __init__(self):
         self._cell_size: float | None = None
         self._dynamic_cells: dict[tuple[int, int], list] = {}
         self._static_cells: dict[tuple[int, int], list] = {}
         self._static_built: bool = False
 
-    # ======================================== PUBLIC ========================================
     def clear_static(self):
         """Vide les cellules statiques"""
         self._static_cells.clear()
@@ -60,7 +59,6 @@ class SpatialHash:
         seen: set[tuple[int, int]] = set()
         pairs: list[tuple] = []
 
-        # Paires dynamique/dynamique
         for cell in self._dynamic_cells.values():
             n = len(cell)
             for i in range(n):
@@ -72,7 +70,6 @@ class SpatialHash:
                         seen.add(key)
                         pairs.append((a, b))
 
-        # Paires dynamique/statique
         for ck, dyn in self._dynamic_cells.items():
             stat = self._static_cells.get(ck)
             if not stat:
@@ -87,17 +84,13 @@ class SpatialHash:
 
         return pairs
 
-    # ======================================== INTERNAL ========================================
     def _insert(self, cells, entity, col: Collider, tr: Transform, rb):
         """Insère une entité dans les cellules qu'elle occupe"""
         cs = self._cell_size
         cx_, cy_ = world_center(col.shape, tr, col.offset)
-
-        # Calcul du AABB monde courant
         w_min_x, w_min_y, w_max_x, w_max_y = col.shape.world_bounding_box(cx_, cy_, tr.scale, tr.rotation)
 
         if rb is not None and not rb.is_static():
-            # Extension du AABB avec la position précédente pour l'anti-tunneling broadphase
             prev_cx = rb.prev_x - (tr.x - cx_)
             prev_cy = rb.prev_y - (tr.y - cy_)
             prev_min_x, prev_min_y, prev_max_x, prev_max_y = col.shape.world_bounding_box(prev_cx, prev_cy, tr.scale, tr.rotation)
@@ -106,12 +99,8 @@ class SpatialHash:
             min_y = min(w_min_y, prev_min_y)
             max_y = max(w_max_y, prev_max_y)
         else:
-            min_x = w_min_x
-            max_x = w_max_x
-            min_y = w_min_y
-            max_y = w_max_y
+            min_x, max_x, min_y, max_y = w_min_x, w_max_x, w_min_y, w_max_y
 
-        # Insertion dans toutes les cellules recouvertes
         for gx in range(int(min_x // cs), int(max_x // cs) + 1):
             for gy in range(int(min_y // cs), int(max_y // cs) + 1):
                 key = (gx, gy)

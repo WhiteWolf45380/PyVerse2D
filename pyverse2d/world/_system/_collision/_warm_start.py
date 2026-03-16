@@ -1,15 +1,12 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from ...._internal import Pipeline
-
-from ....math import Vector
-
-from ..._component import RigidBody
-
-from ._constants import _WARM_BIAS
-
 from dataclasses import dataclass
+
+from ...._internal import Pipeline
+from ....math import Vector
+from ..._component import RigidBody
+from ._constants import _WARM_BIAS
 
 # ======================================== CONTEXTE ========================================
 @dataclass
@@ -38,21 +35,17 @@ class WarmStartContext:
         """Construit le contexte — retourne None si la paire est non résoluble"""
         if not a.has(RigidBody) or not b.has(RigidBody):
             return None
-
         rb_a = a.get(RigidBody)
         rb_b = b.get(RigidBody)
         static_a = rb_a.is_static()
         static_b = rb_b.is_static()
-
         if static_a and static_b:
             return None
-
         nx, ny = contact.normal.x, contact.normal.y
         inv_a = 0.0 if static_a else 1.0 / rb_a.mass
         inv_b = 0.0 if static_b else 1.0 / rb_b.mass
         rel_vx = rb_a.velocity.x - rb_b.velocity.x
         rel_vy = rb_a.velocity.y - rb_b.velocity.y
-
         return WarmStartContext(
             a=a, b=b, contact=contact, cached=cached,
             rb_a=rb_a, rb_b=rb_b,
@@ -88,7 +81,6 @@ def _apply(ctx: WarmStartContext):
     """Application des impulsions précédentes"""
     ix = ctx.nx * ctx._jn + ctx.tx * ctx._jt
     iy = ctx.ny * ctx._jn + ctx.ty * ctx._jt
-
     if not ctx.static_a:
         ctx.rb_a.velocity = Vector(ctx.rb_a.velocity.x + ix * ctx.inv_a, ctx.rb_a.velocity.y + iy * ctx.inv_a)
     if not ctx.static_b:

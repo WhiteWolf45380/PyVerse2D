@@ -3,15 +3,11 @@ from __future__ import annotations
 
 from ...._flag import UpdatePhase
 from ....abc import System
-
 from ..._world import World
-
 from .._physics import PhysicsSystem
-
 from ._spatial_hash import SpatialHash
 from ._resolve import CachedContact
 from ._update import UpdateContext, update_pipeline
-from . import _circle, _ellipse, _capsule  # noqa: F401
 
 # ======================================== SYSTEM ========================================
 class CollisionSystem(System):

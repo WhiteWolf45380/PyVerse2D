@@ -1,18 +1,16 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
+from dataclasses import dataclass
+from math import acos as _acos, degrees as _degrees
+
 from ...._internal import Pipeline
 from ....math import Vector
-
 from ..._component import Transform, RigidBody, GroundSensor
-
 from ._constants import (
     _SLOP, _BAUMGARTE, _MAX_CORRECTION, _MAX_MASS_RATIO,
     _RESTITUTION_THRESHOLD, _RESTITUTION_MAX_VEL,
 )
-
-from dataclasses import dataclass
-from math import acos as _acos, degrees as _degrees
 
 # ======================================== CACHED CONTACT ========================================
 class CachedContact:
@@ -71,16 +69,12 @@ class ResolveContext:
         rb_b = b.get(RigidBody) if has_rb_b else None
         static_a = (not has_rb_a) or rb_a.is_static()
         static_b = (not has_rb_b) or rb_b.is_static()
-
         if static_a and static_b:
             return None
-
         nx, ny = contact.normal.x, contact.normal.y
         depth = contact.depth
-
         inv_a = inv_b = inv_sum = 0.0
         rel_vx = rel_vy = vel_along = 0.0
-
         if has_rb_a and has_rb_b:
             inv_a = 0.0 if static_a else 1.0 / rb_a.mass
             inv_b = 0.0 if static_b else 1.0 / rb_b.mass
@@ -92,7 +86,6 @@ class ResolveContext:
             rel_vx = vax - vbx
             rel_vy = vay - vby
             vel_along = rel_vx * nx + rel_vy * ny
-
         return ResolveContext(
             a=a, b=b, contact=contact, cached=cached, dt=dt,
             has_rb_a=has_rb_a, has_rb_b=has_rb_b,
@@ -167,7 +160,6 @@ def _normal_impulse(ctx: ResolveContext):
         restitution = ctx.rb_b.restitution
     else:
         restitution = ctx.rb_a.restitution
-
     if ctx.vel_along < -_RESTITUTION_THRESHOLD:
         # Impact significatif : restitution scalée selon la vitesse
         t = min((-ctx.vel_along - _RESTITUTION_THRESHOLD) / (_RESTITUTION_MAX_VEL - _RESTITUTION_THRESHOLD), 1.0)
@@ -179,7 +171,6 @@ def _normal_impulse(ctx: ResolveContext):
     else:
         # Objet qui s'eloigne : pas d'impulsion
         j_delta_n = 0.0
-
     # Clamping : pas de traction
     old_jn = ctx.cached.jn
     ctx.cached.jn = max(0.0, old_jn + j_delta_n)
@@ -193,14 +184,12 @@ def _friction(ctx: ResolveContext):
         ctx.cached.jt = 0.0
         ctx.j_delta_t = 0.0
         return
-
     if not ctx.static_a and not ctx.static_b:
         friction_dynamic = (ctx.rb_a.friction + ctx.rb_b.friction) * 0.5
     elif ctx.static_a:
         friction_dynamic = ctx.rb_b.friction
     else:
         friction_dynamic = ctx.rb_a.friction
-
     # Friction statique selon stability_angle
     surface_angle = _degrees(_acos(min(abs(ctx.ny), 1.0)))
     stability_angle = 75.0
@@ -208,19 +197,15 @@ def _friction(ctx: ResolveContext):
         if entity.has(GroundSensor):
             stability_angle = entity.get(GroundSensor).stability_angle
             break
-
     friction_static = 0.0 if surface_angle > stability_angle else friction_dynamic * 1.5
-
     vel_tan = ctx.rel_vx * ctx.tx + ctx.rel_vy * ctx.ty
     j_delta_t_needed = -vel_tan / ctx.inv_sum
     old_jt = ctx.cached.jt
-
     # Choix friction statique ou dynamique selon le cone de Coulomb
     if abs(j_delta_t_needed) <= friction_static * ctx.cached.jn:
         ctx.cached.jt = max(-friction_static * ctx.cached.jn, min(friction_static * ctx.cached.jn, old_jt + j_delta_t_needed))
     else:
         ctx.cached.jt = max(-friction_dynamic * ctx.cached.jn, min(friction_dynamic * ctx.cached.jn, old_jt + j_delta_t_needed))
-
     ctx.j_delta_t = ctx.cached.jt - old_jt
 
 @resolve_pipeline.step
@@ -228,7 +213,6 @@ def _apply(ctx: ResolveContext):
     """Application des impulsions normale et tangentielle"""
     ix = ctx.nx * ctx.j_delta_n + ctx.tx * ctx.j_delta_t
     iy = ctx.ny * ctx.j_delta_n + ctx.ty * ctx.j_delta_t
-
     if not ctx.static_a:
         ctx.rb_a.velocity = Vector(ctx.rb_a.velocity.x + ix * ctx.inv_a, ctx.rb_a.velocity.y + iy * ctx.inv_a)
     if not ctx.static_b:

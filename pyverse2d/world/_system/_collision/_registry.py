@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from ....math import Vector
-from ....abc import VertexShape
 
 from typing import Callable, NamedTuple
 from math import cos, sin, atan2
@@ -29,33 +28,8 @@ def register(type_a: type, type_b: type):
 
 def dispatch(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b) -> Contact | None:
     """Dispatche vers le bon handler de narrowphase"""
-    from ._narrowphase import sat_vertex_vertex, dispatch_vertex_primitive
-
-    a_is_vertex = isinstance(sa, VertexShape)
-    b_is_vertex = isinstance(sb, VertexShape)
-
-    if a_is_vertex and b_is_vertex:
-        return sat_vertex_vertex(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b)
-
-    if a_is_vertex:
-        c = dispatch_vertex_primitive(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b)
-        return Contact(Vector(-c.normal.x, -c.normal.y), c.depth) if c is not None else None
-
-    if b_is_vertex:
-        return dispatch_vertex_primitive(sb, bx, by, scale_b, rot_b, sa, ax, ay, scale_a, rot_a)
-
-    key = (type(sa), type(sb))
-    fn = _handlers.get(key)
-    if fn is not None:
-        return fn(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b)
-
-    key_flip = (type(sb), type(sa))
-    fn = _handlers.get(key_flip)
-    if fn is not None:
-        c = fn(sb, bx, by, scale_b, rot_b, sa, ax, ay, scale_a, rot_a)
-        return Contact(Vector(-c.normal.x, -c.normal.y), c.depth) if c is not None else None
-
-    return None
+    from ._narrow_phase import dispatch as _np_dispatch
+    return _np_dispatch(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b)
 
 def world_center(shape, tr, offset=(0.0, 0.0)) -> tuple[float, float]:
     """Calcule le centre géométrique monde depuis transform, bounding_box et offset"""
@@ -68,7 +42,7 @@ def world_center(shape, tr, offset=(0.0, 0.0)) -> tuple[float, float]:
 
 # ======================================== HELPERS GÉOMÉTRIQUES ========================================
 def closest_pt_on_seg(sx, sy, sdx, sdy, px, py) -> tuple[float, float]:
-    """Point le plus proche de (px,py) sur le segment (sx,sy)→(sx+sdx,sy+sdy)"""
+    """Point le plus proche de (px,py) sur le segment (sx,sy) -> (sx+sdx,sy+sdy)"""
     len_sq = sdx * sdx + sdy * sdy
     if len_sq < 1e-10:
         return sx, sy

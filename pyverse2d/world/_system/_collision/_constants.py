@@ -9,7 +9,7 @@ _WARM_BIAS: float = 0.8         # fraction des impulsions précédentes réappli
 
 # ======================================== ITERATIONS ========================================
 _EXTRA_ITER_THRESHOLD: float = 4.0   # profondeur de pénétration déclenchant les itérations supplémentaires
-_EXTRA_ITER: int = 4               # nombre d'itérations supplémentaires ajoutées
+_EXTRA_ITER: int = 4                  # nombre d'itérations supplémentaires ajoutées
 
 # ======================================== RESTITUTION ========================================
 _RESTITUTION_THRESHOLD: float = 1.0    # vitesse minimale en m/s pour appliquer la restitution
