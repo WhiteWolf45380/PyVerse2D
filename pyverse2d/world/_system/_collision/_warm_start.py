@@ -63,7 +63,7 @@ def _check_impulses(ctx: WarmStartContext):
     """Skip si impulsions négligeables pour ne pas perturber les objets au repos"""
     jn = ctx.cached.jn * _WARM_BIAS
     jt = ctx.cached.jt * _WARM_BIAS
-    if abs(jn) < 1e-4 and abs(jt) < 1e-4:
+    if abs(jn) < 1e-2 and abs(jt) < 1e-2:
         return False
     ctx._jn = jn
     ctx._jt = jt

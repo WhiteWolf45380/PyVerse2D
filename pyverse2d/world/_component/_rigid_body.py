@@ -10,8 +10,8 @@ from typing import Iterator
 from math import exp
 
 # ======================================== CONSTANTES ========================================
-_SLEEP_THRESHOLD = 0.05     # vitesse (m/s) en dessous de laquelle le timer démarre
-_SLEEP_DELAY = 0.8          # secondes consécutives sous le seuil avant mise en veille
+_SLEEP_THRESHOLD = 0.5      # vitesse (m/s) en dessous de laquelle le timer démarre
+_SLEEP_DELAY = 0.5          # secondes consécutives sous le seuil avant mise en veille
 
 # ======================================== COMPONENT ========================================
 class RigidBody(Component):
@@ -223,10 +223,10 @@ class RigidBody(Component):
         self._velocity = self._velocity * factor
 
     def _tick_sleep(self, dt: float):
-        """Incrémente le timer de mise en veille et endort le corps si le délai est dépassé"""
         vx = self._velocity.x
         vy = self._velocity.y
-        if vx * vx + vy * vy < _SLEEP_THRESHOLD * _SLEEP_THRESHOLD:
+        speed_sq = vx * vx + vy * vy
+        if speed_sq < _SLEEP_THRESHOLD * _SLEEP_THRESHOLD:
             self._sleep_timer += dt
             if self._sleep_timer >= _SLEEP_DELAY:
                 self.sleep()

@@ -1,16 +1,15 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from dataclasses import dataclass
-from math import acos as _acos, degrees as _degrees
-
 from ...._internal import Pipeline
 from ....math import Vector
-from ..._component import Transform, RigidBody, GroundSensor
+from ..._component import Transform, RigidBody
 from ._constants import (
     _SLOP, _BAUMGARTE, _MAX_CORRECTION,
     _RESTITUTION_THRESHOLD, _RESTITUTION_MAX_VEL,
 )
+
+from dataclasses import dataclass
 
 # ======================================== CACHED CONTACT ========================================
 class CachedContact:
@@ -102,7 +101,9 @@ resolve_pipeline = Pipeline("resolve")
 
 @resolve_pipeline.step
 def _wake(ctx: ResolveContext):
-    """Réveil des corps endormis"""
+    """Réveil des corps endormis uniquement si l'impact est significatif"""
+    if ctx.vel_along >= -0.1:
+        return
     if ctx.has_rb_a and ctx.rb_a.is_sleeping():
         ctx.rb_a.wake()
     if ctx.has_rb_b and ctx.rb_b.is_sleeping():

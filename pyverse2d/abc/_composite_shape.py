@@ -1,4 +1,4 @@
-# _composite_shape.py
+# ======================================== IMPORTS ========================================
 from __future__ import annotations
 
 from ._shape import Shape
