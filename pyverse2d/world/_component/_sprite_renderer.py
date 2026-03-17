@@ -17,7 +17,7 @@ class SpriteRenderer(Component):
             self,
             image: Image,
             offset: Vector = (0.0, 0.0),
-            tint: Color = (0.0, 0.0, 0.0, 0.0),
+            tint: Color = (255, 255, 255),
             opacity: Real = 1.0,
             z: int = 0,
             visible: bool = True,
