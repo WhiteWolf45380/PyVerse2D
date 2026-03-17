@@ -98,7 +98,7 @@ class Image(Asset):
         """
         w = float(positive(expect(width, Real))) if width is not None else self._width
         h = float(positive(expect(height, Real))) if height is not None else self._height
-        return Image(self._path, self._flip_x, self._flip_y, self._rotation, self._scale_factor, w, h)
+        return Image(self._path, self._flip_x, self._flip_y, self._rotation, 1.0, w, h)
     
     def scale(self, factor: Real = 1.0) -> Image:
         """Renvoie l'image redimensionnée par un facteur"""

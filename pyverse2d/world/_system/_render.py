@@ -108,22 +108,39 @@ class RenderSystem(System):
             group = pipeline.get_group(sr.z * 3 + _ORDER_SPRITE)
             self._sprites[eid] = pyglet.sprite.Sprite(raw, batch=pipeline.batch, group=group)
 
-        sprite = self._sprites[eid]
+        # Calcul des ratios de taille
+        if sr.image.width: scale_x = sr.image.width / raw.width
+        else: scale_x = None 
+
+        if sr.image.height: scale_y = sr.image.height / raw.height
+        else: scale_y = None
+
+        # Résolution des ratios
+        if scale_x is None and scale_y is None:
+            scale_x = scale_y = 1.0
+        elif scale_x is None:
+            scale_x = scale_y
+        elif scale_y is None:
+            scale_y = scale_x
+
+        # Calcul de l'inversion
+        flip_x = -1 if sr.image.flip_x else 1
+        flip_y = -1 if sr.image.flip_y else 1
+
+        # Mise à jour du sprite
+        sprite: pyglet.sprite.Sprite = self._sprites[eid]
         sprite.visible = True
         sprite.x = tr.x + sr.offset[0] * tr.scale
         sprite.y = tr.y + sr.offset[1] * tr.scale
-        sprite.rotation = tr.rotation
-        sprite.scale = tr.scale * sr.image.scale_factor
+        sprite.rotation = tr.rotation + sr.image.rotation
+        sprite.scale_x = tr.scale * scale_x * sr.image.scale_factor * flip_x
+        sprite.scale_y = tr.scale * scale_y * sr.image.scale_factor * flip_y
         sprite.color = sr.tint.rgba8
         sprite.opacity = int(sr.opacity * 255)
 
         if sprite.image.anchor_x != tr.anchor.x * raw.width or sprite.image.anchor_y != tr.anchor.y * raw.height:
             sprite.image.anchor_x = int(tr.anchor.x * raw.width)
             sprite.image.anchor_y = int(tr.anchor.y * raw.height)
-
-        if sr.image.flip_x or sr.image.flip_y:
-            sprite.scale_x = -abs(sprite.scale_x) if sr.image.flip_x else abs(sprite.scale_x)
-            sprite.scale_y = -abs(sprite.scale_y) if sr.image.flip_y else abs(sprite.scale_y)
 
     # ======================================== SYNC SHAPE ========================================
     def _sync_shape(self, entity: Entity, tr: Transform, pipeline: Pipeline):
