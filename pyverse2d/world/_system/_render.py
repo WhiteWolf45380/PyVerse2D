@@ -113,7 +113,7 @@ class RenderSystem(System):
         sprite.x = tr.x + sr.offset[0] * tr.scale
         sprite.y = tr.y + sr.offset[1] * tr.scale
         sprite.rotation = tr.rotation
-        sprite.scale = tr.scale * sr.image.scale
+        sprite.scale = tr.scale * sr.image.scale_factor
         sprite.color = sr.tint.rgba8
         sprite.opacity = int(sr.opacity * 255)
 
