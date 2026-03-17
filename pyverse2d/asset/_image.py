@@ -16,11 +16,8 @@ class Image(Asset):
         width(Real, optional): largeur cible en pixels
         height(Real, optional): hauteur cible en pixels
         scale_factor(Real, optional): facteur de redimensionnement
-        flip_x(bool, optional): miroir horizontal
-        flip_y(bool, optional): miroir vertical
-        rotation(Real, optional): angle de rotation en degrés
     """
-    __slots__ = ("_path", "_width", "_height", "_scale_factor", "_flip_x", "_flip_y", "_rotation")
+    __slots__ = ("_path", "_width", "_height", "_scale_factor")
 
     def __init__(
             self,
@@ -28,22 +25,16 @@ class Image(Asset):
             width: Real = None,
             height: Real = None,
             scale_factor: Real = 1.0,
-            flip_x: bool = False,
-            flip_y: bool = False,
-            rotation: Real = 0.0,
         ):
         self._path: str = expect(path, str)
         self._width: float | None = float(positive(expect(width, Real))) if width is not None else None
         self._height: float | None = float(positive(expect(height, Real))) if height is not None else None
         self._scale_factor: float = float(positive(not_null(expect(scale_factor, Real))))
-        self._flip_x: bool = expect(flip_x, bool)
-        self._flip_y: bool = expect(flip_y, bool)
-        self._rotation: float = float(expect(rotation, Real))
 
     # ======================================== CONVERSIONS ========================================
     def __repr__(self) -> str:
         """Renvoie une représentation de l'image"""
-        return f"Image(path={self._path}, width={self._width}, height={self._height}, scale={self._scale}, flip_x={self._flip_x}, flip_y={self._flip_y}, rotation={self._rotation})"
+        return f"Image(path={self._path}, width={self._width}, height={self._height}, scale={self._scale_factor})"
 
     # ======================================== GETTERS ========================================
     @property
@@ -65,50 +56,43 @@ class Image(Asset):
     def scale_factor(self) -> float:
         """Renvoie le facteur de redimensionnement"""
         return self._scale_factor
-
+    
     @property
-    def flip_x(self) -> bool:
-        """Renvoie le miroir horizontal"""
-        return self._flip_x
-
-    @property
-    def flip_y(self) -> bool:
-        """Renvoie le miroir vertical"""
-        return self._flip_y
-
-    @property
-    def rotation(self) -> float:
-        """Renvoie l'angle de rotation"""
-        return self._rotation
+    def original(self) -> Image:
+        """Renvoie l'image d'origine"""
+        return Image(self._path)
 
     # ======================================== PUBLIC METHODS ========================================
     def __copy__(self) -> Image:
-        return Image(self._path, self._flip_x, self._flip_y, self._rotation, self._scale_factor, self._width, self._height)
+        return Image(self._path, self._width, self._height, self._scale_factor)
 
     def copy(self) -> Image:
-        return Image(self._path, self._flip_x, self._flip_y, self._rotation, self._scale_factor, self._width, self._height)
+        return self.__copy__()
     
-    def resize(self, width: Real = None, height: Real = None) -> Image:
+    def resize(self, width: Real = None, height: Real = None) -> None:
         """
-        Renvoie l'image avec des dimensions cibles
+        Modifie la taille de l'image avec des dimensions cibles
+        Par défaut, une valeur à None entraîne une conservation du ratio
 
         Args:
             width(Real, optional): largeur cible
             height(Real, optional): hauteur cible
         """
-        w = float(positive(expect(width, Real))) if width is not None else self._width
-        h = float(positive(expect(height, Real))) if height is not None else self._height
-        return Image(self._path, self._flip_x, self._flip_y, self._rotation, 1.0, w, h)
+        self._width = float(positive(expect(width, Real))) if width is not None else self._width
+        self._height = float(positive(expect(height, Real))) if height is not None else self._height
+        self._scale_factor = 1.0
     
-    def scale(self, factor: Real = 1.0) -> Image:
-        """Renvoie l'image redimensionnée par un facteur"""
-        factor = float(positive(not_null(expect(factor, Real))))
-        return Image(self._path, self._flip_x, self._flip_y, self._rotation, self._scale_factor * factor, self._width, self._height)
+    def scale(self, factor: Real = 1.0) -> None:
+        """
+        Modifie la taille de l'image par un facteur
 
-    def flip(self, horizontal: bool = False, vertical: bool = False) -> Image:
-        """Renvoie l'image miroir"""
-        return Image(self._path, expect(horizontal, bool), expect(vertical, bool), self._rotation, self._scale_factor, self._width, self._height)
-
-    def rotate(self, angle: Real = 0.0) -> Image:
-        """Renvoie l'image tournée"""
-        return Image(self._path, self._flip_x, self._flip_y, float(expect(angle, Real)), self._scale_factor, self._width, self._height)
+        Args:
+            factor(Real): facteur de redimensionnement
+        """
+        self._scale_factor *= float(positive(not_null(expect(factor, Real))))
+    
+    def reset(self) -> None:
+        """Rétablit l'image d'origine"""
+        self._width = None
+        self._height = None
+        self._scale_factor = 1.0
