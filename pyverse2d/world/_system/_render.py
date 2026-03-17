@@ -103,8 +103,8 @@ class RenderSystem(System):
             return
 
         if eid not in self._sprites:
-            raw.anchor_x = tr.anchor.x * raw.width
-            raw.anchor_y = tr.anchor.y * raw.height
+            raw.anchor_x = int(tr.anchor.x * raw.width)
+            raw.anchor_y = int(tr.anchor.y * raw.height)
             group = pipeline.get_group(sr.z * 3 + _ORDER_SPRITE)
             self._sprites[eid] = pyglet.sprite.Sprite(raw, batch=pipeline.batch, group=group)
 
@@ -118,8 +118,8 @@ class RenderSystem(System):
         sprite.opacity = int(sr.opacity * 255)
 
         if sprite.image.anchor_x != tr.anchor.x * raw.width or sprite.image.anchor_y != tr.anchor.y * raw.height:
-            sprite.image.anchor_x = tr.anchor.x * raw.width
-            sprite.image.anchor_y = tr.anchor.y * raw.height
+            sprite.image.anchor_x = int(tr.anchor.x * raw.width)
+            sprite.image.anchor_y = int(tr.anchor.y * raw.height)
 
         if sr.image.flip_x or sr.image.flip_y:
             sprite.scale_x = -abs(sprite.scale_x) if sr.image.flip_x else abs(sprite.scale_x)
