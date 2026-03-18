@@ -203,6 +203,19 @@ class RigidBody(Component):
             self.wake()
         self._acceleration = self._acceleration + Vector(force) * (1.0 / self._mass)
 
+    def apply_impulse(self, impulse: Vector):
+        """
+        Applique une impulsion instantanée, indépendante du dt
+
+        Args:
+            impulse(Vector): impulsion en kg·m/s
+        """
+        if self.is_static():
+            return
+        if self._sleeping:
+            self.wake()
+        self._velocity = self._velocity + Vector(impulse) * (1.0 / self._mass)
+
     def reset_acceleration(self):
         """Remet l'accélération à zéro"""
         self._acceleration = Vector(0.0, 0.0)
