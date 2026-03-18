@@ -4,6 +4,7 @@ from __future__ import annotations
 from ...abc import System
 from ...asset import Animation, AnimationRequest
 
+from .._world import World
 from .._component import Animator
 
 # ======================================== SYSTEM ========================================
@@ -12,9 +13,15 @@ class AnimationSystem(System):
     __slots__ = ()
 
     # ======================================== UPDATE ========================================
-    def update(self, dt: float) -> None:
-        """Mise à jour des animations"""
-        for entity in self.world.query(Animator):
+    def update(self, world: World, dt: float) -> None:
+        """
+        Mise à jour des animations
+
+        Args:
+            world(World): monde à mettre à jour
+            dt(float): delta time
+        """
+        for entity in world.query(Animator):
             self._update_animator(entity.get(Animator), dt)
 
     # ======================================== INTERNAL ========================================
