@@ -1,7 +1,7 @@
 # ======================================== IMPORTS ========================================
 from ..abc import Asset
 
-from ._animation import Animation
+from .._assets import Animation
 
 from dataclasses import dataclass
 from typing import Callable
