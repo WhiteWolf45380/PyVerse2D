@@ -118,6 +118,14 @@ class RenderSystem(System):
             group = pipeline.get_group(sr.z * 3 + _ORDER_SPRITE)
             self._sprites[eid] = pyglet.sprite.Sprite(raw, batch=pipeline.batch, group=group)
 
+        # Vérification de la correspondace de l'image
+        else:
+            sprite = self._sprites[eid]
+            if sprite.image is not raw:
+                raw.anchor_x = int(tr.anchor.x * raw.width)
+                raw.anchor_y = int(tr.anchor.y * raw.height)
+                sprite.image = raw
+
         # Calcul des ratios de taille
         if sr.image.width: scale_x = sr.image.width / raw.width
         else: scale_x = None 
@@ -147,11 +155,6 @@ class RenderSystem(System):
         sprite.scale_y = tr.scale * scale_y * sr.image.scale_factor * flip_y
         sprite.color = sr.tint.rgb8
         sprite.opacity = int(sr.opacity * 255)
-
-        # Actualisation de l'ancre si nécessaire
-        if sprite.image.anchor_x != tr.anchor.x * raw.width or sprite.image.anchor_y != tr.anchor.y * raw.height:
-            sprite.image.anchor_x = int(tr.anchor.x * raw.width)
-            sprite.image.anchor_y = int(tr.anchor.y * raw.height)
 
     # ======================================== SYNC SHAPE ========================================
     def _sync_shape(self, entity: Entity, tr: Transform, pipeline: Pipeline):
