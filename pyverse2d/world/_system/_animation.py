@@ -68,7 +68,7 @@ class AnimationSystem(System):
                     animator._frame = 0
                     animator._elapsed = 0.0
                     if animator._current is None:
-                        sr.image = None
+                        sr.set_to_default()
 
     def _resolve(self, animator: Animator) -> Animation | None:
         """Résout l'animation active selon les priorités et conditions"""
