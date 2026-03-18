@@ -4,7 +4,6 @@ from __future__ import annotations
 from ...._flag import UpdatePhase
 from ....abc import System
 from ..._world import World
-from .._physics import PhysicsSystem
 from ._spatial_hash import SpatialHash
 from ._resolve import CachedContact
 from ._update import UpdateContext, update_pipeline
@@ -14,7 +13,7 @@ class CollisionSystem(System):
     """Système de détection et résolution des collisions"""
     phase = UpdatePhase.UPDATE
     exclusive = True
-    requires = (PhysicsSystem,)
+    requires = ("PhysicsSystem")
 
     def __init__(self, broadphase: bool = True, iterations: int = 6):
         self._hash: SpatialHash | None = SpatialHash() if broadphase else None

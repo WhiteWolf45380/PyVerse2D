@@ -81,7 +81,7 @@ class Entity:
 
         # Exclusivité
         if self.has(T):
-            raise ValueError(f"Can only have 1 {T} component")
+            raise ValueError(f"Can only have 1 {T.__name__} component")
 
         # Prérequis
         for req in component.requires:

@@ -8,8 +8,6 @@ from ...math import Vector
 from .._world import World
 from .._component import Transform, RigidBody
 
-from ._physics import PhysicsSystem
-
 from numbers import Real
 
 # ======================================== SYSTEM ========================================
@@ -23,7 +21,7 @@ class GravitySystem(System):
     __slots__ = ("_gravity")
     phase = UpdatePhase.EARLY
     exclusive = False
-    requires = (PhysicsSystem,)
+    requires = ("PhysicsSystem")
 
     def __init__(self, gravity: Real = 9.8):
         self._gravity: float = float(gravity)

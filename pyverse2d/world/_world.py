@@ -124,21 +124,21 @@ class World:
         Args:
             system(System): système à ajouter
         """
-        T = type(system)
+        T = type(expect(system, System))
 
         # Exclusivité
         if system.exclusive and self.has_system(T):
-            raise ValueError(f"Can only have 1 {type(T).__name__} component")
+            raise ValueError(f"Can only have 1 {T.__name__} component")
 
         # Prérequis
         for req in system.requires:
-            if not self.has_system(req):
-                raise ValueError(f"{type(T).__name__} requires {type(req).__name__}")
+            if not any(type(s).__name__ == req for s in self._all_systems):
+                raise ValueError(f"{T.__name__} requires {req}")
 
         # Conflits
         for conflict in system.conflicts:
-            if self.has_system(conflict):
-                raise ValueError(f"{type(T).__name__} conflicts with {type(conflict).__name__}")
+            if any(type(s).__name__ == conflict for s in self._all_systems):
+                raise ValueError(f"{T.__name__} conflicts with {conflict}")
             
         self._all_systems.append(expect(system, System))
 

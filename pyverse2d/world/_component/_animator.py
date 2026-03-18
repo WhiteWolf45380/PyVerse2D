@@ -5,8 +5,6 @@ from ..._internal import expect
 from ...abc import Component
 from ...asset import Animation, AnimationRequest
 
-from ._sprite_renderer import SpriteRenderer
-
 # ======================================== COMPONENT ========================================
 class Animator(Component):
     """
@@ -16,7 +14,7 @@ class Animator(Component):
         idle(Animation, None): animation par défaut
     """
     __slots__ = ("_idle", "_current", "_frame", "_elapsed",  "_requests")
-    requires = (SpriteRenderer,)
+    requires = ("SpriteRenderer",)
 
     def __init__(self, idle: Animation = None):
         self._idle: Animation = idle
