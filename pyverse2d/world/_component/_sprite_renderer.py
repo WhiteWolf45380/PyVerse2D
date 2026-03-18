@@ -144,7 +144,11 @@ class SpriteRenderer(Component):
         """Vérifie la visibilité"""
         return self._visible
 
-    # ======================================== PUBLIC METHODS ========================================    
+    # ======================================== PUBLIC METHODS ========================================
+    def set_to_default(self) -> None:
+        """Utilise l'image par défaut"""
+        self._image = None
+
     def flip(self, horizontal: bool = False, vertical: bool = False) -> None:
         """
         Applique un effet mirroir
