@@ -34,6 +34,7 @@ _CAPSULE_BORDER_SEGMENTS = 32
 # ======================================== SYSTEM ========================================
 class RenderSystem(System):
     """Système gérant le rendu des entités"""
+    __slots__ = ("_sprites", "_shapes", "_labels", "_image_cache")
     phase = UpdatePhase.LATE
     exclusive = True
 

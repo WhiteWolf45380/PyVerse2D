@@ -20,6 +20,7 @@ class GravitySystem(System):
     Args:
         gravity(Real): force gravitationnelle en N/kg
     """
+    __slots__ = ("_gravity")
     phase = UpdatePhase.EARLY
     exclusive = False
     requires = (PhysicsSystem,)

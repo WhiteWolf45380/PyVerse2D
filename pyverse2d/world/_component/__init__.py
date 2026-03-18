@@ -1,4 +1,5 @@
 # ======================================== IMPORTS ========================================
+from ._animator import Animator
 from ._collider import Collider
 from ._ground_sensor import GroundSensor
 from ._rigid_body import RigidBody
@@ -9,6 +10,7 @@ from ._transform import Transform
 
 # ======================================== EXPORTS ========================================
 __all__ = [
+    "Animator",
     "Collider",
     "GroundSensor",
     "RigidBody",

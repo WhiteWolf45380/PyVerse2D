@@ -11,6 +11,7 @@ from math import exp
 # ======================================== SYSTEM ========================================
 class PhysicsSystem(System):
     """Système intégrant la physique des corps dynamiques"""
+    __slots__ = ("_pixels_per_meter")
     phase = UpdatePhase.LATE
     exclusive = True
 
