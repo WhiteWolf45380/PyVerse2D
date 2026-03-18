@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 from ...abc import System
-from ...asset import Animation, AnimationRequest
+from ...asset import Animation
+from ...request import AnimationRequest
 
 from .._world import World
 from .._component import Animator

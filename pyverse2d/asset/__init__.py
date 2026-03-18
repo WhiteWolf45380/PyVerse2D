@@ -4,7 +4,6 @@ from ._font import Font
 from ._text import Text
 from ._image import Image
 from._animation import Animation
-from ._animation_request import AnimationRequest
 
 # ======================================== EXPORTS ========================================
 __all__ = [
@@ -13,5 +12,4 @@ __all__ = [
     "Text",
     "Image",
     "Animation",
-    "AnimationRequest",
 ]

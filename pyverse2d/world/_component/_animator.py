@@ -3,7 +3,8 @@ from __future__ import annotations
 
 from ..._internal import expect
 from ...abc import Component
-from ...asset import Animation, AnimationRequest
+from ...asset import Animation
+from ...request import AnimationRequest
 
 # ======================================== COMPONENT ========================================
 class Animator(Component):
