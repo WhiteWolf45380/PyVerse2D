@@ -24,7 +24,7 @@ class Animation(Asset):
     def __init__(self, frames: Iterable[Image], framerate: Real = 24.0):
         if not frames:
             raise ValueError("Animation must have at least one frame")
-        self._frames: tuple[Image] = expect(tuple(*frames), tuple[Image])
+        self._frames: tuple[Image] = expect(tuple(frames), tuple[Image])
         self._framerate: float = float(positive(not_null(expect(framerate, Real))))
 
     # ======================================== CONVERSIONS ========================================
@@ -38,7 +38,7 @@ class Animation(Asset):
     
     def __hash__(self):
         """Renvoie l'entier hash de l'animation"""
-        return hash(self._frames, self._framerate)
+        return hash((self._frames, self._framerate))
 
     # ======================================== GETTERS ========================================
     def __getitem__(self, key: int | slice) -> Image | list[Image]:
