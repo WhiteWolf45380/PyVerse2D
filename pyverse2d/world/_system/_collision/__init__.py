@@ -13,7 +13,7 @@ class CollisionSystem(System):
     """Système de détection et résolution des collisions"""
     phase = UpdatePhase.UPDATE
     exclusive = True
-    requires = ("PhysicsSystem")
+    requires = ("PhysicsSystem",)
 
     def __init__(self, broadphase: bool = True, iterations: int = 6):
         self._hash: SpatialHash | None = SpatialHash() if broadphase else None
