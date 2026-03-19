@@ -3,8 +3,6 @@ from __future__ import annotations
 
 from ..._flag import UpdatePhase
 from ...abc import System
-from ...math import Vector
-
 from .._world import World
 from .._component import Transform, RigidBody, GroundSensor
 
@@ -59,26 +57,22 @@ class PhysicsSystem(System):
             # Résistance de l'air sur X et Y
             rb._apply_damping(dt)
 
-            # Amortissement horizontal au sol uniquement
-            if entity.has(GroundSensor):
-                gs: GroundSensor = entity.get(GroundSensor)
-                if gs._grounded and gs._ground_damping > 0.0:
-                    factor = exp(-gs._ground_damping * dt)
-                    rb.velocity = rb.velocity.__class__(rb.velocity.x * factor, rb.velocity.y)
-            
-            # Amortissement horizontal au sol uniquement
+           # Résistance de l'air sur X et Y
+            rb._apply_damping(dt)
+
+            # Amortissement horizontal au sol
             if entity.has(GroundSensor):
                 gs: GroundSensor = entity.get(GroundSensor)
                 if gs._grounded and gs._ground_damping > 0.0:
                     factor = exp(-gs._ground_damping * dt)
                     rb.velocity = rb.velocity.__class__(rb.velocity.x * factor, rb.velocity.y)
 
-                # Collage à la pente
-                if gs.is_grounded() and gs.ground_normal is not None:
-                    ny = gs.ground_normal.y
-                    slope_pull = abs(rb.velocity.x) * gs._ground_damping * (1.0 - ny)
-                    rb.apply_force(Vector._make(0.0, -slope_pull))
-
+            # Step-down : colle l'entité au sol sur les pentes descendantes
+            if entity.has(GroundSensor):
+                gs: GroundSensor = entity.get(GroundSensor)
+                if gs.is_grounded() and gs._coyote_elapsed == 0.0:
+                    tr.y -= abs(rb.velocity.x) * dt * ppm * 0.12
+                    
             # Intégration de la position
             tr.x += rb.velocity.x * dt * ppm
             tr.y += rb.velocity.y * dt * ppm
