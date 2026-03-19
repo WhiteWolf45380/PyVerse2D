@@ -48,8 +48,10 @@ def _reset_sensors(ctx: UpdateContext):
     for entity in ctx.entities:
         if entity.has(GroundSensor):
             gs = entity.get(GroundSensor)
-            gs._grounded = False
-            gs._ground_normal = None
+            gs._coyote_elapsed += ctx.dt
+            if gs._coyote_elapsed >= gs._ground_damping:
+                gs._grounded = False
+                gs._ground_normal = None
 
 @update_pipeline.step
 def _broadphase(ctx: UpdateContext):
@@ -97,7 +99,6 @@ def _narrowphase(ctx: UpdateContext):
                 n_len = sqrt(mnx * mnx + mny * mny) or 1.0
                 nx, ny = mnx / n_len, mny / n_len
             elif dot < 0:
-                # Normale inversée : reset des impulsions accumulées
                 cached.jn = 0.0
                 cached.jt = 0.0
         cached.normal = (nx, ny)
@@ -141,13 +142,19 @@ def _detect(col_a: Collider, tr_a: Transform, col_b: Collider, tr_b: Transform) 
 
 def _update_ground_sensor(a, b, nx: float, ny: float):
     """Actualisation du GroundSensor selon la normale du contact"""
-    if ny > 0 and a.has(GroundSensor):
+    n_len = sqrt(nx * nx + ny * ny) or 1.0
+    ny_norm = ny / n_len
+
+    if ny_norm > 0 and a.has(GroundSensor):
         gs = a.get(GroundSensor)
-        if ny >= gs._threshold:
+        if ny_norm >= gs._threshold:
             gs._grounded = True
-            gs._ground_normal = Vector(nx, ny)
-    if ny < 0 and b.has(GroundSensor):
+            gs._coyote_elapsed = 0.0
+            gs._ground_normal = Vector(nx / n_len, ny_norm)
+
+    if ny_norm < 0 and b.has(GroundSensor):
         gs = b.get(GroundSensor)
-        if -ny >= gs._threshold:
+        if -ny_norm >= gs._threshold:
             gs._grounded = True
-            gs._ground_normal = Vector(-nx, -ny)
+            gs._coyote_elapsed = 0.0
+            gs._ground_normal = Vector(-nx / n_len, -ny_norm)
