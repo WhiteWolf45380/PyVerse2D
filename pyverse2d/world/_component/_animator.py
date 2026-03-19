@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from ..._internal import expect
 from ...abc import Component
-from ...asset import Animation
+from ...asset import Animation, Image
 from ...request import AnimationRequest
 
 # ======================================== COMPONENT ========================================
@@ -14,31 +14,37 @@ class Animator(Component):
     Args:
         idle(Animation, None): animation par défaut
     """
-    __slots__ = ("_idle", "_current", "_frame", "_elapsed",  "_requests")
+    __slots__ = ("_idle", "_current_request", "_current_animation", "_frame", "_elapsed",  "_requests")
     requires = ("SpriteRenderer",)
 
     def __init__(self, idle: Animation = None):
-        self._idle: Animation = idle
+        self._idle: Animation = expect(idle, (Animation, None))
         self._requests: list[AnimationRequest] = []
-        self._current: Animation | None = idle
+        self._current_request: AnimationRequest | None = None
+        self._current_animation: Animation | None = self._idle
         self._frame: int = 0
         self._elapsed: float = 0.0
     
     # ======================================== CONVERSIONS ========================================
     def __repr__(self) -> str:
         """Renvoie une représentation de l'animateur"""
-        return f"Animator(current={self._current}, frame={self._frame})"
+        return f"Animator(current={self._current_animation}, frame={self._frame})"
 
     # ======================================== GETTERS ========================================
     @property
     def idle(self) -> Animation:
         """Renvoie l'animation par défaut"""
         return self._idle
+    
+    @property
+    def current_request(self) -> AnimationRequest | None:
+        """Renvoie la requête en cours de traitement"""
+        return self._current_request
 
     @property
-    def current(self) -> Animation:
+    def current_animation(self) -> Animation | None:
         """Renvoie l'animation actuelle"""
-        return self._current
+        return self._current_animation
     
     @property
     def current_index(self) -> int:
@@ -46,14 +52,20 @@ class Animator(Component):
         return self._frame
 
     @property
-    def current_frame(self) -> Animation:
+    def current_frame(self) -> Image | None:
         """Renvoie la frame actuelle"""
-        return self._current[self._frame]
+        return self._current_animation[self._frame] if self._current_animation else None
     
     @property
     def requests(self) -> list[AnimationRequest]:
         """Renvoie la liste courante des requêtes"""
         return self._requests
+    
+    # ======================================== SETTERS ========================================
+    @idle.setter
+    def idle(self, value: Animation | None) -> None:
+        """Fixe l'animation par défaut"""
+        self._idle = expect(value, (Animation, None))
 
     # ======================================== PUBLIC ========================================
     def register(self, request: AnimationRequest) -> None:

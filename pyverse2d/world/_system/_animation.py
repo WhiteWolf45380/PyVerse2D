@@ -30,18 +30,19 @@ class AnimationSystem(System):
     # ======================================== INTERNAL ========================================
     def _update_animator(self, animator: Animator, sr: SpriteRenderer, dt: float) -> None:
         """Mise à jour d'un composant animateur"""
-        target = self._resolve(animator)
+        target_req = self._resolve(animator)
+        target_anim = target_req.animation if target_req else animator.idle
 
         # Changement d'animation
-        if target is not animator._current:
-            req = self._request_of(animator, target)
-            animator._current = target
+        if target_anim is not animator._current_animation:
+            animator._current_request = target_req
+            animator._current_animation = target_anim
             animator._frame = 0
             animator._elapsed = 0.0
-            if req and req.on_start:
-                req.on_start()
+            if target_req and target_req.on_start:
+                target_req.on_start()
 
-        if animator._current is None:
+        if animator._current_animation is None:
             return
 
         # Pousse la frame courante dans le SpriteRenderer
@@ -49,14 +50,14 @@ class AnimationSystem(System):
 
         # Avance la frame
         animator._elapsed += dt
-        delay = 1.0 / animator._current.framerate
+        delay = 1.0 / animator._current_animation.framerate
         if animator._elapsed >= delay:
             animator._elapsed -= delay
             animator._frame += 1
 
             # Fin d'animation
-            if animator._frame >= len(animator._current.frames):
-                req = self._request_of(animator, animator._current)
+            if animator._frame >= len(animator._current_animation.frames):
+                req = animator._current_request
 
                 if req and req.on_end:
                     req.on_end()
@@ -64,28 +65,32 @@ class AnimationSystem(System):
                 if req and req.loop:
                     animator._frame = 0
                 else:
-                    animator._current = animator._idle
+                    animator._current_animation = animator.idle
+                    animator._current_request = None
                     animator._frame = 0
                     animator._elapsed = 0.0
-                    if animator._current is None:
+                    if animator._current_animation is None:
                         sr.set_to_default()
 
-    def _resolve(self, animator: Animator) -> Animation | None:
-        """Résout l'animation active selon les priorités et conditions"""
+    def _resolve(self, animator: Animator) -> AnimationRequest | None:
+        """Résout la requête active selon les priorités et conditions"""
         best: AnimationRequest | None = None
+        for req in animator._requests:
+            if req.condition is None or req.condition():
+                if best is None or req.priority >= best.priority:
+                    best = req
 
+        # Nettoyage des requêtes cutable qui ont perdu la main
+        to_remove = []
         for req in animator._requests:
             if req.cutable and req is not best:
                 if req.loop:
                     animator._frame = 0
                     animator._elapsed = 0.0
-    
-        animator._requests = [req for req in animator._requests if not req.cutable or req.loop or req is best]
-        return best.animation if best else animator._idle
+                else:
+                    to_remove.append(req)
 
-    def _request_of(self, animator: Animator, animation: Animation) -> AnimationRequest | None:
-        """Retourne la requête associée à une animation"""
-        for req in animator._requests:
-            if req.animation is animation:
-                return req
-        return None
+        for req in to_remove:
+            animator._requests.remove(req)
+
+        return best
