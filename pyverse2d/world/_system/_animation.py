@@ -42,7 +42,9 @@ class AnimationSystem(System):
             if target_req and target_req.on_start:
                 target_req.on_start()
 
+        # Aucune animation à jouer
         if animator._current_animation is None:
+            sr.set_to_default()
             return
 
         # Pousse la frame courante dans le SpriteRenderer
@@ -69,8 +71,6 @@ class AnimationSystem(System):
                     animator._current_request = None
                     animator._frame = 0
                     animator._elapsed = 0.0
-                    if animator._current_animation is None:
-                        sr.set_to_default()
 
     def _resolve(self, animator: Animator) -> AnimationRequest | None:
         """Résout la requête active selon les priorités et conditions"""
