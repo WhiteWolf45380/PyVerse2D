@@ -20,20 +20,24 @@ class SpatialHash:
         self._static_built = False
 
     def calibrate(self, entities: list):
-        """Calibre la taille des cellules sur les shapes présentes"""
-        max_extent = 0.0
+        """Calibre la taille des cellules sur les shapes dynamiques présentes"""
+        extents = []
         for e in entities:
+            rb = e.get(RigidBody) if e.has(RigidBody) else None
+            if rb is None or rb.is_static():
+                continue
             col: Collider = e.get(Collider)
             tr: Transform = e.get(Transform)
             cx_, cy_ = world_center(col.shape, tr, col.offset)
             x_min, y_min, x_max, y_max = col.shape.world_bounding_box(cx_, cy_, tr.scale, tr.rotation)
-            hw = (x_max - x_min) * 0.5
-            hh = (y_max - y_min) * 0.5
-            if hw > max_extent:
-                max_extent = hw
-            if hh > max_extent:
-                max_extent = hh
-        self._cell_size = max(max_extent * 2.0, 1.0)
+            extents.append((x_max - x_min) * 0.5)
+            extents.append((y_max - y_min) * 0.5)
+        if not extents:
+            self._cell_size = 64.0
+            return
+        extents.sort()
+        median = extents[len(extents) // 2]
+        self._cell_size = max(median * 2.5, 16.0)
 
     def update_dynamic(self, entities: list):
         """Met à jour les cellules dynamiques et reconstruit les statiques si nécessaire"""
