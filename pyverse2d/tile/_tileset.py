@@ -2,56 +2,12 @@
 from __future__ import annotations
 
 from .._internal import expect, positive
-from ..abc import Asset, Shape
+from ..abc import Shape
 
 from numbers import Real
 
-# ======================================== TILE META ========================================
-class TileMeta:
-    """
-    Métadonnées associées à un ID de tuile dans un Tileset
-
-    Args:
-        tags(str, optional): ensemble de tags (ex. "solid", "ladder")
-        collision_shape(Shape, optional): forme de collision custom ; None = bounding box de la tuile
-    """
-    __slots__ = ("_tags", "_collision_shape")
-
-    def __init__(
-        self,
-        *tags: str,
-        collision_shape: Shape | None = None,
-    ):
-        self._tags: frozenset[str] = frozenset(expect(tags, tuple[str]))
-        self._collision_shape: Shape | None = collision_shape
-
-    # ======================================== CONVERSIONS ========================================
-    def __repr__(self) -> str:
-        return f"TileMeta(tags={self._tags}, collision_shape={self._collision_shape})"
-
-    # ======================================== GETTERS ========================================
-    @property
-    def tags(self) -> frozenset[str]:
-        """Renvoie les tags de la tuile"""
-        return self._tags
-
-    @property
-    def collision_shape(self) -> Shape | None:
-        """Renvoie la forme de collision custom, ou None si bounding box"""
-        return self._collision_shape
-
-    # ======================================== PREDICATES ========================================
-    def has_tag(self, tag: str) -> bool:
-        """Vérifie si la tuile possède un tag"""
-        return tag in self._tags
-
-    def is_solid(self) -> bool:
-        """Raccourci — vérifie si la tuile est solide"""
-        return "solid" in self._tags
-
-
 # ======================================== TILESET ========================================
-class Tileset(Asset):
+class Tileset:
     """
     Spritesheet découpée en tuiles de taille uniforme
 
@@ -151,5 +107,49 @@ class Tileset(Asset):
 
     # ======================================== INTERNALS ========================================
     def _columns_hint(self, stride: float) -> int:
-        """Placeholder — le vrai calcul nécessite la largeur image, connue au runtime par le renderer"""
+        """Placeholder, le vrai calcul nécessite la largeur image, connue au runtime par le renderer"""
         return max(1, int(stride))
+
+
+# ======================================== TILE META ========================================
+class TileMeta:
+    """
+    Métadonnées associées à un ID de tuile dans un Tileset
+
+    Args:
+        tags(str, optional): ensemble de tags (ex. "solid", "ladder")
+        collision_shape(Shape, optional): forme de collision custom ; None = bounding box de la tuile
+    """
+    __slots__ = ("_tags", "_collision_shape")
+
+    def __init__(
+        self,
+        *tags: str,
+        collision_shape: Shape | None = None,
+    ):
+        self._tags: frozenset[str] = frozenset(expect(tags, tuple[str]))
+        self._collision_shape: Shape | None = collision_shape
+
+    # ======================================== CONVERSIONS ========================================
+    def __repr__(self) -> str:
+        return f"TileMeta(tags={self._tags}, collision_shape={self._collision_shape})"
+
+    # ======================================== GETTERS ========================================
+    @property
+    def tags(self) -> frozenset[str]:
+        """Renvoie les tags de la tuile"""
+        return self._tags
+
+    @property
+    def collision_shape(self) -> Shape | None:
+        """Renvoie la forme de collision custom, ou None si bounding box"""
+        return self._collision_shape
+
+    # ======================================== PREDICATES ========================================
+    def has_tag(self, tag: str) -> bool:
+        """Vérifie si la tuile possède un tag"""
+        return tag in self._tags
+
+    def is_solid(self) -> bool:
+        """Raccourci — vérifie si la tuile est solide"""
+        return "solid" in self._tags
