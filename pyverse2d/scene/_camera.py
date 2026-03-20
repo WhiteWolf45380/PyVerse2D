@@ -104,7 +104,7 @@ class Camera:
 
     def unfollow(self):
         """Détache la camera de l'entité suivie"""
-        self._pos = self._following.get(Transform).pos
+        self._pos = self._following.get(Transform).pos.copy()
         self._following = None
 
     def _check_follow(self):

@@ -9,7 +9,7 @@ from ..tile._tile_map import TileMap
 
 import pyglet
 import pyglet.image
-from pyglet.graphics import Batch, Group
+import pyglet.sprite
 
 from numbers import Real
 
@@ -21,11 +21,13 @@ class TileLayer(Layer):
     Args:
         tile_map(TileMap): couche de tuiles à afficher
         parallax(tuple[float, float], optional): facteur de parallax (x, y) ; (1, 1) = suit la caméra normalement
+        z(int, optional): z_order dans le batch pipeline
     """
     def __init__(
         self,
         tile_map: TileMap,
         parallax: tuple[Real, Real] = (1.0, 1.0),
+        z: int = 0,
         camera_mode: CameraMode = CameraMode.WORLD,
     ):
         super().__init__(camera_mode)
@@ -34,13 +36,14 @@ class TileLayer(Layer):
             float(positive(expect(parallax[0], Real))),
             float(positive(expect(parallax[1], Real))),
         )
+        self._z: int = z
 
-        # Cache : image source + régions par tile_id + sprites par (col, row)
+        # Cache image et régions — persistent entre frames
         self._image: pyglet.image.AbstractImage | None = None
         self._regions: dict[int, pyglet.image.TextureRegion] = {}
+
+        # Sprites dans pipeline.batch — recréés chaque frame si nécessaire
         self._sprites: dict[tuple[int, int], pyglet.sprite.Sprite] = {}
-        self._batch: Batch = Batch()
-        self._group: Group = Group(order=0)
 
     # ======================================== GETTERS ========================================
     @property
@@ -58,7 +61,7 @@ class TileLayer(Layer):
     def tile_map(self, value: TileMap) -> None:
         """Fixe le TileMap assigné — réinitialise le cache"""
         self._tile_map = expect(value, TileMap)
-        self._invalidate_cache()
+        self._invalidate()
 
     @parallax.setter
     def parallax(self, value: tuple[Real, Real]) -> None:
@@ -75,16 +78,17 @@ class TileLayer(Layer):
 
     def on_stop(self):
         """Désactivation du layer"""
-        self._invalidate_cache()
+        self._invalidate()
 
     # ======================================== LOOP ========================================
     def update(self, dt: float):
-        """Actualisation du layer"""
+        """Actualisation du laye"""
         ...
 
     def draw(self, pipeline: Pipeline):
         """
-        Affichage du layer
+        Affichage du layer, ne dessine que les tuiles visibles dans le viewport caméra
+
         Args:
             pipeline(Pipeline): pipeline active
         """
@@ -94,12 +98,11 @@ class TileLayer(Layer):
 
         cam = pipeline.camera
         screen = pipeline.screen
+        group = pipeline.get_group(self._z)
 
-        # Position caméra avec parallax appliqué
         px = cam.final_x * self._parallax[0]
         py = cam.final_y * self._parallax[1]
 
-        # Région visible en coordonnées monde
         col_min, row_min, col_max, row_max = self._tile_map.tiles_in_region(
             px - screen.half_width,
             py - screen.half_height,
@@ -108,7 +111,6 @@ class TileLayer(Layer):
         )
 
         tm = self._tile_map
-
         visible = set()
         for row in range(row_min, row_max):
             for col in range(col_min, col_max):
@@ -123,24 +125,21 @@ class TileLayer(Layer):
                     region = self._get_region(tile_id)
                     if region is None:
                         continue
-
                     wx, wy = tm.tile_to_world(col, row)
                     sprite = pyglet.sprite.Sprite(
                         region,
                         x=wx, y=wy,
-                        batch=self._batch,
-                        group=self._group,
+                        batch=pipeline.batch,
+                        group=group,
                     )
-                    sprite.scale_x = tm.tile_width  / region.width
+                    sprite.scale_x = tm.tile_width / region.width
                     sprite.scale_y = tm.tile_height / region.height
                     self._sprites[key] = sprite
 
-        # Nettoyage des sprites hors champ
+        # Suppression des sprites hors champ
         for key in list(self._sprites):
             if key not in visible:
                 self._sprites.pop(key).delete()
-
-        self._batch.draw()
 
     # ======================================== INTERNALS ========================================
     def _ensure_image(self) -> None:
@@ -151,7 +150,6 @@ class TileLayer(Layer):
             self._image = pyglet.image.load(self._tile_map.tile.image_path)
         except FileNotFoundError:
             print(f"[TileLayer] Image introuvable : {self._tile_map.tile.image_path}")
-            self._image = None
 
     def _get_region(self, tile_id: int) -> pyglet.image.TextureRegion | None:
         """Renvoie la région de texture pour un tile_id, avec mise en cache"""
@@ -169,8 +167,8 @@ class TileLayer(Layer):
         if cols <= 0:
             return None
 
-        col = tile_id % cols
-        row = tile_id // cols
+        col = (tile_id - 1) % cols
+        row = (tile_id - 1) // cols
         x = margin + col * stride
 
         y_tiled = margin + row * (th + spacing)
@@ -180,7 +178,7 @@ class TileLayer(Layer):
         self._regions[tile_id] = region
         return region
 
-    def _invalidate_cache(self) -> None:
+    def _invalidate(self) -> None:
         """Libère tous les sprites et régions en cache"""
         for sprite in self._sprites.values():
             sprite.delete()
