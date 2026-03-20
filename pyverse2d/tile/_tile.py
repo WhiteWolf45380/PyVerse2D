@@ -6,8 +6,8 @@ from ..abc import Shape
 
 from numbers import Real
 
-# ======================================== TILESET ========================================
-class Tileset:
+# ======================================== TILE ========================================
+class Tile:
     """
     Spritesheet découpée en tuiles de taille uniforme
 
@@ -38,7 +38,7 @@ class Tileset:
     # ======================================== CONVERSIONS ========================================
     def __repr__(self) -> str:
         return (
-            f"Tileset(path={self._image_path}, "
+            f"Tile(path={self._image_path}, "
             f"tile={self._tile_width}x{self._tile_height}, "
             f"margin={self._margin}, spacing={self._spacing})"
         )
@@ -107,32 +107,41 @@ class Tileset:
 
     # ======================================== INTERNALS ========================================
     def _columns_hint(self, stride: float) -> int:
-        """Placeholder, le vrai calcul nécessite la largeur image, connue au runtime par le renderer"""
+        """Placeholder — le vrai calcul nécessite la largeur image, connue au runtime par le renderer"""
         return max(1, int(stride))
-
 
 # ======================================== TILE META ========================================
 class TileMeta:
     """
-    Métadonnées associées à un ID de tuile dans un Tileset
+    Métadonnées associées à un ID de tuile dans un Tile
 
     Args:
-        tags(str, optional): ensemble de tags (ex. "solid", "ladder")
-        collision_shape(Shape, optional): forme de collision custom ; None = bounding box de la tuile
+        *tags(str): tags de la tuile (ex. "solid", "ladder")
+        collision_shape(Shape, optional): forme de collision custom ; None = bounding box
+        friction(Real, optional): friction de la tuile ; None = valeur du CollisionMapper
+        restitution(Real, optional): restitution de la tuile ; None = valeur du CollisionMapper
     """
-    __slots__ = ("_tags", "_collision_shape")
+    __slots__ = ("_tags", "_collision_shape", "_friction", "_restitution")
 
     def __init__(
         self,
         *tags: str,
         collision_shape: Shape | None = None,
+        friction: Real | None = None,
+        restitution: Real | None = None,
     ):
-        self._tags: frozenset[str] = frozenset(expect(tags, tuple[str]))
+        self._tags: frozenset[str]      = frozenset(expect(tags, tuple[str]))
         self._collision_shape: Shape | None = collision_shape
+        self._friction: float | None    = float(positive(expect(friction, Real)))    if friction    is not None else None
+        self._restitution: float | None = float(positive(expect(restitution, Real))) if restitution is not None else None
 
     # ======================================== CONVERSIONS ========================================
     def __repr__(self) -> str:
-        return f"TileMeta(tags={self._tags}, collision_shape={self._collision_shape})"
+        return (
+            f"TileMeta(tags={self._tags}, "
+            f"friction={self._friction}, restitution={self._restitution}, "
+            f"collision_shape={self._collision_shape})"
+        )
 
     # ======================================== GETTERS ========================================
     @property
@@ -144,6 +153,16 @@ class TileMeta:
     def collision_shape(self) -> Shape | None:
         """Renvoie la forme de collision custom, ou None si bounding box"""
         return self._collision_shape
+
+    @property
+    def friction(self) -> float | None:
+        """Renvoie la friction de la tuile, ou None si héritage du CollisionMapper"""
+        return self._friction
+
+    @property
+    def restitution(self) -> float | None:
+        """Renvoie la restitution de la tuile, ou None si héritage du CollisionMapper"""
+        return self._restitution
 
     # ======================================== PREDICATES ========================================
     def has_tag(self, tag: str) -> bool:
