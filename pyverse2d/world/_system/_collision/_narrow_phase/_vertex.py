@@ -69,10 +69,12 @@ def circle_vs_pts(cx: float, cy: float, cr: float, pts: NDArray[np.float32]) -> 
     min_depth = float("inf")
     best_nx, best_ny = 0.0, 1.0
 
+    pg_cx = float(pts.mean(axis=0)[0])
+    pg_cy = float(pts.mean(axis=0)[1])
+
     # Test des axes des arêtes vectorisé
-    edges = np.roll(pts, -1, axis=0) - pts                   # (N, 2)
-    lengths = np.linalg.norm(edges, axis=1)                  # (N,)
-    c = np.array([cx, cy], dtype=np.float32)
+    edges = np.roll(pts, -1, axis=0) - pts
+    lengths = np.linalg.norm(edges, axis=1)
 
     for i in range(n):
         le = float(lengths[i])
@@ -82,7 +84,7 @@ def circle_vs_pts(cx: float, cy: float, cr: float, pts: NDArray[np.float32]) -> 
         ny = float(edges[i, 0]) / le
 
         nv = np.array([nx, ny], dtype=np.float32)
-        proj = pts @ nv                                      # (N,)
+        proj = pts @ nv
         min_p, max_p = float(proj.min()), float(proj.max())
         pc = cx * nx + cy * ny
         ov = min(pc + cr, max_p) - max(pc - cr, min_p)
@@ -90,11 +92,11 @@ def circle_vs_pts(cx: float, cy: float, cr: float, pts: NDArray[np.float32]) -> 
             return None
         if ov < min_depth:
             min_depth = ov
-            best_nx, best_ny = (nx, ny) if pc > (min_p + max_p) * 0.5 else (-nx, -ny)
+            best_nx, best_ny = nx, ny
 
     # Axe vers le vertex le plus proche
-    diffs = pts - c                                          # (N, 2)
-    dists_sq = (diffs ** 2).sum(axis=1)                     # (N,)
+    diffs = pts - np.array([cx, cy], dtype=np.float32)
+    dists_sq = (diffs ** 2).sum(axis=1)
     nearest = int(dists_sq.argmin())
     ddx = cx - float(pts[nearest, 0])
     ddy = cy - float(pts[nearest, 1])
@@ -111,6 +113,12 @@ def circle_vs_pts(cx: float, cy: float, cr: float, pts: NDArray[np.float32]) -> 
     if ov < min_depth:
         min_depth = ov
         best_nx, best_ny = nx, ny
+
+    # Orientation stable
+    to_cx = cx - pg_cx
+    to_cy = cy - pg_cy
+    if best_nx * to_cx + best_ny * to_cy < 0:
+        best_nx, best_ny = -best_nx, -best_ny
 
     return Contact(Vector._make(best_nx, best_ny), min_depth)
 
