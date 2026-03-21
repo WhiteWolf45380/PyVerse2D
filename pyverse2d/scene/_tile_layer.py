@@ -103,12 +103,7 @@ class TileLayer(Layer):
         px = cam.final_x * self._parallax[0]
         py = cam.final_y * self._parallax[1]
 
-        col_min, row_min, col_max, row_max = self._tile_map.tiles_in_region(
-            px - screen.half_width,
-            py - screen.half_height,
-            screen.width,
-            screen.height,
-        )
+        col_min, row_min, col_max, row_max = 0, 0, self._tile_map.cols, self._tile_map.rows
 
         tm = self._tile_map
         visible = set()
