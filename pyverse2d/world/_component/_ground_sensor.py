@@ -15,19 +15,21 @@ class GroundSensor(Component):
     Composant détectant si l'entité est au sol
 
     Args:
-        threshold(float): composante Y minimale de la normale pour considérer sol (0 à 1)
-        stability_angle(float): angle maximal en degrés auquel l'entité peut ne pas glisser (0 à 75)
-        ground_damping(float): amortissement horizontal appliqué uniquement au sol
-        coyote_time(float): durée de grâce en secondes après perte du sol
+        threshold(Real, optional): composante Y minimale de la normale pour considérer sol (0 à 1)
+        stability_angle(Real, optional): angle maximal en degrés auquel l'entité peut ne pas glisser (0 à 75)
+        ground_damping(Real, optional): amortissement horizontal appliqué uniquement au sol
+        max_step_height(Real, optional)
+        coyote_time(Real, optional): durée de grâce en secondes après perte du sol
     """
-    __slots__ = ("_threshold", "_stability_angle", "_ground_damping", "_coyote_time", "_coyote_elapsed", "_climb_ny_min", "_ground_normal")
+    __slots__ = ("_threshold", "_stability_angle", "_ground_damping", "_max_step_height", "_coyote_time", "_coyote_elapsed", "_climb_ny_min", "_ground_normal")
     requires = ("Transform", "Collider")
 
-    def __init__(self, threshold: Real = 0.65, stability_angle: Real = 90.0, ground_damping: Real = 0.0, coyote_time: Real = 0.08):
+    def __init__(self, threshold: Real = 0.65, stability_angle: Real = 90.0, ground_damping: Real = 0.0, max_step_height: Real = 0.0, coyote_time: Real = 0.08):
         self._threshold: float = float(clamped(expect(threshold, Real)))
         self._stability_angle: float = abs(float(expect(stability_angle, Real)))
-        self._ground_damping: float = float(max(0.0, expect(ground_damping, Real)))
-        self._coyote_time: float = float(max(0.0, expect(coyote_time, Real)))
+        self._ground_damping: float = max(0.0, float(expect(ground_damping, Real)))
+        self._max_step_height: float = max(0.0, float(expect(max_step_height, Real)))
+        self._coyote_time: float = max(0.0, float(expect(coyote_time, Real)))
         self._coyote_elapsed: float = 0.0
         self._grounded: bool = False
         self._compute()
@@ -35,15 +37,15 @@ class GroundSensor(Component):
     # ======================================== CONVERSIONS ========================================
     def __repr__(self) -> str:
         """Renvoie une représentation du composant"""
-        return f"GroundSensor(grounded={self._grounded}, threshold={self._threshold}, stability_angle={self._stability_angle}, ground_damping={self._ground_damping}, coyote_time={self._coyote_time})"
+        return f"GroundSensor(grounded={self._grounded}, threshold={self._threshold}, stability_angle={self._stability_angle}, ground_damping={self._ground_damping}, max_step_height={self._max_step_height}, coyote_time={self._coyote_time})"
 
     def __iter__(self) -> Iterator:
         """Renvoie le composant dans un itérateur"""
-        return iter((self._grounded, self._threshold, self._stability_angle, self._ground_damping, self._coyote_time))
+        return iter((self._grounded, self._threshold, self._stability_angle, self._ground_damping, self.max_step_height, self._coyote_time))
 
     def __hash__(self) -> int:
         """Renvoie l'entier hashé du composant"""
-        return hash((self._threshold, self._stability_angle, self._ground_damping, self._coyote_time))
+        return hash((self._threshold, self._stability_angle, self._ground_damping, self.max_step_height, self._coyote_time))
 
     def __eq__(self, other: GroundSensor) -> bool:
         """Vérifie la correspondance des deux composants"""
@@ -52,6 +54,7 @@ class GroundSensor(Component):
                 self._threshold == other._threshold
                 and self._stability_angle == other._stability_angle
                 and self._ground_damping == other._ground_damping
+                and self.max_step_height == other.max_step_height
                 and self._coyote_time == other._coyote_time
             )
         return False
@@ -71,6 +74,11 @@ class GroundSensor(Component):
     def ground_damping(self) -> float:
         """Renvoie l'amortissement horizontal au sol"""
         return self._ground_damping
+    
+    @property
+    def max_step_height(self) -> float:
+        """Renvoie la hauteur maximale de pas"""
+        return self._max_step_height
 
     @property
     def coyote_time(self) -> float:
@@ -84,25 +92,30 @@ class GroundSensor(Component):
 
     # ======================================== SETTERS ========================================
     @threshold.setter
-    def threshold(self, value: Real):
+    def threshold(self, value: Real) -> None:
         """Fixe le seuil de support"""
         self._threshold = float(clamped(expect(value, Real)))
 
     @stability_angle.setter
-    def stability_angle(self, value: Real):
+    def stability_angle(self, value: Real) -> None:
         """Fixe l'angle maximal grimpable"""
         self._stability_angle = abs(float(expect(value, Real)))
         self._compute()
 
     @ground_damping.setter
-    def ground_damping(self, value: Real):
+    def ground_damping(self, value: Real) -> None:
         """Fixe l'amortissement horizontal au sol"""
-        self._ground_damping = float(max(0.0, expect(value, Real)))
+        self._ground_damping = max(0.0, float(expect(value, Real)))
+    
+    @max_step_height.setter
+    def max_step_height(self, value: Real) -> None:
+        """Fixe la hauteur maximale du pas"""
+        self._max_step_height = max(0.0, float(expect(value, Real)))
 
     @coyote_time.setter
-    def coyote_time(self, value: Real):
+    def coyote_time(self, value: Real) -> None:
         """Fixe la durée de grâce après perte du sol"""
-        self._coyote_time = float(max(0.0, expect(value, Real)))
+        self._coyote_time = max(0.0, float(expect(value, Real)))
 
     # ======================================== PREDICATES ========================================
     def is_grounded(self) -> bool:

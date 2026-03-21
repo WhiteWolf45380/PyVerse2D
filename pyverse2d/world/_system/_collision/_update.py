@@ -80,6 +80,7 @@ def _narrowphase(ctx: UpdateContext):
             continue
         if col_a.is_trigger() or col_b.is_trigger():
             continue
+
         # Gestion du cache de contacts persistants
         ia, ib = id(a), id(b)
         key = (ia, ib) if ia < ib else (ib, ia)
@@ -87,6 +88,7 @@ def _narrowphase(ctx: UpdateContext):
         if key not in ctx.cache:
             ctx.cache[key] = CachedContact()
         cached = ctx.cache[key]
+
         # Lissage de la normale entre frames
         nx, ny = contact.normal.x, contact.normal.y
         if cached.normal is not None:
@@ -103,11 +105,17 @@ def _narrowphase(ctx: UpdateContext):
                 cached.jt = 0.0
         cached.normal = (nx, ny)
         contact = Contact(Vector._make(nx, ny), contact.depth)
+
         # Actualisation du GroundSensor selon la normale du contact
         _update_ground_sensor(a, b, nx, ny)
         if contact.depth > ctx.max_depth:
             ctx.max_depth = contact.depth
         ctx.active_contacts.append((a, b, contact, cached))
+
+        # Step climbing
+        if _try_step(a, b, nx, ny, contact.depth):
+            continue
+
         # Application du warm start
         warm_start(a, b, contact, cached)
 
@@ -137,8 +145,7 @@ def _detect(col_a: Collider, tr_a: Transform, col_b: Collider, tr_b: Transform) 
     bx_min, by_min, bx_max, by_max = col_b.shape.world_bounding_box(cx_b, cy_b, tr_b.scale, tr_b.rotation)
     if ax_min > bx_max or bx_min > ax_max or ay_min > by_max or by_min > ay_max:
         return None
-    return dispatch(col_a.shape, cx_a, cy_a, tr_a.scale, tr_a.rotation,
-                    col_b.shape, cx_b, cy_b, tr_b.scale, tr_b.rotation)
+    return dispatch(col_a.shape, cx_a, cy_a, tr_a.scale, tr_a.rotation, col_b.shape, cx_b, cy_b, tr_b.scale, tr_b.rotation)
 
 def _update_ground_sensor(a, b, nx: float, ny: float):
     """Actualisation du GroundSensor selon la normale du contact"""
@@ -160,3 +167,26 @@ def _update_ground_sensor(a, b, nx: float, ny: float):
             gs._grounded = True
             gs._coyote_elapsed = 0.0
             gs._ground_normal = Vector._make(-nx / n_len, -ny_norm)
+
+def _try_step(a, b, nx: float, ny: float, depth: float) -> bool:
+    """Tente de franchir un step horizontal"""
+    # Collision horizontale uniquement
+    if abs(ny) > abs(nx):
+        return False
+
+    # Cherche l'entité mobile avec GroundSensor
+    for mover, other in ((a, b), (b, a)):
+        if not mover.has(GroundSensor):
+            continue
+        gs = mover.get(GroundSensor)
+        if gs.max_step_height <= 0:
+            continue
+        if not gs.is_grounded():
+            continue
+        if depth > gs.max_step_height:
+            continue
+        
+        # Step absorbable : on monte l'entité
+        mover.get(Transform).y += depth
+        return True
+    return False
