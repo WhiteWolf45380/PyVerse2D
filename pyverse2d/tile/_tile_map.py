@@ -10,6 +10,11 @@ from numbers import Real
 import numpy as np
 from numpy.typing import NDArray
 
+# ======================================== CONSTANTES FLIP ========================================
+FLIP_H = 0b001  # flip horizontal
+FLIP_V = 0b010  # flip vertical
+FLIP_D = 0b100  # flip diagonal (rotation 90°)
+
 # ======================================== TILE MAP ========================================
 class TileMap:
     """
@@ -20,10 +25,11 @@ class TileMap:
         grid(NDArray): tableau 2D d'entiers (rows, cols) ; 0 = tuile vide
         tile_width(Real): largeur d'une tuile en pixels monde
         tile_height(Real): hauteur d'une tuile en pixels monde
+        flags(NDArray, optional): tableau 2D de flags de flip (FLIP_H, FLIP_V, FLIP_D)
         pos(Point, optional): position monde de l'ancre
         anchor(Point, optional): point d'ancrage en [0, 1] ; (0, 0) = coin bas-gauche, (0.5, 0.5) = centre
     """
-    __slots__ = ("_tile", "_grid", "_tile_width", "_tile_height", "_pos", "_anchor")
+    __slots__ = ("_tile", "_grid", "_flags", "_tile_width", "_tile_height", "_pos", "_anchor")
 
     def __init__(
         self,
@@ -31,13 +37,19 @@ class TileMap:
         grid: NDArray[np.int32],
         tile_width: Real,
         tile_height: Real,
+        flags: NDArray[np.uint8] | None = None,
         pos: Point = Point(0.0, 0.0),
         anchor: Point = (0.0, 0.0),
     ):
         self._tile: Tile = expect(tile, Tile)
         self._grid: NDArray[np.int32] = np.asarray(grid, dtype=np.int32)
-        self._tile_width: float = float(positive(expect(tile_width,  Real)))
+        self._tile_width: float = float(positive(expect(tile_width, Real)))
         self._tile_height: float = float(positive(expect(tile_height, Real)))
+        self._flags: NDArray[np.uint8] = (
+            np.asarray(flags, dtype=np.uint8)
+            if flags is not None
+            else np.zeros(self._grid.shape, dtype=np.uint8)
+        )
         self._pos: Point = Point(pos)
         self._anchor: Point = Point(anchor)
 
@@ -56,6 +68,11 @@ class TileMap:
     def grid(self) -> NDArray[np.int32]:
         """Renvoie une copie de la grille brute"""
         return self._grid.copy()
+
+    @property
+    def flags(self) -> NDArray[np.uint8]:
+        """Renvoie une copie du tableau de flags"""
+        return self._flags.copy()
 
     @property
     def tile_width(self) -> float:
@@ -148,6 +165,18 @@ class TileMap:
             return int(self._grid[row, col])
         return 0
 
+    def flags_at(self, col: int, row: int) -> int:
+        """
+        Renvoie les flags de flip de la tuile à (col, row), ou 0 si hors limites
+
+        Args:
+            col(int): colonne
+            row(int): ligne
+        """
+        if 0 <= row < self.rows and 0 <= col < self.cols:
+            return int(self._flags[row, col])
+        return 0
+
     # ======================================== CONVERSIONS COORDS ========================================
     def world_to_tile(self, x: float, y: float) -> tuple[int, int]:
         """
@@ -184,6 +213,6 @@ class TileMap:
         ox, oy = self.origin
         col_min = max(0, int((x - ox) // self._tile_width))
         row_min = max(0, int((y - oy) // self._tile_height))
-        col_max = min(self.cols, int((x + width  - ox) // self._tile_width)  + 1)
+        col_max = min(self.cols, int((x + width - ox) // self._tile_width) + 1)
         row_max = min(self.rows, int((y + height - oy) // self._tile_height) + 1)
         return col_min, row_min, col_max, row_max

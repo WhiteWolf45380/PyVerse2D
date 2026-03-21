@@ -2,12 +2,12 @@
 from __future__ import annotations
 
 from .._internal import expect, positive
-from ..abc import Asset, Shape
+from ..abc import Shape
 
 from numbers import Real
 
 # ======================================== TILE ========================================
-class Tile(Asset):
+class Tile:
     """
     Spritesheet découpée en tuiles de taille uniforme
 

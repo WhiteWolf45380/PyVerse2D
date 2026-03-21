@@ -11,6 +11,7 @@ import pyglet
 import pyglet.image
 import pyglet.sprite
 from pyglet.graphics import Batch, Group
+from ..tile._tile_map import FLIP_H, FLIP_V, FLIP_D
 
 from numbers import Real
 
@@ -39,9 +40,8 @@ class TileLayer(Layer):
             float(positive(expect(parallax[0], Real))),
             float(positive(expect(parallax[1], Real))),
         )
-        self._z: int          = z
+        self._z: int = z
         self._chunk_size: int = max(1, expect(chunk_size, int))
-    
         self._batches: dict[tuple[int, int], Batch] = {}
         self._sprites: list[pyglet.sprite.Sprite] = []
         self._image: pyglet.image.AbstractImage | None = None
@@ -174,7 +174,7 @@ class TileLayer(Layer):
         stride = src_tw + spacing
         cols_ts = max(1, (img_w - margin) // stride)
 
-        # Construction du TextureGrid
+        # Construction du TextureGrid une seule fois
         total_rows = max(1, (img_h - margin) // src_th)
         total_cols = max(1, (img_w - margin) // src_tw)
         grid = pyglet.image.ImageGrid(self._image, total_rows, total_cols)
@@ -205,9 +205,21 @@ class TileLayer(Layer):
                             continue
 
                         wx, wy = tm.tile_to_world(col, row)
+                        flip = tm.flags_at(col, row)
                         sprite = pyglet.sprite.Sprite(region, x=wx, y=wy, batch=batch, group=group)
-                        sprite.scale_x = tw / src_tw
-                        sprite.scale_y = th / src_th
+                        sx = tw / src_tw
+                        sy = th / src_th
+                        if flip & FLIP_D:
+                            sprite.rotation = 90
+                            sx, sy = sy, sx
+                        if flip & FLIP_H:
+                            sx = -sx
+                            sprite.x = wx + tw
+                        if flip & FLIP_V:
+                            sy = -sy
+                            sprite.y = wy + th
+                        sprite.scale_x = sx
+                        sprite.scale_y = sy
                         self._sprites.append(sprite)
                         has_sprite = True
 
@@ -226,7 +238,9 @@ class TileLayer(Layer):
         ts_col = local_id % cols_ts
         ts_row = local_id // cols_ts
 
+        # ImageGrid numérote de bas en haut — on inverse pour correspondre à Tiled (haut en bas)
         flipped_row = total_rows - 1 - ts_row
+
         if flipped_row < 0 or flipped_row >= total_rows:
             return None
 
