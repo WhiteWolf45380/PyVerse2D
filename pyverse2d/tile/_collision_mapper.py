@@ -66,7 +66,7 @@ class CollisionMapper:
 
         # Tuiles solides standard, fusionnées en rects
         for col, row, w, h, friction, restitution, category, mask in self._merged_rects():
-            wx, wy = self._tile_map.tile_to_world(col, row + round(h / self._tile_map.tile_height) - 1)
+            wx, wy = self._tile_map.tile_to_world(col, row)
             entity = Entity(
                 Transform(pos=(wx + w / 2, wy + h / 2)),
                 Collider(shape=Rect(w, h), category=category, mask=mask),
