@@ -59,7 +59,6 @@ class MapLoader:
 
         return MapAsset(layers)
 
-
 # ======================================== JSON INTERNALS ========================================
 def _load_tiles_json(raw_tilesets: list[dict], base_dir: Path) -> list[tuple[int, Tile]]:
     result = []
@@ -73,7 +72,6 @@ def _load_tiles_json(raw_tilesets: list[dict], base_dir: Path) -> list[tuple[int
     result.sort(key=lambda t: t[0])
     return result
 
-
 def _parse_layer_json(layer: dict, raw: dict, tiles: list[tuple[int, Tile]]) -> TileMap:
     cols = layer["width"]
     rows = layer["height"]
@@ -82,7 +80,6 @@ def _parse_layer_json(layer: dict, raw: dict, tiles: list[tuple[int, Tile]]) -> 
     local_ids = [(gid - firstgid + 1) if gid != 0 else 0 for gid in flat_ids]
     grid = np.array(local_ids, dtype=np.int32).reshape(rows, cols)
     return TileMap(tile=tile, grid=grid, tile_width=raw["tilewidth"], tile_height=raw["tileheight"])
-
 
 def _tile_from_dict(data: dict, base_dir: Path) -> Tile:
     tile = Tile(
@@ -101,7 +98,6 @@ def _tile_from_dict(data: dict, base_dir: Path) -> Tile:
             tile.set_meta(local_id, meta)
     return tile
 
-
 # ======================================== TMX INTERNALS ========================================
 def _load_tiles_tmx(tileset_nodes: list[ET.Element], base_dir: Path) -> list[tuple[int, Tile]]:
     result = []
@@ -116,7 +112,6 @@ def _load_tiles_tmx(tileset_nodes: list[ET.Element], base_dir: Path) -> list[tup
         result.append((firstgid, tile))
     result.sort(key=lambda t: t[0])
     return result
-
 
 def _tile_from_tsx(node: ET.Element, base_dir: Path) -> Tile:
     image_node = node.find("image")
@@ -142,7 +137,6 @@ def _tile_from_tsx(node: ET.Element, base_dir: Path) -> Tile:
             tile.set_meta(local_id, meta)
     return tile
 
-
 def _parse_layer_tmx(layer: ET.Element, map_tw: int, map_th: int, tiles: list[tuple[int, Tile]]) -> TileMap:
     cols = int(layer.attrib["width"])
     rows = int(layer.attrib["height"])
@@ -161,7 +155,6 @@ def _parse_layer_tmx(layer: ET.Element, map_tw: int, map_th: int, tiles: list[tu
     grid = np.array(local_ids, dtype=np.int32).reshape(rows, cols)
     return TileMap(tile=tile, grid=grid, tile_width=map_tw, tile_height=map_th)
 
-
 # ======================================== SHARED INTERNALS ========================================
 def _cast_xml_prop(prop: ET.Element):
     """Convertit une propriété XML Tiled vers le bon type Python"""
@@ -172,12 +165,13 @@ def _cast_xml_prop(prop: ET.Element):
     if ptype == "int": return int(value)
     return value
 
-
 def _meta_from_props_dict(props: dict) -> TileMeta | None:
     """Construit un TileMeta depuis un dict de propriétés — None si aucune propriété connue"""
     tags = []
     friction = props.get("friction")
     restitution = props.get("restitution")
+    category = props.get("category")
+    mask = props.get("mask")
 
     if props.get("solid"): tags.append("solid")
     if props.get("ladder"): tags.append("ladder")
@@ -191,6 +185,8 @@ def _meta_from_props_dict(props: dict) -> TileMeta | None:
         *tags,
         friction = friction,
         restitution = restitution,
+        category=category,
+        mask=mask
     )
 
 
