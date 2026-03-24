@@ -25,6 +25,7 @@ class TileLayer(Layer):
         parallax(tuple[float, float], optional): facteur de parallax (x, y)
         z(int, optional): z_order dans le batch pipeline
         chunk_size(int, optional): nombre de tuiles par côté d'un chunk
+        camera_mode(CameraMode, optional): camera behavior
     """
     def __init__(
         self,
@@ -117,20 +118,20 @@ class TileLayer(Layer):
         if not self._batches:
             return
 
-        cam    = pipeline.camera
+        cam = pipeline.camera
         screen = pipeline.screen
-        px     = cam.final_x * self._parallax[0]
-        py     = cam.final_y * self._parallax[1]
+        px = cam.final_x * self._parallax[0]
+        py = cam.final_y * self._parallax[1]
 
         vx = px - screen.half_width
         vy = py - screen.half_height
         vw = screen.width
         vh = screen.height
 
-        tm      = self._tile_map
-        tw      = tm.tile_width
-        th      = tm.tile_height
-        ox, oy  = tm.origin
+        tm = self._tile_map
+        tw = tm.tile_width
+        th = tm.tile_height
+        ox, oy = tm.origin
         chunk_w = self._chunk_size * tw
         chunk_h = self._chunk_size * th
 
@@ -167,25 +168,25 @@ class TileLayer(Layer):
             self._built = True
             return
 
-        tm      = self._tile_map
-        tile    = tm.tile
-        tw      = tm.tile_width
-        th      = tm.tile_height
+        tm = self._tile_map
+        tile = tm.tile
+        tw = tm.tile_width
+        th = tm.tile_height
 
-        img_w   = self._image.width
-        img_h   = self._image.height
-        src_tw  = int(tile.tile_width)
-        src_th  = int(tile.tile_height)
-        margin  = int(tile.margin)
+        img_w = self._image.width
+        img_h = self._image.height
+        src_tw = int(tile.tile_width)
+        src_th = int(tile.tile_height)
+        margin = int(tile.margin)
         spacing = int(tile.spacing)
-        stride  = src_tw + spacing
+        stride = src_tw + spacing
 
         if spacing > 0:
-            cols_ts    = max(1, (img_w - margin - spacing) // stride + 1)
+            cols_ts = max(1, (img_w - margin - spacing) // stride + 1)
             total_rows = max(1, (img_h - margin - spacing) // (src_th + spacing) + 1)
             total_cols = max(1, (img_w - margin - spacing) // (src_tw + spacing) + 1)
         else:
-            cols_ts    = max(1, (img_w - margin) // src_tw)
+            cols_ts = max(1, (img_w - margin) // src_tw)
             total_rows = max(1, (img_h - margin) // src_th)
             total_cols = max(1, (img_w - margin) // src_tw)
 
@@ -203,8 +204,8 @@ class TileLayer(Layer):
 
                 row_start = cr * self._chunk_size
                 col_start = cc * self._chunk_size
-                row_end   = min(row_start + self._chunk_size, tm.rows)
-                col_end   = min(col_start + self._chunk_size, tm.cols)
+                row_end = min(row_start + self._chunk_size, tm.rows)
+                col_end = min(col_start + self._chunk_size, tm.cols)
 
                 for row in range(row_start, row_end):
                     for col in range(col_start, col_end):
@@ -246,9 +247,9 @@ class TileLayer(Layer):
         if tile_id in self._regions:
             return self._regions[tile_id]
 
-        local_id    = tile_id - 1
-        ts_col      = local_id % cols_ts
-        ts_row      = local_id // cols_ts
+        local_id = tile_id - 1
+        ts_col = local_id % cols_ts
+        ts_row = local_id // cols_ts
         flipped_row = total_rows - 1 - ts_row
 
         if flipped_row < 0 or flipped_row >= total_rows:
@@ -270,6 +271,6 @@ class TileLayer(Layer):
         self._sprites.clear()
         self._batches.clear()
         self._regions.clear()
-        self._image        = None
+        self._image = None
         self._texture_grid = None
-        self._built        = False
+        self._built = False

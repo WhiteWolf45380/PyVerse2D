@@ -2,34 +2,28 @@
 from .._internal import expect
 from .._flag import CameraMode
 from .._rendering._pipeline import Pipeline
+from ..ui import Widget
 
-from ..world import World, RenderSystem
 from ..abc import Layer
 
 # ======================================== LAYER ========================================
-class WorldLayer(Layer):
+class UILayer(Layer):
     """
     Layer contenant un World
 
     Args:
-        world(World, optional): monde assigné
+        widgets(Widget, optional): composants ui
         camera_mode(CameraMode, optional): camera behavior
     """
-    def __init__(self, world: World = None, camera_mode: CameraMode = CameraMode.WORLD):
+    def __init__(self, *widgets: Widget, camera_mode: CameraMode = CameraMode.WORLD):
         super().__init__(camera_mode)
-        self._world: World | None = expect(world, (World, None))
+        self._widgets: list[Widget] = list(expect(widgets, tuple[Widget]))
     
     # ======================================== GETTERS ========================================
     @property
-    def world(self) -> World | None:
-        """Renvoie le monde assigné"""
-        return self._world
-
-    # ======================================== SETTERS ========================================
-    @world.setter
-    def world(self, value: World | None):
-        """Fixe le monde assigné"""
-        self._world = expect(value, (World, None))
+    def widgets(self) -> list[Widget]:
+        """Renvoie l'ensemble des composants assignés"""
+        return self._widgets
 
     # ======================================== CYCLE DE VIE ========================================
     def on_start(self):
@@ -43,10 +37,10 @@ class WorldLayer(Layer):
     # ======================================== LOOP ========================================
     def update(self, dt: float):
         """Actualisation du layer"""
-        if self._world is not None:
-            self._world.update(dt)
+        for widget in self._widgets:
+            widget.update(dt)
 
     def draw(self, pipeline: Pipeline):
         """Affichage du layer"""
-        if self._world is not None and self._world.has_system(RenderSystem):
-            self._world.get_system(RenderSystem).draw(self._world, pipeline)
+        for widget in self._widgets:
+            widget.draw(pipeline)
