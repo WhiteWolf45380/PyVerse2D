@@ -44,7 +44,7 @@ class Widget(ABC):
     @property
     def children(self) -> tuple[Widget]:
         """Renvoie la liste des composants enfants"""
-        return tuple(*self._children)
+        return tuple(wrapper.widget for wrapper in self._children)
     
     def child(self, name: str) -> Widget:
         """
@@ -53,6 +53,7 @@ class Widget(ABC):
         Args:
             name(str): identifiant du composant
         """
+        expect(name, str)
         for child in self._children:
             if child.name == name:
                 return child
@@ -257,7 +258,7 @@ class Widget(ABC):
     def _get_wrapper(self, child: Widget) -> WidgetWrapper:
         """Récupère le wrapper d'un composant"""
         for wrapper in self._children:
-            if wrapper.widget is child:
+            if wrapper.widget == child:
                 return wrapper
         raise ValueError(f"{child} is not a child of this widget")
 
@@ -265,6 +266,8 @@ class Widget(ABC):
 # ======================================== WRAPPER ========================================
 class WidgetWrapper:
     """Wrapper des composants UI"""
+    __slots__ = ("_widget", "name", "z")
+
     def __init__(self, widget: Widget, name: str, z: int):
         self._widget: Widget = widget
         self.name: str = name

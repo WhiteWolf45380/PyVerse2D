@@ -1,10 +1,12 @@
 # ======================================== IMPORTS ========================================
+from __future__ import annotations
+
 from .._internal import expect
 from .._flag import CameraMode
 from .._rendering._pipeline import Pipeline
-from ..ui import Widget
+from ..abc import Widget, Layer
 
-from ..abc import Layer
+from bisect import insort
 
 # ======================================== LAYER ========================================
 class UILayer(Layer):
@@ -15,25 +17,36 @@ class UILayer(Layer):
         widgets(Widget, optional): composants ui
         camera_mode(CameraMode, optional): camera behavior
     """
-    def __init__(self, *widgets: Widget, camera_mode: CameraMode = CameraMode.WORLD):
+    def __init__(self, camera_mode: CameraMode = CameraMode.WORLD):
         super().__init__(camera_mode)
-        self._widgets: list[Widget] = list(expect(widgets, tuple[Widget]))
+        self._wrappers: list[WidgetWrapper] = []
     
     # ======================================== GETTERS ========================================
     @property
-    def widgets(self) -> list[Widget]:
+    def widgets(self) -> tuple[Widget]:
         """Renvoie l'ensemble des composants assignés"""
-        return self._widgets
+        return tuple(wrapper.widget for wrapper in self._wrappers)
     
+    def __getitem__(self, key: str) -> Widget:
+        """Renvoie un composant par son nom"""
+        for wrapper in self._wrappers:
+            if wrapper.name == key:
+                return wrapper.widget
+
     # ======================================== PUBLIC METHODS ========================================
-    def add(self, widget: Widget, z: int) -> None:
+    def add(self, widget: Widget, name: str = None, z: int = 0) -> None:
         """
         Ajoute un composant
 
         Args:
             widget(Widget): composant à ajouter
         """
-        self._insert(expect(widget, Widget), widget.z)
+        if widget.parent is not None:
+            raise ValueError("Cannot add a child widget directly, try to add its parent")
+        if widget in self._wrappers:
+            raise ValueError(f"Widget {widget} is already in the layer")
+        wrapper = WidgetWrapper(widget, name, z)
+        insort(self._wrappers, wrapper)
     
     def remove(self, widget: Widget) -> None:
         """
@@ -42,8 +55,40 @@ class UILayer(Layer):
         Args:
             widget(Widget): composant à ajouter
         """
-        self._widgets.remove(expect(widget, Widget))
-        self._sort()
+        if widget in self._wrappers:
+            self._wrappers.remove(widget)
+
+    def remove_by_name(self, name: str) -> None:
+        """
+        Retire un composant par son identifiant
+
+        Args:
+            name(str): nom du composant à dissocier
+        """
+        to_remove = []
+        for wrapper in self._wrappers:
+            if wrapper.name == name:
+                to_remove.append(wrapper.widget)
+        for widget in to_remove:
+            self._wrappers.remove(widget)
+
+    def reorder(self, widget: Widget, z: int) -> None:
+        """
+        Modifie le Zorder d'un composant
+
+        Args:
+            widget(Widget): composant
+            z(int): ordre de rendu
+        """
+        wrapper = self._get_wrapper(expect(widget, Widget))
+        if wrapper.z != z:
+            wrapper.z = z
+            self._wrappers.remove(widget)
+            insort(self._wrappers, wrapper)
+
+    def __len__(self) -> int:
+        """Renvoie le nombre de composants"""
+        return len(self._wrappers)
 
     # ======================================== CYCLE DE VIE ========================================
     def on_start(self) -> None:
@@ -57,12 +102,40 @@ class UILayer(Layer):
     # ======================================== LOOP ========================================
     def update(self, dt: float) -> None:
         """Actualisation du layer"""
-        for widget in self._widgets:
-            widget.update(dt)
+        for wrapper in self._wrappers:
+            wrapper.widget.update(dt)
 
     def draw(self, pipeline: Pipeline) -> None:
         """Affichage du layer"""
-        for widget in self._widgets:
-            widget.draw(pipeline)
+        for wrapper in self._wrappers:
+            wrapper.widget.draw(pipeline)
+
+    # ======================================== HELPERS ========================================
+    def _get_wrapper(self, widget: Widget) -> WidgetWrapper:
+        """Récupère le wrapper d'un composant"""
+        for wrapper in self._wrappers:
+            if wrapper.widget == widget:
+                return wrapper
+        raise ValueError(f"This layer has not widget {widget}")
+
+# ======================================== WRAPPER ========================================
+class WidgetWrapper:
+    """Wrapper des composants UI"""
+    __slots__ = ("_widget", "name", "z")
+
+    def __init__(self, widget: Widget, name: str, z: int):
+        self._widget: Widget = widget
+        self.name: str = name
+        self.z: int = z
     
-    # ======================================== INTERNALS ========================================
+    @property
+    def widget(self) -> Widget:
+        return self._widget
+
+    def __eq__(self, other: Widget) -> bool:
+        """Vérifie la correspondance des composants"""
+        return self._widget == other
+
+    def __lt__(self, other: WidgetWrapper) -> bool:
+        """Comparaison inférieure"""
+        return self.z < other.z
