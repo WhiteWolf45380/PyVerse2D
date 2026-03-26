@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Callable
 
 # ======================================== PIPELINE ========================================
-class Pipeline:
+class Processor:
     """
     Exécute une séquence de fonctions sur un contexte
 
@@ -43,3 +43,12 @@ class Pipeline:
         for step in self._steps:
             if step(ctx) is False:
                 return
+            
+    def __call__(self, ctx) -> None:
+        """
+        Exécute toutes les étapes séquentiellement sur le contexte
+
+        Args:
+            ctx: contexte partagé entre les étapes
+        """
+        self.run(ctx)

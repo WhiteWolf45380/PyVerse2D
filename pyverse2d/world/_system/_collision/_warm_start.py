@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from ...._internal import Pipeline
+from ...._internal import Processor
 from ....math import Vector
 from ..._component import RigidBody
 from ._constants import _WARM_BIAS
@@ -55,10 +55,10 @@ class WarmStartContext:
             vel_along=rel_vx * nx + rel_vy * ny,
         )
 
-# ======================================== PIPELINE ========================================
-warm_start_pipeline = Pipeline("warm_start")
+# ======================================== processor ========================================
+warm_start_processor = Processor("warm_start")
 
-@warm_start_pipeline.step
+@warm_start_processor.step
 def _check_impulses(ctx: WarmStartContext):
     """Skip si impulsions négligeables pour ne pas perturber les objets au repos"""
     jn = ctx.cached.jn * _WARM_BIAS
@@ -68,7 +68,7 @@ def _check_impulses(ctx: WarmStartContext):
     ctx._jn = jn
     ctx._jt = jt
 
-@warm_start_pipeline.step
+@warm_start_processor.step
 def _check_separation(ctx: WarmStartContext):
     """Skip warm start si les objets s'éloignent : rebond en cours"""
     if ctx.vel_along > 0:
@@ -76,7 +76,7 @@ def _check_separation(ctx: WarmStartContext):
         ctx.cached.jt = 0.0
         return False
 
-@warm_start_pipeline.step
+@warm_start_processor.step
 def _apply(ctx: WarmStartContext):
     """Application des impulsions précédentes"""
     ix = ctx.nx * ctx._jn + ctx.tx * ctx._jt
@@ -92,4 +92,4 @@ def warm_start(a, b, contact, cached):
     ctx = WarmStartContext.build(a, b, contact, cached)
     if ctx is None:
         return
-    warm_start_pipeline.run(ctx)
+    warm_start_processor(ctx)

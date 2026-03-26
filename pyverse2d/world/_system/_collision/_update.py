@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from math import sqrt
 
-from ...._internal import Pipeline
+from ...._internal import Processor
 from ....math import Vector
 from ..._world import World
 from ..._component import Transform, Collider, GroundSensor
@@ -34,15 +34,15 @@ class UpdateContext:
         """Construit le contexte update"""
         return UpdateContext(world=world, dt=dt, hash=hash, cache=cache, iterations=iterations)
 
-# ======================================== PIPELINE ========================================
-update_pipeline = Pipeline("update")
+# ======================================== processor ========================================
+update_processor = Processor("update")
 
-@update_pipeline.step
+@update_processor.step
 def _query_entities(ctx: UpdateContext):
     """Récupération des entités avec Collider et Transform"""
     ctx.entities = ctx.world.query(Collider, Transform)
 
-@update_pipeline.step
+@update_processor.step
 def _reset_sensors(ctx: UpdateContext):
     """Reset du GroundSensor avant détection"""
     for entity in ctx.entities:
@@ -53,7 +53,7 @@ def _reset_sensors(ctx: UpdateContext):
                 gs._grounded = False
                 gs._ground_normal = None
 
-@update_pipeline.step
+@update_processor.step
 def _broadphase(ctx: UpdateContext):
     """Broadphase : génération des paires candidates"""
     if ctx.hash is not None:
@@ -65,13 +65,13 @@ def _broadphase(ctx: UpdateContext):
         n = len(ctx.entities)
         ctx.pairs = [(ctx.entities[i], ctx.entities[j]) for i in range(n) for j in range(i + 1, n)]
 
-@update_pipeline.step
+@update_processor.step
 def _reset_colliders(ctx: UpdateContext):
     """Reset des listes de contacts des colliders"""
     for entity in ctx.entities:
         entity.get(Collider)._colliding.clear()
 
-@update_pipeline.step
+@update_processor.step
 def _narrowphase(ctx: UpdateContext):
     """Narrowphase : détection, lissage des normales, warm start"""
     for a, b in ctx.pairs:
@@ -129,14 +129,14 @@ def _narrowphase(ctx: UpdateContext):
         # Application du warm start
         warm_start(a, b, contact, cached)
 
-@update_pipeline.step
+@update_processor.step
 def _cleanup_cache(ctx: UpdateContext):
     """Nettoyage des contacts inactifs"""
     for key in list(ctx.cache):
         if key not in ctx.active_keys:
             del ctx.cache[key]
 
-@update_pipeline.step
+@update_processor.step
 def _solve(ctx: UpdateContext):
     """Résolution itérative des contacts"""
     iterations = ctx.iterations

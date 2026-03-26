@@ -1,7 +1,7 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from ...._internal import Pipeline
+from ...._internal import Processor
 from ....math import Vector
 from ..._component import Transform, RigidBody
 from ._constants import (
@@ -96,10 +96,10 @@ class ResolveContext:
             rel_vx=rel_vx, rel_vy=rel_vy, vel_along=vel_along,
         )
 
-# ======================================== PIPELINE ========================================
-resolve_pipeline = Pipeline("resolve")
+# ======================================== processor ========================================
+resolve_processor = Processor("resolve")
 
-@resolve_pipeline.step
+@resolve_processor.step
 def _wake(ctx: ResolveContext):
     """Réveil des corps endormis uniquement si l'impact est significatif"""
     if ctx.vel_along >= -0.1:
@@ -109,7 +109,7 @@ def _wake(ctx: ResolveContext):
     if ctx.has_rb_b and ctx.rb_b.is_sleeping():
         ctx.rb_b.wake()
 
-@resolve_pipeline.step
+@resolve_processor.step
 def _position_only(ctx: ResolveContext):
     """Cas sans RigidBody des deux côtés : correction de position uniquement"""
     if ctx.has_rb_a and ctx.has_rb_b:
@@ -124,13 +124,13 @@ def _position_only(ctx: ResolveContext):
             ctx.tr_a.y += ctx.ny * correction
     return False
 
-@resolve_pipeline.step
+@resolve_processor.step
 def _check_inv_sum(ctx: ResolveContext):
     """Court-circuit si masses infinies des deux côtés"""
     if ctx.inv_sum == 0:
         return False
 
-@resolve_pipeline.step
+@resolve_processor.step
 def _baumgarte(ctx: ResolveContext):
     """Correction de position Baumgarte si les objets se rapprochent"""
     if ctx.vel_along >= 0:
@@ -153,7 +153,7 @@ def _baumgarte(ctx: ResolveContext):
         ctx.tr_b.x -= ctx.nx * correction * rb
         ctx.tr_b.y -= ctx.ny * correction * rb
 
-@resolve_pipeline.step
+@resolve_processor.step
 def _normal_impulse(ctx: ResolveContext):
     """Calcul et clamping de l'impulsion normale avec restitution"""
     if not ctx.static_a and not ctx.static_b:
@@ -181,7 +181,7 @@ def _normal_impulse(ctx: ResolveContext):
     ctx.cached.jn = max(0.0, old_jn + j_delta_n)
     ctx.j_delta_n = ctx.cached.jn - old_jn
 
-@resolve_pipeline.step
+@resolve_processor.step
 def _friction(ctx: ResolveContext):
     """Calcul de la friction tangentielle"""
     # Surface quasi-verticale : pas de friction tangentielle
@@ -214,7 +214,7 @@ def _friction(ctx: ResolveContext):
         ctx.cached.jt = max(-limit_d, min(limit_d, old_jt + j_delta_t_needed))
     ctx.j_delta_t = ctx.cached.jt - old_jt
 
-@resolve_pipeline.step
+@resolve_processor.step
 def _apply(ctx: ResolveContext):
     """Application des impulsions normale et tangentielle"""
     ix = ctx.nx * ctx.j_delta_n + ctx.tx * ctx.j_delta_t
@@ -230,4 +230,4 @@ def resolve(a, b, contact, cached: CachedContact, dt: float):
     ctx = ResolveContext.build(a, b, contact, cached, dt)
     if ctx is None:
         return
-    resolve_pipeline.run(ctx)
+    resolve_processor(ctx)

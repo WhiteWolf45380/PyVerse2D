@@ -1,5 +1,5 @@
 # ======================================== IMPORTS ========================================
-from .validators import (
+from ._validators import (
     typename,
     expect,
     not_null,
@@ -8,7 +8,7 @@ from .validators import (
     rgba
 )
 
-from .pipeline import Pipeline
+from ._processor import Processor
 
 # ======================================== EXPORTS ========================================
 __all__ = [
@@ -19,5 +19,5 @@ __all__ = [
     "clamped",
     "rgba",
 
-    "Pipeline",
+    "Processor",
 ]
