@@ -125,7 +125,7 @@ class UILayer(Layer):
         """Affichage du layer"""
         context = self._generate_context()
         for wrapper in self._wrappers:
-            wrapper.widget.draw(pipeline, context=context)
+            wrapper.widget.draw(pipeline, context)
 
     # ======================================== HELPERS ========================================
     def _get_wrapper(self, widget: Widget) -> WidgetWrapper:

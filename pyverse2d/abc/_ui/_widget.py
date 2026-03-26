@@ -9,6 +9,7 @@ from ..._rendering import Pipeline, RenderContext
 from abc import ABC, abstractmethod
 from bisect import insort
 from numbers import Real
+from typing import Callable
 
 # ======================================== ABSTRACT CLASS ========================================
 class Widget(ABC):
@@ -21,7 +22,7 @@ class Widget(ABC):
         anchor(Point, optional): ancre locale
         opacity(float, optional): opacité
     """
-    __slots__ = ("_parent", "_children", "_pos", "_anchor", "_opacity", "_visible")
+    __slots__ = ("_parent", "_children", "_pos", "_anchor", "_opacity", "_active", "_visible", "_activate_process", "_deactivate_process", "_show_process", "_hide_process")
 
     def __init__(
             self,
@@ -45,11 +46,24 @@ class Widget(ABC):
         self._active: bool = True
         self._visible: bool = True
 
+        # Hooks
+        self._activate_process: list[Callable] = []
+        self._deactivate_process: list[Callable] = []
+        self._show_process: list[Callable] = []
+        self._hide_process: list[Callable] = []
+
     # ======================================== GETTERS ========================================
     @property
     def parent(self) -> Widget| None:
         """Renvoie le composant parent"""
         return self._parent
+    
+    @property
+    def root(self) -> Widget:
+        """Renvoie le composant racine"""
+        if self._parent is None:
+            return self
+        return self._parent.root
 
     @property
     def children(self) -> tuple[Widget]:
@@ -83,6 +97,27 @@ class Widget(ABC):
     def y(self) -> float:
         """Renvoie la position verticale"""
         return self._pos.y
+    
+    @property
+    def absolute_pos(self) -> Point:
+        """Renvoie la position absolue"""
+        if self._parent is None:
+            return self._pos
+        return self._parent.absolute_pos + self._pos
+    
+    @property
+    def absolute_x(self) -> float:
+        """Renvoie la position horizontale absolue"""
+        if self._parent is None:
+            return self._pos.x
+        return self._parent.absolute_x + self._pos.x
+    
+    @property
+    def absolute_y(self) -> float:
+        """Renvoie la position verticale absolue"""
+        if self._parent is None:
+            return self._pos.y
+        return self._parent.absolute_y + self._pos.y
     
     @property
     def anchor(self) -> Point:
@@ -164,30 +199,86 @@ class Widget(ABC):
         """Vérifie la visibilité"""
         return self._visible
 
-    # ======================================== PUBLIC METHODS ========================================
-    def activate(self) -> None:
-        """Active le composant"""
+    # ========================================  STATE ========================================
+    def activate(self, propagate: bool = True) -> None:
+        """
+        Active le composant
+
+        Args:
+            propagate(bool, optional): propage l'état aux enfants
+        """
         self._active = True
+        for fn in self._activate_process:
+            fn(self)
+        if propagate:
+            for child in self._children:
+                child.widget.activate()
     
-    def deactivate(self) -> None:
-        """Désactive le composant"""
+    def deactivate(self, propagate: bool = True) -> None:
+        """
+        Désactive le composant
+
+        Args:
+            propagate(bool, optional): propage l'état aux enfants
+        """
         self._active = False
+        for fn in self._deactivate_process:
+            fn(self)
+        if propagate:
+            for child in self._children:
+                child.widget.deactivate()
     
-    def switch_activity(self) -> None:
-        """Bascule l'activité"""
-        self._active = not self._active
+    def switch_activity(self, propagate: bool = True) -> None:
+        """
+        Bascule l'activité
 
-    def show(self) -> None:
-        """Montre le composant"""
+        Args:
+            propagate(bool, optional): propage l'état aux enfants
+        """
+        if self._active:
+            self.deactivate(propagate=propagate)
+        else:
+            self.activate(propagate=propagate)
+
+    def show(self, propagate: bool = True) -> None:
+        """
+        Montre le composant
+
+        Args:
+            propagate(bool, optional): propage l'état aux enfants
+        """
         self._visible = True
+        for fn in self._show_process:
+            fn(self)
+        if propagate:
+            for child in self._children:
+                child.widget.show()
 
-    def hide(self) -> None:
-        """Cache le composant"""
+    def hide(self, propagate: bool = True) -> None:
+        """
+        Cache le composant
+
+        Args:
+            propagate(bool, optional): propage l'état aux enfants
+        """
         self._visible = False
+        for fn in self._hide_process:
+            fn(self)
+        if propagate:
+            for child in self._children:
+                child.widget.hide()
     
-    def switch_visibility(self) -> None:
-        """Bascule la visibilité"""
-        self._visible = not self._visible
+    def switch_visibility(self, propagate: bool = True) -> None:
+        """
+        Bascule la visibilité
+
+        Args:
+            propagate(bool, optional): propage l'état aux enfants
+        """
+        if self._visible:
+            self.hide(propagate=propagate)
+        else:
+            self.show(propagate=propagate)
 
     # ======================================== CHILDREN ========================================
     def add_child(self, child: Widget, name: str = None, z: int = 1):
@@ -204,6 +295,7 @@ class Widget(ABC):
         if child.parent is not None:
             raise ValueError(f"{child} has already a parent")
         wrapper = WidgetWrapper(expect(child, Widget), expect(name, (str, None)), expect(z, int))
+        child._parent = self
         insort(self._children, wrapper)
 
     def remove_child(self, child: Widget) -> None:
@@ -213,7 +305,8 @@ class Widget(ABC):
         Args:
             child(Widget): composant à dissocier
         """
-        if child in self._children:
+        if expect(child, Widget) in self._children:
+            child._parent = None
             self._children.remove(child)
 
     def remove_child_by_name(self, name: str) -> None:
@@ -223,12 +316,19 @@ class Widget(ABC):
         Args:
             name(str): nom du composant à dissocier
         """
-        to_remove = []
+        to_remove: list[WidgetWrapper] = []
         for child in self._children:
             if child.name == name:
-                to_remove.append(child.widget)
+                to_remove.append(child)
         for wrapper in to_remove:
+            wrapper.widget._parent = None
             self._children.remove(wrapper)
+
+    def clear_children(self) -> None:
+        """Retire tous les enfants"""
+        for child in self._children:
+            child.widget._parent = None
+        self._children.clear()
     
     def reorder(self, child: Widget, z: int) -> None:
         """
@@ -243,6 +343,27 @@ class Widget(ABC):
             wrapper.z = z
             self._children.remove(child)
             insort(self._children, wrapper)
+
+    # ======================================== HOOKS ========================================
+    def on_activate(self, fn: Callable) -> Callable:
+        """Ajoute une fonction à l'activation et retourne un token d'invalidation"""
+        self._activate_process.append(fn)
+        return lambda: self._activate_process.remove(fn)
+    
+    def on_deactivate(self, fn: Callable) -> Callable:
+        """Ajoute une fonction à la désactivation et retourne un token d'invalidation"""
+        self._deactivate_process.append(fn)
+        return lambda: self._deactivate_process.remove(fn)
+    
+    def on_show(self, fn: Callable) -> Callable:
+        """Ajoute une fonction à l'apparition et retourne un token d'invalidation"""
+        self._show_process.append(fn)
+        return lambda: self._show_process.remove(fn)
+
+    def on_hide(self, fn: Callable) -> Callable:
+        """Ajoute une fonction à la dispartion et retourne un token d'invalidation"""
+        self._hide_process.append(fn)
+        return lambda: self._hide_process.remove(fn)
 
     # ======================================== LIFE CYCLE ========================================
     @abstractmethod
@@ -265,34 +386,28 @@ class Widget(ABC):
     @abstractmethod
     def draw(self, pipeline: Pipeline, context: RenderContext): ...
 
-    def _draw(self, pipeline: Pipeline, context: RenderContext = None) -> Super:
+    def _draw(self, pipeline: Pipeline, context: RenderContext) -> Super:
         """Affichage"""
         if not self._visible:
             return Super.STOP
         
-        # Génération du contexte de rendu
-        if context is None:
-            restore = False
-            context = self._generate_render_context()
-        
-        # Sauvegarde et actualisation du contexte de rendu
-        else:
-            restore = True
-            opacity = context.opacity
-            origin = context.origin
-            self._update_render_context(context)
+        # Sauvegarde du contexte de rendu
+        opacity = context.opacity
+        origin = context.origin
+
+        # Actualisation du contexte de rendu
+        self._update_render_context(context)
 
         # Affichage personnel
         self.draw(pipeline, context)
 
         # Affichage des enfants
         for child in self._children:
-            child.widget._draw(pipeline, context=context)
+            child.widget._draw(pipeline, context)
 
         # Restauration du contexte de rendu
-        if restore:
-            context.opacity = opacity
-            context.origin = origin
+        context.opacity = opacity
+        context.origin = origin
 
         return Super.NONE
     
@@ -303,13 +418,6 @@ class Widget(ABC):
             if wrapper.widget == child:
                 return wrapper
         raise ValueError(f"{child} is not a child of this widget")
-    
-    def _generate_render_context(self) -> RenderContext:
-        """Génère un contexte de rendu avec les paramètres courants"""
-        return RenderContext(
-            self._pos,
-            self._opacity,
-        )
     
     def _update_render_context(self, context: RenderContext) -> None:
         """Actualise le contexte de rendu avec les paramètres courants"""
