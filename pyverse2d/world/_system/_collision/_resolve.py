@@ -29,7 +29,7 @@ class CachedContact:
         self.normal: tuple | None = None
 
 # ======================================== CONTEXTE ========================================
-@dataclass
+@dataclass(slots=True)
 class ResolveContext:
     """Contexte partagé entre les étapes du solver"""
     a: object

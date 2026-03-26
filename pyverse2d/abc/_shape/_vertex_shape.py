@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from ._shape import Shape
-from ._vertex import Vertex
+from .._vertex import Vertex
 
 from abc import abstractmethod
 from typing import Iterator

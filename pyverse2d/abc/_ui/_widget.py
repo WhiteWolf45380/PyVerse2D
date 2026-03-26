@@ -1,17 +1,14 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from .._internal import expect
-from .._flag import Super
-from ..math import Point
+from ..._internal import expect
+from ..._flag import Super
+from ...math import Point
+from ..._rendering import Pipeline, RenderContext
 
-from abc import ABC
+from abc import ABC, abstractmethod
 from bisect import insort
 from numbers import Real
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from .._rendering._pipeline import Pipeline
 
 # ======================================== ABSTRACT CLASS ========================================
 class Widget(ABC):
@@ -26,12 +23,25 @@ class Widget(ABC):
     """
     __slots__ = ("_parent", "_children", "_pos", "_anchor", "_opacity", "_visible")
 
-    def __init__(self, parent: Widget = None, pos: Point = (0, 0), anchor: Point = (0.5, 0.5), opacity: float = 1.0):
+    def __init__(
+            self,
+            parent: Widget = None,
+            pos: Point = (0, 0),
+            anchor: Point = (0.5, 0.5),
+            opacity: float = 1.0
+        ):
+        # Arbre
         self._parent: Widget = expect(parent, (Widget, None))
         self._children: list[WidgetWrapper] = []
+
+        # Position
         self._pos: Point = Point(pos)
         self._anchor: Point = Point(anchor)
+
+        # Design
         self._opacity: float = float(expect(opacity, Real))
+
+        # Etat
         self._active: bool = True
         self._visible: bool = True
 
@@ -56,7 +66,7 @@ class Widget(ABC):
         expect(name, str)
         for child in self._children:
             if child.name == name:
-                return child
+                return child.widget
         raise ValueError(f"This widget has no child named {name}")
     
     @property
@@ -180,13 +190,14 @@ class Widget(ABC):
         self._visible = not self._visible
 
     # ======================================== CHILDREN ========================================
-    def add_child(self, child: Widget, name: str = None, z: int = 0):
+    def add_child(self, child: Widget, name: str = None, z: int = 1):
         """
         Ajoute un composant enfant
 
         Args:
             child(Widget): composant à associer
-            z(int): ordre de rendu
+            name(str, optional): identifiant local du composant
+            z(int, optional): ordre de rendu local
         """
         if child in self._children:
             raise ValueError(f"{child} is already a child of this widget")
@@ -234,23 +245,54 @@ class Widget(ABC):
             insort(self._children, wrapper)
 
     # ======================================== LIFE CYCLE ========================================
-    def update(self, dt: float) -> Super:
+    @abstractmethod
+    def update(self, dt: float) -> None: ...
+
+    def _update(self, dt: float) -> Super:
         """Actualisation"""
         if not self._active:
             return Super.STOP
+        
+        # Actualisation personnel
+        self.update(dt)
 
+        # Actualisation des enfants
         for child in self._children:
-            child.update(dt)
+            child.widget._update(dt)
 
         return Super.NONE
+    
+    @abstractmethod
+    def draw(self, pipeline: Pipeline, context: RenderContext): ...
 
-    def draw(self, pipeline: Pipeline) -> Super:
+    def _draw(self, pipeline: Pipeline, context: RenderContext = None) -> Super:
         """Affichage"""
         if not self._visible:
             return Super.STOP
-    
+        
+        # Génération du contexte de rendu
+        if context is None:
+            restore = False
+            context = self._generate_render_context()
+        
+        # Sauvegarde et actualisation du contexte de rendu
+        else:
+            restore = True
+            opacity = context.opacity
+            origin = context.origin
+            self._update_render_context(context)
+
+        # Affichage personnel
+        self.draw(pipeline, context)
+
+        # Affichage des enfants
         for child in self._children:
-            child.draw(pipeline)
+            child.widget._draw(pipeline, context=context)
+
+        # Restauration du contexte de rendu
+        if restore:
+            context.opacity = opacity
+            context.origin = origin
 
         return Super.NONE
     
@@ -261,6 +303,19 @@ class Widget(ABC):
             if wrapper.widget == child:
                 return wrapper
         raise ValueError(f"{child} is not a child of this widget")
+    
+    def _generate_render_context(self) -> RenderContext:
+        """Génère un contexte de rendu avec les paramètres courants"""
+        return RenderContext(
+            self._pos,
+            self._opacity,
+        )
+    
+    def _update_render_context(self, context: RenderContext) -> None:
+        """Actualise le contexte de rendu avec les paramètres courants"""
+        context.z += 1
+        context.origin += self._pos
+        context.opacity *= self._opacity
 
 
 # ======================================== WRAPPER ========================================
@@ -277,9 +332,13 @@ class WidgetWrapper:
     def widget(self) -> Widget:
         return self._widget
 
-    def __eq__(self, other: Widget) -> bool:
+    def __eq__(self, other: Widget | WidgetWrapper) -> bool:
         """Vérifie la correspondance des composants"""
-        return self._widget == other
+        if isinstance(other, Widget):
+            return self._widget == other
+        elif isinstance(other, WidgetWrapper):
+            return self._widget == other._widget
+        return NotImplemented
 
     def __lt__(self, other: WidgetWrapper) -> bool:
         """Comparaison inférieure"""

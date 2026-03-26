@@ -15,7 +15,7 @@ from ._warm_start import warm_start
 from ._constants import _EXTRA_ITER_THRESHOLD, _EXTRA_ITER
 
 # ======================================== CONTEXTE ========================================
-@dataclass
+@dataclass(slots=True)
 class UpdateContext:
     """Contexte partagé entre les étapes du update"""
     world: World

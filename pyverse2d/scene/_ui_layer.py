@@ -1,12 +1,14 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from .._internal import expect
+from .._internal import expect, clamped
 from .._flag import CameraMode
-from .._rendering._pipeline import Pipeline
+from .._rendering import Pipeline, RenderContext
 from ..abc import Widget, Layer
+from ..math import Point
 
 from bisect import insort
+from numbers import Real
 
 # ======================================== LAYER ========================================
 class UILayer(Layer):
@@ -17,9 +19,12 @@ class UILayer(Layer):
         widgets(Widget, optional): composants ui
         camera_mode(CameraMode, optional): camera behavior
     """
-    def __init__(self, camera_mode: CameraMode = CameraMode.WORLD):
+    __slots__ = ("_wrappers", "_opacity")
+
+    def __init__(self, opacity: Real = 1.0, camera_mode: CameraMode = CameraMode.WORLD):
         super().__init__(camera_mode)
         self._wrappers: list[WidgetWrapper] = []
+        self._opacity: float = clamped(float(expect(opacity, Real)))
     
     # ======================================== GETTERS ========================================
     @property
@@ -32,6 +37,17 @@ class UILayer(Layer):
         for wrapper in self._wrappers:
             if wrapper.name == key:
                 return wrapper.widget
+            
+    @property
+    def opacity(self) -> float:
+        """Renvoie l'opacité du layer"""
+        return self._opacity
+    
+    # ======================================== SETTERS ========================================
+    @opacity.setter
+    def opacity(self, value: Real):
+        """Fixe l'opacité du layer"""
+        self._opacity = clamped(float(expect(value, Real)))
 
     # ======================================== PUBLIC METHODS ========================================
     def add(self, widget: Widget, name: str = None, z: int = 0) -> None:
@@ -107,8 +123,9 @@ class UILayer(Layer):
 
     def draw(self, pipeline: Pipeline) -> None:
         """Affichage du layer"""
+        context = self._generate_context()
         for wrapper in self._wrappers:
-            wrapper.widget.draw(pipeline)
+            wrapper.widget.draw(pipeline, context=context)
 
     # ======================================== HELPERS ========================================
     def _get_wrapper(self, widget: Widget) -> WidgetWrapper:
@@ -117,6 +134,14 @@ class UILayer(Layer):
             if wrapper.widget == widget:
                 return wrapper
         raise ValueError(f"This layer has not widget {widget}")
+    
+    def _generate_context(self) -> RenderContext:
+        """Génère un contexte de rendu"""
+        return RenderContext(
+            origin=Point(0.0, 0.0),
+            opacity=self._opacity,
+            z=0,
+        )
 
 # ======================================== WRAPPER ========================================
 class WidgetWrapper:
@@ -132,9 +157,13 @@ class WidgetWrapper:
     def widget(self) -> Widget:
         return self._widget
 
-    def __eq__(self, other: Widget) -> bool:
+    def __eq__(self, other: Widget | WidgetWrapper) -> bool:
         """Vérifie la correspondance des composants"""
-        return self._widget == other
+        if isinstance(other, Widget):
+            return self._widget == other
+        elif isinstance(other, WidgetWrapper):
+            return self._widget == other._widget
+        return NotImplemented
 
     def __lt__(self, other: WidgetWrapper) -> bool:
         """Comparaison inférieure"""

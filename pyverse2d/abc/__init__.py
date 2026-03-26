@@ -2,19 +2,15 @@
 from ._math_object import MathObject
 from ._vertex import Vertex
 
-from ._shape import Shape
-from ._primitive_shape import PrimitiveShape
-from ._vertex_shape import VertexShape
-from ._composite_shape import CompositeShape
+from ._shape import Shape, VertexShape, PrimitiveShape, CompositeShape
 
 from ._asset import Asset
 
 from ._request import Request
 
-from ._component import Component
-from ._system import System
+from ._ecs import Component, System
 
-from ._widget import Widget
+from ._ui import Widget, Behavior
 
 from ._layer import Layer
 
@@ -36,6 +32,7 @@ __all__ = [
     "System",
 
     "Widget",
+    "Behavior",
 
     "Layer",
 ]

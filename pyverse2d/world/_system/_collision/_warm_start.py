@@ -9,7 +9,7 @@ from ..._component import RigidBody
 from ._constants import _WARM_BIAS
 
 # ======================================== CONTEXTE ========================================
-@dataclass
+@dataclass(slots=True)
 class WarmStartContext:
     """Contexte partagé entre les étapes du warm start"""
     a: object

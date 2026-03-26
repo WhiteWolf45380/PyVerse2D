@@ -1,13 +1,9 @@
 # ======================================== IMPORTS ========================================
-from ._screen import Screen
-from ._window import Window
-from ._pipeline import Pipeline
-from ._context import RenderContext
+from ._component import Component
+from ._system import System
 
 # ======================================== EXPORTS ========================================
 __all__ = [
-    "Screen",
-    "Window",
-    "Pipeline",
-    "RenderContext",
+    "Component",
+    "System",
 ]
