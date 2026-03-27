@@ -270,9 +270,8 @@ class _FillRenderer:
         a = int(opacity * 255)
 
         if isinstance(shape, VertexShape):
-            pts = [tuple(v) for v in shape.world_vertices(cx, cy, scale, 0)]
+            pts = [tuple(v) for v in shape.world_vertices(cx, cy, scale, rotation)]
             self._gl_shape = pyglet.shapes.Polygon(*pts, color=rgba, batch=pipeline.batch, group=pipeline.get_group(z=z))
-            self._gl_shape.rotation = rotation
 
         elif isinstance(shape, Circle):
             cx_, cy_, r_ = shape.world_transform(cx, cy, scale, 0)
@@ -307,21 +306,31 @@ class _FillRenderer:
         """Actualisation du remplissage"""
         for key in changes:
             handler: Callable = getattr(self, f"handle_{key}", None)
-            if handler:
-                handler(psr)
+            if handler and handler(psr):
+                self._rebuild(psr)
+                break
 
     def delete(self) -> None:
         """Libère les ressources pyglet"""
+        if self._gl_shape is None:
+            return
         self._gl_shape.delete()
+        self._gl_shape = None
     
     # ======================================== HANDLERS ========================================
     def handle_cx(self, psr: PygletShapeRenderer) -> None:
         """Actualisation de la position horizontale"""
-        self._gl_shape.x = psr.cx
+        if isinstance(psr.shape, VertexShape):
+            return True
+        else:
+            self._gl_shape.x = psr.cx
 
     def handle_cy(self, psr: PygletShapeRenderer) -> None:
         """Actualisation de la position verticale"""
-        self._gl_shape.y = psr.cy
+        if isinstance(psr.shape, VertexShape):
+            return True
+        else:
+            self._gl_shape.y = psr.cy
 
     def handle_scale(self, psr: PygletShapeRenderer) -> None:
         """Actualisation du facteur de redimensionnement"""
@@ -331,11 +340,14 @@ class _FillRenderer:
             self._gl_shape.a = psr.shape.rx * psr.scale
             self._gl_shape.b = psr.shape.ry * psr.scale
         else:
-            self._build(psr.shape, psr.cx, psr.cy, psr.scale, psr.rotation, psr.color, psr.opacity, psr.z, psr.pipeline)        
+            return True
 
     def handle_rotation(self, psr: PygletShapeRenderer) -> None:
         """Actualisation de l'angle de rotation"""
-        self._gl_shape.rotation = psr.rotation
+        if isinstance(psr.shape, VertexShape):
+            return True
+        else:
+            self._gl_shape.rotation = psr.rotation
 
     def handle_color(self, psr: PygletShapeRenderer) -> None:
         """Actualisation de la couleur de remplissage"""
@@ -354,6 +366,12 @@ class _FillRenderer:
         pipeline = psr.pipeline
         self._gl_shape.batch = pipeline.batch
         self._gl_shape.group = pipeline.get_group(z=psr.z)
+    
+    # ======================================== HELPERS ========================================
+    def _rebuild(self, psr: PygletShapeRenderer) -> None:
+        """Reconstruit le remplissage avec les paramètres courants"""
+        self.delete()
+        self._build(psr.shape, psr.cx, psr.cy, psr.scale, psr.rotation, psr.color, psr.opacity, psr.z, psr.pipeline)
 
 # ======================================== BORDER RENDERER ========================================
 class _BorderRenderer:
@@ -440,15 +458,19 @@ class _BorderRenderer:
 
     # ======================================== LIFE CYCLE ========================================
     def update(self, psr: PygletShapeRenderer, changes: list[str]) -> None:
+        """Actualisation de la bordure"""
         for key in changes:
             handler: Callable = getattr(self, f"handle_{key}", None)
-            if handler:
-                handler(psr)
+            if handler and handler(psr):
+                self._rebuild(psr)
+                break
 
     def delete(self) -> None:
-        if self._vlist is not None:
-            self._vlist.delete()
-            self._vlist = None
+        """Libère les ressources pyglet"""
+        if self._vlist is None:
+            return
+        self._vlist.delete()
+        self._vlist = None
 
     # ======================================== HANDLERS ========================================
     def handle_cx(self, psr: PygletShapeRenderer) -> None:
@@ -478,10 +500,16 @@ class _BorderRenderer:
         self._vlist.colors[:] = (r, g, b, a) * self._n
 
     def handle_z(self, psr: PygletShapeRenderer) -> None:
-        self._build(psr.shape, psr.cx, psr.cy, psr.scale, psr.rotation, psr.border_width, psr.border_color, psr.opacity, psr.z, psr.pipeline)
+        return True
 
     def handle_pipeline(self, psr: PygletShapeRenderer) -> None:
-        self._build(psr.shape, psr.cx, psr.cy, psr.scale, psr.rotation, psr.border_width, psr.border_color, psr.opacity, psr.z, psr.pipeline)
+        return True
+
+    # ======================================== HELPERS ========================================
+    def _rebuild(self, psr: PygletShapeRenderer) -> None:
+        """Reconstruit la bordure avec les paramètres courants"""
+        self.delete()
+        self._build(psr.cx, psr.cy, psr.scale, psr.rotation, psr.border_width, psr.border_color, psr.opacity, psr.z, psr.pipeline)
 
 # ======================================== CAPSULE RENDERER ========================================
 class _CapsuleRenderer:
