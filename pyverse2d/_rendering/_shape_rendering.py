@@ -272,6 +272,7 @@ class _FillRenderer:
         if isinstance(shape, VertexShape):
             pts = [tuple(v) for v in shape.world_vertices(cx, cy, scale, 0)]
             self._gl_shape = pyglet.shapes.Polygon(*pts, color=rgba, batch=pipeline.batch, group=pipeline.get_group(z=z))
+            self._gl_shape.anchor_position = (cx - pts[0][0], cy - pts[0][1])
             self._gl_shape.rotation = rotation
 
         elif isinstance(shape, Circle):
