@@ -34,7 +34,7 @@ class Collider(Component):
             active: bool = True,
         ):
         self._shape: Shape = expect(shape, Shape)
-        self._offset: Point = expect(offset, Point)
+        self._offset: Point = Point(offset)
         self._category: int = expect(category, int)
         self._mask: int = expect(mask, int)
         self._trigger: bool = expect(trigger, bool)
