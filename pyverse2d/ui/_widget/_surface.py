@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from ..._internal import expect
-from ..._rendering import Pipeline, RenderContext
+from ..._rendering import Pipeline, RenderContext, PygletShapeRenderer
 from ...asset import Color
 from ...abc import Widget, Shape, CompositeShape
 from ...math import Point
@@ -36,6 +36,7 @@ class Surface(Widget):
         ):
         super().__init__(parent, pos, anchor, opacity)
         self._shape: Shape = expect(shape, Shape)
+        self._shape_renderer: PygletShapeRenderer = None
         self._color: Color = Color(color)
         if isinstance(self._shape, CompositeShape):
             raise ValueError("Surface does not support CompositeShape")
@@ -67,3 +68,37 @@ class Surface(Widget):
     
     def _draw(self, pipeline: Pipeline, context: RenderContext) -> None:
         """Affichage"""
+        if self._renderer is None:
+            self._renderer = PygletShapeRenderer(
+                shape = self._shape,
+                cx = context.origin.x,
+                cy = context.origin.y,
+                scale = 1.0,
+                rotation = 0.0,
+                color = self._color,
+                opacity = context.opacity,
+                pipeline = pipeline,
+                z = context.z,
+            )
+
+        else:
+            self._renderer.update(
+                cx = context.origin.x,
+                cy = context.origin.y,
+                scale = 1.0,
+                rotation = 0.0,
+                color = self._color,
+                opacity = context.opacity,
+            )
+ 
+    def destroy(self) -> None:
+        """
+        Libère les ressources pyglet et se détache de son parent.
+        À appeler explicitement quand le widget n'est plus utilisé.
+        """
+        if self._renderer is not None:
+            self._renderer.delete()
+            self._renderer = None
+ 
+        if self._parent is not None:
+            self._parent.remove_child(self)
