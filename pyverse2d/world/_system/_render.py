@@ -98,24 +98,28 @@ class RenderSystem(System):
         if eid not in self._shapes:
             self._shapes[eid] = PygletShapeRenderer(
                 shape = sr.shape,
-                cx = cx, cy = cy,
+                cx = cx,
+                cy = cy,
                 scale = tr.scale,
                 rotation = tr.rotation,
+                filling = sr.filling,
                 color = sr.filling_color,
                 opacity = sr.opacity,
                 pipeline = pipeline,
                 z = z,
-                border_color = sr.border_color if sr.border_width > 0 else None,
+                border_color = sr.border_color,
                 border_width = sr.border_width,
             )
         else:
             self._shapes[eid].update(
-                cx = cx, cy = cy,
+                cx = cx,
+                cy = cy,
                 scale = tr.scale,
                 rotation = tr.rotation,
+                filling = sr.filling,
                 color = sr.filling_color,
                 opacity = sr.opacity,
-                border_color = sr.border_color if sr.border_width > 0 else None,
+                border_color = sr.border_color,
                 border_width = sr.border_width,
             )
             self._shapes[eid].visible = True
@@ -135,17 +139,25 @@ class RenderSystem(System):
         if raw is None:
             return
 
+        anchor_x = int(tr.anchor.x * raw.width)
+        anchor_y = int(tr.anchor.y * raw.height)
+
         if eid not in self._sprites:
-            raw.anchor_x = int(tr.anchor.x * raw.width)
-            raw.anchor_y = int(tr.anchor.y * raw.height)
+            region = raw.get_region(0, 0, raw.width, raw.height)
+            region.anchor_x = anchor_x
+            region.anchor_y = anchor_y
             group = pipeline.get_group(sr.z * 3 + _ORDER_SPRITE)
-            self._sprites[eid] = pyglet.sprite.Sprite(raw, batch=pipeline.batch, group=group)
+            self._sprites[eid] = pyglet.sprite.Sprite(region, batch=pipeline.batch, group=group)
         else:
             sprite = self._sprites[eid]
-            if sprite.image is not raw:
-                raw.anchor_x = int(tr.anchor.x * raw.width)
-                raw.anchor_y = int(tr.anchor.y * raw.height)
-                sprite.image = raw
+            if sprite.image.get_texture() is not raw.get_texture():
+                region = raw.get_region(0, 0, raw.width, raw.height)
+                region.anchor_x = anchor_x
+                region.anchor_y = anchor_y
+                sprite.image = region
+            else:
+                sprite.image.anchor_x = anchor_x
+                sprite.image.anchor_y = anchor_y
 
         if sr.image.width: scale_x = sr.image.width / raw.width
         else: scale_x = None
@@ -202,7 +214,7 @@ class RenderSystem(System):
                 group = group,
             )
             label = self._labels[eid]
-            label.x = tr.x - (tr.anchor[0] * label.content_width  + tc.offset[0]) * tr.scale
+            label.x = tr.x - (tr.anchor[0] * label.content_width + tc.offset[0]) * tr.scale
             label.y = tr.y - (tr.anchor[1] * label.content_height + tc.offset[1]) * tr.scale
             return
 

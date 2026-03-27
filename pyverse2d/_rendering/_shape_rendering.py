@@ -154,10 +154,28 @@ class PygletShapeRenderer:
         """Renvoie la pipeline de rendu"""
         return self._pipeline
     
+    @property
+    def visible(self) -> bool:
+        """Renvoie la visibilité"""
+        if self._fill:
+            return self._fill.visible
+        if self._border:
+            return self._border.visible
+        return False
+    
+    # ======================================== SETTERS ========================================
+    @visible.setter
+    def visible(self, value: bool) -> None:
+        """Active ou désactive la visibilité"""
+        if self._fill:
+            self._fill.visible = value
+        if self._border:
+            self._border.visible = value
+
     # ======================================== PREDICATES ========================================
     def is_visible(self) -> bool:
         """Vérifie la visibilité"""
-        return (self._filling and self._color is not None) or (self._border_width > 0 and self._border_color is not None)
+        return self.visible and ((self._filling and self._color is not None) or (self._border_width > 0 and self._border_color is not None))
 
     # ======================================== LIFE CYCLE ========================================
     def update(self, **kwargs) -> None:
@@ -273,6 +291,18 @@ class _FillRenderer:
         self._gl_shape.opacity = a
         self._gl_shape.z = z
     
+    # ======================================== GETTERS ========================================
+    @property
+    def visible(self) -> bool:
+        """Renvoie la visibilité"""
+        return self._gl_shape.visible
+
+    # ======================================== SETTERS ========================================
+    @visible.setter
+    def visible(self, value: bool) -> None:
+        """Fixe la visibilité"""
+        self._gl_shape.visible = value
+    
     # ======================================== LIFE CYCLE ========================================
     def update(self, psr: PygletShapeRenderer, changes: list[str]) -> None:
         """Actualisation du remplissage"""
@@ -329,7 +359,7 @@ class _FillRenderer:
 # ======================================== BORDER RENDERER ========================================
 class _BorderRenderer:
     """Bordure d'une shape"""
-    __slots__ = ("_vlist", "_n", "_width", "_batch", "_group", "_local_contour")
+    __slots__ = ("_vlist", "_n", "_width", "_batch", "_group", "_local_contour", "_visible")
 
     def __init__(
         self,
@@ -349,6 +379,7 @@ class _BorderRenderer:
         self._width: int = width
         self._batch: Batch = None
         self._group: Group = None
+        self._visible: bool = True
         self._local_contour: np.ndarray = _local_contour(shape)
         self._build(shape, cx, cy, scale, rotation, width, color, opacity, z, pipeline)
 
@@ -396,6 +427,22 @@ class _BorderRenderer:
         """Réactualise les arrêtes"""
         strip = self._world_strip(psr.cx, psr.cy, psr.scale, psr.rotation, psr.border_width)
         self._vlist.vertices[:] = strip.flatten().tolist()
+    
+    # ======================================== GETTERS ========================================
+    @property
+    def visible(self) -> bool:
+        """Renvoie la visibilité"""
+        return self._visible
+
+    # ======================================== SETTERS ========================================
+    @visible.setter
+    def visible(self, value: bool) -> None:
+        """Fixe la visibilité"""
+        if value == self._visible:
+            return
+        self._visible = value
+        target_batch = self._batch if value else None
+        self._vlist.migrate(target_batch, pyglet.gl.GL_TRIANGLE_STRIP, self._group, ('v2f', 'c4B'))
 
     # ======================================== LIFE CYCLE ========================================
     def update(self, psr: PygletShapeRenderer, changes: list[str]) -> None:
@@ -557,6 +604,16 @@ class _CapsuleRenderer:
         self._top.group = value
         self._bottom.group = value
         self._rect.group = value
+
+    @property
+    def visible(self) -> bool:
+        return self._top.visible
+    
+    @visible.setter
+    def visible(self, value: bool) -> None:
+        self._top.visible = value
+        self._bottom.visible = value
+        self._rect.visible = value
  
     # ======================================== LIFE CYCLE ========================================
     def delete(self) -> None:
