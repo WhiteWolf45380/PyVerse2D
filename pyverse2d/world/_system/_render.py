@@ -104,11 +104,11 @@ class RenderSystem(System):
                 rotation = tr.rotation,
                 filling = sr.filling,
                 color = sr.filling_color,
-                opacity = sr.opacity,
-                pipeline = pipeline,
-                z = z,
-                border_color = sr.border_color,
                 border_width = sr.border_width,
+                border_color = sr.border_color,
+                opacity = sr.opacity,
+                z = z,
+                pipeline = pipeline,
             )
         else:
             self._shapes[eid].update(
@@ -118,9 +118,10 @@ class RenderSystem(System):
                 rotation = tr.rotation,
                 filling = sr.filling,
                 color = sr.filling_color,
-                opacity = sr.opacity,
-                border_color = sr.border_color,
                 border_width = sr.border_width,
+                border_color = sr.border_color,
+                opacity = sr.opacity,
+                z=z
             )
             self._shapes[eid].visible = True
 

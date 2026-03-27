@@ -192,6 +192,7 @@ class Scene:
             else:
                 pipeline.set_view(None)
             layer.draw(pipeline)
+            pipeline.flush()
         for fn in self._draw_callbacks:
             fn(pipeline)
-        pipeline.flush()
+        pipeline.end()

@@ -71,7 +71,7 @@ class Pipeline:
         return self._groups[z]
     
     # ======================================== SETTERS ========================================
-    def set_view(self, matrix: Mat4 = None):
+    def set_view(self, matrix: Mat4 = None) -> None:
         """
         Applique une matrice de vue — identité si None (layers fixed)
 
@@ -81,7 +81,7 @@ class Pipeline:
         self._window.native.view = matrix if matrix is not None else Mat4()
 
     # ======================================== PIPELINE ========================================
-    def begin(self, scene: Scene):
+    def begin(self, scene: Scene) -> None:
         """
         Configure le contexte de rendu depuis une scene
 
@@ -106,7 +106,10 @@ class Pipeline:
 
         gl.glViewport(px, py, pw, ph)
 
-    def flush(self):
+    def flush(self) -> None:
         """Envoie tout le batch au GPU"""
         self._batch.draw()
+
+    def end(self) -> None:
+        """Met fin à la connexion avec une scene"""
         self._scene = None
