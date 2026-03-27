@@ -6,7 +6,7 @@ from ....abc import System
 from ..._world import World
 from ._spatial_hash import SpatialHash
 from ._resolve import CachedContact
-from ._update import UpdateContext, update_pipeline
+from ._update import UpdateContext, update_processor
 
 # ======================================== SYSTEM ========================================
 class CollisionSystem(System):
@@ -30,7 +30,7 @@ class CollisionSystem(System):
             dt(float): delta temps
         """
         ctx = UpdateContext.build(world, dt, self._hash, self._cache, self._iterations)
-        update_pipeline.run(ctx)
+        update_processor(ctx)
 
     # ======================================== PUBLIC ========================================
     def reset_calibration(self):
