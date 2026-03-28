@@ -189,7 +189,6 @@ class _ChunkMesh:
             return
         gl.glBindVertexArray(self._vao)
         gl.glDrawArrays(gl.GL_TRIANGLES, 0, self._vertex_count)
-        gl.glBindVertexArray(0)
 
     # ======================================== LIFE CYCLE ========================================
     def delete(self) -> None:
@@ -319,7 +318,7 @@ class TileRenderer:
 
     def end(self) -> None:
         """Désactive le shader"""
-        gl.glUseProgram(0)
+        pass
 
     # ======================================== LIFE CYCLE ========================================
     def delete(self) -> None:
