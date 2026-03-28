@@ -5,6 +5,8 @@ from .._internal import expect
 
 from ..abc import Component
 
+from ._component import *
+
 import uuid
 from typing import Type
 
@@ -20,11 +22,13 @@ class Entity:
     __slots__ = ("_id", "_components", "_tags", "_active")
 
     def __init__(self, *components: Component, tags: tuple[str, ...] = ()):
+        # Attributs
         self._id: str = str(uuid.uuid4())
         self._components: dict[type, Component] = {}
         self._tags: set[str] = set(tags)
         self._active: bool = True
 
+        # Construction
         for component in components:
             self.add(component)
     
@@ -48,6 +52,87 @@ class Entity:
     def tags(self) -> set[str]:
         """Renvoie les labels de l'entité"""
         return self._tags
+    
+    @property
+    def transform(self) -> Transform | None:
+        """Renvoie le Transform"""
+        return self._components.get(Transform)
+    
+    @property
+    def shape_renderer(self) -> ShapeRenderer | None:
+        """Renvoie le ShapeRenderer"""
+        return self._components.get(ShapeRenderer)
+    
+    @property
+    def sprite_renderer(self) -> SpriteRenderer | None:
+        """Renvoie le SpriteRenderer"""
+        return self._components.get(SpriteRenderer)
+    
+    @property
+    def text_renderer(self) -> TextRenderer | None:
+        """Renvoie le TextRenderer"""
+        return self._components.get(TextRenderer)
+    
+    @property
+    def collider(self) -> Collider | None:
+        """Renvoie le SpriteCollider"""
+        return self._components.get(Collider)
+    
+    @property
+    def rigid_body(self) -> RigidBody | None:
+        """Renvoie le RigidBody"""
+        return self._components.get(RigidBody)
+    
+    @property
+    def ground_sensor(self) -> GroundSensor | None:
+        """Renvoie le GroundSensor"""
+        return self._components.get(GroundSensor)
+    
+    @property
+    def animator(self) -> Animator | None:
+        """Renvoie l'Animator"""
+        return self._components.get(Animator)
+    
+    # ======================================== SETTERS ========================================
+    @transform.setter
+    def transform(self, value: Transform) -> None:
+        """Fixe le Transform"""
+        self._components[Transform] = expect(value, Transform)
+    
+    @shape_renderer.setter
+    def shape_renderer(self, value: ShapeRenderer) -> None:
+        """Fixe le ShapeRenderer"""
+        self._components[ShapeRenderer] = expect(value, ShapeRenderer)
+
+    @sprite_renderer.setter
+    def sprite_renderer(self, value: SpriteRenderer) -> None:
+        """Fixe le SpriteRenderer"""
+        self._components[SpriteRenderer] = expect(value, SpriteRenderer)
+    
+    @text_renderer.setter
+    def text_renderer(self, value: TextRenderer) -> None:
+        """Fixe le TextRenderer"""
+        self._components[TextRenderer] = expect(value, TextRenderer)
+
+    @collider.setter
+    def collider(self, value: Collider) -> None:
+        """Fixe le Collider"""
+        self._components[Collider] = expect(value, Collider)
+
+    @rigid_body.setter
+    def rigid_body(self, value: RigidBody) -> None:
+        """Fixe le RigidBody"""
+        self._components[RigidBody] = expect(value, RigidBody)
+
+    @ground_sensor.setter
+    def ground_sensor(self, value: GroundSensor) -> None:
+        """Fixe le GroundSensor"""
+        self._components[GroundSensor] = expect(value, GroundSensor)
+
+    @animator.setter
+    def animator(self, value: Animator) -> None:
+        """Fixe l'Animator"""
+        self._components[Animator] = expect(value, Animator)
     
     # ======================================== PREDICATES ========================================
     def __eq__(self, other: Entity) -> bool:
