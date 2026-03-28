@@ -10,6 +10,18 @@ from ._component import *
 import uuid
 from typing import Type
 
+# ======================================== CONSTANTS ========================================
+_COMPONENTS: dict[Component, str] = {
+    Transform: "_transform",
+    ShapeRenderer: "_shape_renderer",
+    SpriteRenderer: "_sprite_renderer",
+    TextRenderer: "_text_renderer",
+    Collider: "_collider",
+    RigidBody: "_rigid_body",
+    GroundSensor: "_ground_sensor",
+    Animator: "_animator",
+}
+
 # ======================================== OBJECT ========================================
 class Entity:
     """
@@ -19,23 +31,35 @@ class Entity:
         components(Component, optional): ensemble des composants de l'entité
         tags(Iterable[str], optional): labels de l'entité
     """
-    __slots__ = ("_id", "_components", "_tags", "_active")
+    __slots__ = (
+        "_id", "_tags", "_active",
+        *_COMPONENTS.values()
+        )
 
     def __init__(self, *components: Component, tags: tuple[str, ...] = ()):
         # Attributs
         self._id: str = str(uuid.uuid4())
-        self._components: dict[type, Component] = {}
         self._tags: set[str] = set(tags)
         self._active: bool = True
 
-        # Construction
+        # Composants
+        self._transform: Transform = None
+        self._shape_renderer: ShapeRenderer = None
+        self._sprite_renderer: SpriteRenderer = None
+        self._text_renderer: TextRenderer = None
+        self._collider: Collider = None
+        self._rigid_body: RigidBody = None
+        self._ground_sensor: GroundSensor = None
+        self._animator: Animator = None
+
+        # Ajouts
         for component in components:
             self.add(component)
     
     # ======================================== CONVERSIONS ========================================
     def __repr__(self) -> str:
         """Renvoie une représentation de l'entité"""
-        components = ", ".join(t.__name__ for t in self._components.keys())
+        components = ", ".join(str(component) for c in _COMPONENTS.values() if (component := getattr(self, c)) is not None)
         return f"Entity(id={self._id[:8]}..., tags={self._tags}, components=[{components}])"
     
     def __hash__(self) -> int:
@@ -56,83 +80,83 @@ class Entity:
     @property
     def transform(self) -> Transform | None:
         """Renvoie le Transform"""
-        return self._components.get(Transform)
+        return self._transform
     
     @property
     def shape_renderer(self) -> ShapeRenderer | None:
         """Renvoie le ShapeRenderer"""
-        return self._components.get(ShapeRenderer)
+        return self._shape_renderer
     
     @property
     def sprite_renderer(self) -> SpriteRenderer | None:
         """Renvoie le SpriteRenderer"""
-        return self._components.get(SpriteRenderer)
+        return self._sprite_renderer
     
     @property
     def text_renderer(self) -> TextRenderer | None:
         """Renvoie le TextRenderer"""
-        return self._components.get(TextRenderer)
+        return self._text_renderer
     
     @property
     def collider(self) -> Collider | None:
         """Renvoie le SpriteCollider"""
-        return self._components.get(Collider)
+        return self._collider
     
     @property
     def rigid_body(self) -> RigidBody | None:
         """Renvoie le RigidBody"""
-        return self._components.get(RigidBody)
+        return self._rigid_body
     
     @property
     def ground_sensor(self) -> GroundSensor | None:
         """Renvoie le GroundSensor"""
-        return self._components.get(GroundSensor)
+        return self._ground_sensor
     
     @property
     def animator(self) -> Animator | None:
         """Renvoie l'Animator"""
-        return self._components.get(Animator)
+        return self._animator
     
     # ======================================== SETTERS ========================================
     @transform.setter
     def transform(self, value: Transform) -> None:
         """Fixe le Transform"""
-        self._components[Transform] = expect(value, Transform)
+        self._transform = expect(value, Transform)
     
     @shape_renderer.setter
     def shape_renderer(self, value: ShapeRenderer) -> None:
         """Fixe le ShapeRenderer"""
-        self._components[ShapeRenderer] = expect(value, ShapeRenderer)
+        self._shape_renderer = expect(value, ShapeRenderer)
 
     @sprite_renderer.setter
     def sprite_renderer(self, value: SpriteRenderer) -> None:
         """Fixe le SpriteRenderer"""
-        self._components[SpriteRenderer] = expect(value, SpriteRenderer)
+        self._sprite_renderer = expect(value, SpriteRenderer)
     
     @text_renderer.setter
     def text_renderer(self, value: TextRenderer) -> None:
         """Fixe le TextRenderer"""
-        self._components[TextRenderer] = expect(value, TextRenderer)
+        self._text_renderer = expect(value, TextRenderer)
 
     @collider.setter
     def collider(self, value: Collider) -> None:
         """Fixe le Collider"""
-        self._components[Collider] = expect(value, Collider)
+        self._collider = expect(value, Collider)
 
     @rigid_body.setter
     def rigid_body(self, value: RigidBody) -> None:
         """Fixe le RigidBody"""
-        self._components[RigidBody] = expect(value, RigidBody)
+        self._rigid_body = expect(value, RigidBody)
 
     @ground_sensor.setter
     def ground_sensor(self, value: GroundSensor) -> None:
         """Fixe le GroundSensor"""
-        self._components[GroundSensor] = expect(value, GroundSensor)
+        self._ground_sensor = expect(value, GroundSensor)
 
     @animator.setter
     def animator(self, value: Animator) -> None:
         """Fixe l'Animator"""
-        self._components[Animator] = expect(value, Animator)
+        self._animator = expect(value, Animator)
     
     # ======================================== PREDICATES ========================================
     def __eq__(self, other: Entity) -> bool:
@@ -163,22 +187,23 @@ class Entity:
             component(Component): composant à ajouter
         """
         T = type(expect(component, Component))
+        all_types = self.get_all_types()
 
         # Exclusivité
-        if self.has(T):
+        if T in all_types:
             raise ValueError(f"Can only have 1 {T.__name__} component")
 
         # Prérequis
         for req in component.requires:
-            if not any(type(c).__name__ == req for c in self._components.values()):
+            if not any(type(c).__name__ == req for c in all_types):
                 raise ValueError(f"{T.__name__} requires {req}")
 
         # Conflits
         for conflict in component.conflicts:
-            if any(type(c).__name__ == conflict for c in self._components.values()):
+            if any(type(c).__name__ == conflict for c in all_types):
                 raise ValueError(f"{T.__name__} conflicts with {conflict}")
             
-        self._components[T] = component
+        setattr(self, _COMPONENTS[T], component)
         return self
     
     def remove(self, component_type: Type[Component]) -> Entity:
@@ -188,9 +213,9 @@ class Entity:
         Args:
             component_type(Type[Component]): type du composant
         """
-        if component_type not in self._components:
+        if component_type not in self.get_all_types():
             raise ValueError(f"Entity has no {component_type} component")
-        self._components.pop(component_type)
+        setattr(self, _COMPONENTS[component_type], None)
         return self
     
     def get(self, component_type: Type[Component]) -> Component:
@@ -200,9 +225,15 @@ class Entity:
         Args:
             component_type(Type[Component]): type du composant
         """
-        if component_type not in self._components:
-            raise ValueError(f"Entity has no {component_type} component")
-        return self._components[component_type]
+        return getattr(self, _COMPONENTS[component_type], None)
+    
+    def get_all(self) -> tuple[Component, ...]:
+        """Renvoie l'ensemble des composants de l'entité"""
+        return tuple(component for name in _COMPONENTS.values() if (component := getattr(self, name)) is not None)
+    
+    def get_all_types(self) -> tuple[Component, ...]:
+        """Renvoie l'ensemble des types de composant possédés"""
+        return tuple(T for T in _COMPONENTS if getattr(self, _COMPONENTS[T]) is not None)
     
     def has(self, component_type: Type[Component]) -> bool:
         """
@@ -211,7 +242,10 @@ class Entity:
         Args:
             component_type(Type[C]): type du composant
         """
-        return component_type in self._components
+        attr_name = _COMPONENTS.get(component_type)
+        if attr_name is None:
+            return False
+        return getattr(self, attr_name) is not None
     
     # ======================================== TAGS ========================================
     def add_tag(self, tag: str) -> Entity:
