@@ -195,12 +195,12 @@ class Entity:
 
         # Prérequis
         for req in component.requires:
-            if not any(type(c).__name__ == req for c in all_types):
+            if not any(c.__name__ == req for c in all_types):
                 raise ValueError(f"{T.__name__} requires {req}")
 
         # Conflits
         for conflict in component.conflicts:
-            if any(type(c).__name__ == conflict for c in all_types):
+            if any(c.__name__ == conflict for c in all_types):
                 raise ValueError(f"{T.__name__} conflicts with {conflict}")
             
         setattr(self, _COMPONENTS[T], component)
@@ -242,9 +242,12 @@ class Entity:
         Args:
             component_type(Type[C]): type du composant
         """
-        attr_name = _COMPONENTS.get(component_type)
-        if attr_name is None:
-            return False
+        if component_type is str:
+            attr_name = component_type
+        else:
+            attr_name = _COMPONENTS.get(component_type)
+            if attr_name is None:
+                return False
         return getattr(self, attr_name) is not None
     
     # ======================================== TAGS ========================================
