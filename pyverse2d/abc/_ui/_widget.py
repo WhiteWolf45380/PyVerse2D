@@ -18,16 +18,16 @@ class Widget(ABC):
 
     Args:
         parent(Widget, optional): composant parent
-        pos(Point, optional): position
+        position(Point, optional): position
         anchor(Point, optional): ancre locale
         opacity(float, optional): opacité
     """
-    __slots__ = ("_parent", "_children", "_pos", "_anchor", "_opacity", "_active", "_visible", "_activate_process", "_deactivate_process", "_show_process", "_hide_process")
+    __slots__ = ("_parent", "_children", "_position", "_anchor", "_opacity", "_active", "_visible", "_activate_process", "_deactivate_process", "_show_process", "_hide_process")
 
     def __init__(
             self,
             parent: Widget = None,
-            pos: Point = (0, 0),
+            position: Point = (0, 0),
             anchor: Point = (0.5, 0.5),
             opacity: float = 1.0
         ):
@@ -35,8 +35,8 @@ class Widget(ABC):
         self._parent: Widget = expect(parent, (Widget, None))
         self._children: list[WidgetWrapper] = []
 
-        # Position
-        self._pos: Point = Point(pos)
+        # position
+        self._position: Point = Point(position)
         self._anchor: Point = Point(anchor)
 
         # Design
@@ -84,40 +84,40 @@ class Widget(ABC):
         raise ValueError(f"This widget has no child named {name}")
     
     @property
-    def pos(self) -> Point:
+    def position(self) -> Point:
         """Renvoie la position"""
-        return self._pos
+        return self._position
     
     @property
     def x(self) -> float:
         """Renvoie la position horizontale"""
-        return self._pos.x
+        return self._position.x
     
     @property
     def y(self) -> float:
         """Renvoie la position verticale"""
-        return self._pos.y
+        return self._position.y
     
     @property
-    def absolute_pos(self) -> Point:
+    def absolute_position(self) -> Point:
         """Renvoie la position absolue"""
         if self._parent is None:
-            return self._pos
-        return self._parent.absolute_pos + self._pos
+            return self._position
+        return self._parent.absolute_position + self._position
     
     @property
     def absolute_x(self) -> float:
         """Renvoie la position horizontale absolue"""
         if self._parent is None:
-            return self._pos.x
-        return self._parent.absolute_x + self._pos.x
+            return self._position.x
+        return self._parent.absolute_x + self._position.x
     
     @property
     def absolute_y(self) -> float:
         """Renvoie la position verticale absolue"""
         if self._parent is None:
-            return self._pos.y
-        return self._parent.absolute_y + self._pos.y
+            return self._position.y
+        return self._parent.absolute_y + self._position.y
     
     @property
     def anchor(self) -> Point:
@@ -150,20 +150,20 @@ class Widget(ABC):
         return self._visible
 
     # ======================================== SETTERS ========================================
-    @pos.setter
-    def pos(self, value: Point) -> None:
+    @position.setter
+    def position(self, value: Point) -> None:
         """Fixe la position"""
-        self._pos = Point(value)
+        self._position = Point(value)
     
     @x.setter
     def x(self, value: Real) -> None:
         """Fixe la position horizontale"""
-        self._pos.x = value
+        self._position.x = value
 
     @y.setter
     def y(self, value: Real) -> None:
         """Fixe la position verticale"""
-        self._pos.y = value
+        self._position.y = value
     
     @anchor.setter
     def anchor(self, value: Point) -> None:
@@ -422,7 +422,7 @@ class Widget(ABC):
     def _update_render_context(self, context: RenderContext) -> None:
         """Actualise le contexte de rendu avec les paramètres courants"""
         context.z += 1
-        context.origin += self._pos
+        context.origin += self._position
         context.opacity *= self._opacity
 
 

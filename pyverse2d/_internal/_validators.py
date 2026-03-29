@@ -17,14 +17,14 @@ def typename(t: type):
 def expect(value: object, types: type | Tuple[type, ...]):
     """
     Vérifie la valeur contre un type supporté :
-        T                   type simple
-        (T1, T2, T3)        multi-types
-        T1 | T2             union
-        list[T]             liste typée
-        set[T]              set typé
-        tuple[T]            tuple broadcast
-        tuple[T1, T2, T3]   tuple positionnel
-        dict[K, V]          dictionnaire typé
+        T type simple
+        (T1, T2, T3) multi-types
+        T1 | T2 union
+        list[T] liste typée
+        set[T] set typé
+        tuple[T] tuple broadcast
+        tuple[T1, T2, T3] tuple positionnel
+        dict[K, V] dictionnaire typé
 
     Args:
         value(object): valeur à vérifier
@@ -36,6 +36,10 @@ def expect(value: object, types: type | Tuple[type, ...]):
     Raises:
         TypeError: si la valeur n'est pas conforme
     """
+    # Execution sans debug
+    if not __debug__:
+        return value
+
     # (T1, T2, T3)
     if isinstance(types, tuple):
         types = tuple(type(None) if t is None else t for t in types)
@@ -147,6 +151,10 @@ def not_null(value: object, arg: str = "Argument"):
         value(object): valeur à vérifier
         arg(str): nom de l'argument à vérifier
     """
+    # Execution sans debug
+    if not __debug__:
+        return value
+
     # None
     if value is None:
         raise ValueError(f"{arg} cannot be None")
@@ -190,6 +198,7 @@ def positive(value: object, arg: str = "Argument"):
     return  value
 
 def clamped(value: object, min: float = 0.0, max: float = 1.0, arg: str ="Argument"):
+    
     """
     Vérifie que la valeur soit comprise entre min et max
 
@@ -199,6 +208,10 @@ def clamped(value: object, min: float = 0.0, max: float = 1.0, arg: str ="Argume
         max(float, optional): valeur maximale autorisée
         arg(str, optional): nom de l'argument à vérifier
     """
+    # Execution sans debug
+    if not __debug__:
+        return value
+    
     # Nombres
     if isinstance(value, Real):
         if float(value) < min or float(value) > max:
