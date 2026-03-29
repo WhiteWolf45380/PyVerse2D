@@ -104,11 +104,11 @@ class Surface(Widget):
         self._rotation += float(expect(angle, Real))
 
     # ======================================== LIFE CYCLE ========================================
-    def _update(self, dt: float) -> None:
+    def update(self, dt: float) -> None:
         """Actualisation"""
         ...
     
-    def _draw(self, pipeline: Pipeline, context: RenderContext) -> None:
+    def draw(self, pipeline: Pipeline, context: RenderContext) -> None:
         """Affichage"""
         if self._renderer is None:
             self._renderer = PygletShapeRenderer(
