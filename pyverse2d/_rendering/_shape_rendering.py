@@ -17,6 +17,7 @@ import numpy as np
 
 # ======================================== CONSTANTS ========================================
 _UNSET = object()   # élément non défini
+_CENTER_DEPS = frozenset({"x", "y", "anchor_x", "anchor_y"})    # paramètres influençant le centre
 
 _CIRCLE_BORDER_SEGMENTS = 64    # précision des cercles
 _ELLIPSE_BORDER_SEGMENTS = 64   # précision des ellipses
@@ -29,8 +30,10 @@ class PygletShapeRenderer:
 
     Args:
         shape(Shape): shape à rendre
-        cx(float, optional): centre monde horizontal
-        cy(float, optional): centre monde vertical
+        x(float, optional): position horizontale
+        y(float, optional): position verticale
+        anchor_x(float, optional): ancre relative locale horizontale
+        anchor_y(float, optional): ancre relative locale  verticale
         scale(float, optional): échelle
         rotation(float, optional): rotation en degrés
         filling(bool, optional): remplissage
@@ -41,13 +44,23 @@ class PygletShapeRenderer:
         z(int, optional): z-order
         pipeline(Pipeline, optional): pipeline de rendu
     """
-    __slots__ = ("_shape", "_cx", "_cy", "_scale", "_rotation", "_filling", "_color", "_border_width", "_border_color", "_opacity", "_z", "_pipeline", "_fill", "_border")
+    __slots__ = (
+        "_shape",
+        "_x", "_y", "_anchor_x", "_anchor_y",
+        "_scale", "_rotation",
+        "_filling", "_color", "_border_width", "_border_color", "_opacity",
+        "_z", "_pipeline", 
+        "_cx", "_cy",
+        "_fill", "_border"
+    )
 
     def __init__(
         self,
         shape: Shape,
-        cx: float = 0.0,
-        cy: float = 0.0,
+        x: float = 0.0,
+        y: float = 0.0,
+        anchor_x: float = 0.5,
+        anchor_y: float = 0.5,
         scale: float = 1.0,
         rotation: float = 0.0,
         filling: bool = True,
@@ -58,10 +71,12 @@ class PygletShapeRenderer:
         z: int = 0,
         pipeline: Pipeline = None
     ):
-        # Paramètres
+        # Paramètres publics
         self._shape: Shape = shape
-        self._cx: float = cx
-        self._cy: float = cy
+        self._x: float = x
+        self._y: float = y
+        self._anchor_x: float = anchor_x
+        self._anchor_y: float = anchor_y
         self._scale: float = scale
         self._rotation: float = rotation
         self._filling: bool = filling
@@ -69,15 +84,38 @@ class PygletShapeRenderer:
         self._border_width: int = border_width
         self._border_color: Color = border_color
         self._opacity: float = opacity
-
-        # Rendering
         self._z: int = z
         self._pipeline: Pipeline = pipeline
+
+        # Paramètres internes
+        self._cx: float = 0.0
+        self._cy: float = 0.0
+        self._compute_center()
 
         # Renderers
         self._fill: _FillRenderer = None
         self._border: _BorderRenderer = None
         self._build()
+
+    # ======================================== WORLD CENTER ========================================
+    def _compute_center(self) -> None:
+        x_min, y_min, x_max, y_max = self._shape.bounding_box
+
+        # Anchor en espace local
+        local_ax = x_min + self._anchor_x * (x_max - x_min)
+        local_ay = y_min + self._anchor_y * (y_max - y_min)
+
+        # Scale + rotation de l'anchor
+        rad = math.radians(-self._rotation)
+        cos_r, sin_r = math.cos(rad), math.sin(rad)
+        scaled_ax = local_ax * self._scale
+        scaled_ay = local_ay * self._scale
+        rotated_ax = scaled_ax * cos_r - scaled_ay * sin_r
+        rotated_ay = scaled_ax * sin_r + scaled_ay * cos_r
+
+        # Centre monde
+        self._cx = self._x - rotated_ax
+        self._cy = self._y - rotated_ay
 
     # ======================================== BUILD ========================================
     def _build(self) -> None:
@@ -97,17 +135,17 @@ class PygletShapeRenderer:
     @property
     def position(self) -> tuple[float, float]:
         """Renvoie la position"""
-        return (self._cx, self._cy)
+        return (self._x, self._y)
     
     @property
-    def cx(self) -> float:
+    def x(self) -> float:
         """Renvoie la position horizontale"""
-        return self._cx
+        return self._x
     
     @property
-    def cy(self) -> float:
-        """Renoie la position verticale"""
-        return self._cy
+    def y(self) -> float:
+        """Renvoie la position verticale"""
+        return self._y
     
     @property
     def scale(self) -> float:
@@ -155,6 +193,21 @@ class PygletShapeRenderer:
         return self._pipeline
     
     @property
+    def center(self) -> tuple[float, float]:
+        """Renvoie la position centrale"""
+        return (self._cx, self._cy)
+    
+    @property
+    def cx(self) -> float:
+        """Renvoie la position centrale horizontale"""
+        return self._cx
+    
+    @property
+    def cy(self) -> float:
+        """Renoie la position centrale verticale"""
+        return self._cy
+    
+    @property
     def visible(self) -> bool:
         """Renvoie la visibilité"""
         if self._fill:
@@ -183,8 +236,10 @@ class PygletShapeRenderer:
         Met à jour le rendu de forme pyglet
 
         Args:
-            cx(float, optional): position horizontale
-            cy(float, optional): position verticale
+            x(float, optional): position horizontale
+            y(float, optional): position verticale
+            anchor_x(float, optional): ancre relative locale horizontale
+            anchor_y(float, optional): ancre relative locale verticale
             scale(float, optional): facteur de redimensionnement
             rotation(float, optional): rotation en degrés
             filling(bool, optional): remplissage
@@ -195,13 +250,24 @@ class PygletShapeRenderer:
             z(int, optional): zorder
             pipeline(Pipeline, optional): pipeline de rendu
         """
+        # Flags
+        recompute_center: bool = False
+
         # Actualisation des paramètres
         changes: list[str] = []
         for key, value in kwargs.items():
             current_attr = getattr(self, f"_{key}", _UNSET)
             if value != current_attr and current_attr is not _UNSET:
                 setattr(self, f"_{key}", value)
-                changes.append(key)
+                if key in _CENTER_DEPS:
+                    recompute_center = True
+                else:
+                    changes.append(key)
+        
+        # Modifications globales
+        if recompute_center:
+            self._compute_center()
+            changes.append("center")
 
         # Remplissage
         if self._filling:
@@ -344,19 +410,12 @@ class _FillRenderer:
         self._gl_shape = None
     
     # ======================================== HANDLERS ========================================
-    def handle_cx(self, psr: PygletShapeRenderer) -> None:
-        """Actualisation de la position horizontale"""
+    def handle_center(self, psr: PygletShapeRenderer) -> None:
+        """Actualisation de la position"""
         if isinstance(psr.shape, VertexShape):
             return True
         else:
-            self._gl_shape.x = psr.cx
-
-    def handle_cy(self, psr: PygletShapeRenderer) -> None:
-        """Actualisation de la position verticale"""
-        if isinstance(psr.shape, VertexShape):
-            return True
-        else:
-            self._gl_shape.y = psr.cy
+            self._gl_shape.position = psr.center
 
     def handle_scale(self, psr: PygletShapeRenderer) -> None:
         """Actualisation du facteur de redimensionnement"""
@@ -530,12 +589,8 @@ class _BorderRenderer:
         self._vlist = None
 
     # ======================================== HANDLERS ========================================
-    def handle_cx(self, psr: PygletShapeRenderer) -> None:
-        """Actualisation de la position horizontale"""
-        self._refresh_vertices(psr)
-
-    def handle_cy(self, psr: PygletShapeRenderer) -> None:
-        """Actualisation de la position verticale"""
+    def handle_center(self, psr: PygletShapeRenderer) -> None:
+        """Actualisation de la position"""
         self._refresh_vertices(psr)
 
     def handle_scale(self, psr: PygletShapeRenderer) -> None:

@@ -1,19 +1,11 @@
 # ======================================== IMPORTS ========================================
-from ._widget import (
-    Surface
-)
-
-from ._behavior import (
-    ClickBehavior,
-    HoverBehavior,
-    SelectBehavior,
-    FocusBehavior,
-)
+from ._click import ClickBehavior
+from ._hover import HoverBehavior
+from ._select import SelectBehavior
+from ._focus import FocusBehavior
 
 # ======================================== EXPORTS ========================================
 __all__ = [
-    "Surface",
-
     "ClickBehavior",
     "HoverBehavior",
     "SelectBehavior",

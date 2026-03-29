@@ -56,6 +56,11 @@ class Transform(Component):
 
     # ======================================== GETTERS ========================================
     @property
+    def pos(self) -> Point:
+        """Renvoie le point de position"""
+        return self._pos
+
+    @property
     def x(self) -> float:
         """Renvoie la coordonnée horizontale"""
         return self._pos.x
@@ -66,14 +71,19 @@ class Transform(Component):
         return self._pos.y
     
     @property
-    def pos(self) -> Point:
-        """Renvoie le point de position"""
-        return self._pos
-    
-    @property
     def anchor(self) -> Point:
         """Renvoie l'ancre de positionnement"""
         return self._anchor
+    
+    @property
+    def anchor_x(self) -> float:
+        """Renvoie l'ancre de positionnement horizontal"""
+        return self._anchor.x
+    
+    @property
+    def anchor_y(self) -> float:
+        """Renvoie l'acre de positionnement vertical"""
+        return self._anchor.y
     
     @property
     def rotation(self) -> float:
@@ -86,33 +96,43 @@ class Transform(Component):
         return self._scale
 
     # ======================================== SETTERS ========================================
-    @x.setter
-    def x(self, value: Real):
-        """Fixe la coordonnée horizontale"""
-        self._pos.x = float(expect(value, Real))
-    
-    @y.setter
-    def y(self, value: Real):
-        """Fixe la coordonnée verticale"""
-        self._pos.y = float(expect(value, Real))
-
     @pos.setter
-    def pos(self, value: Point):
+    def pos(self, value: Point) -> None:
         """Fixe le point de position"""
         self._pos = Point(value)
 
+    @x.setter
+    def x(self, value: Real) -> None:
+        """Fixe la coordonnée horizontale"""
+        self._pos.x = value
+    
+    @y.setter
+    def y(self, value: Real) -> None:
+        """Fixe la coordonnée verticale"""
+        self._pos.y = value
+
     @anchor.setter
-    def anchor(self, value: Point):
+    def anchor(self, value: Point) -> None:
         """Fixe l'ancre de positionnement"""
         self._anchor = Point(value)
+
+    @anchor_x.setter
+    def anchor_x(self, value: Real) -> None:
+        """Fixe l'ancre de positionnement horizontal"""
+        self._anchor.x = value
+    
+    @anchor_y.setter
+    def anchor_y(self, value: Real) -> None:
+        """Fixe l'ancre de positionnement vertical"""
+        self._anchor.y = value
     
     @rotation.setter
-    def rotation(self, value: Real):
+    def rotation(self, value: Real) -> None:
         """Fixe la rotation"""
         self._rotation = float(expect(value, Real))
     
     @scale.setter
-    def scale(self, value: Real):
+    def scale(self, value: Real) -> None:
         """Fixe le facteur de redimensionnement"""
         self._scale = float(not_null(positive(expect(value, Real))))
 

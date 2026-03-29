@@ -81,6 +81,16 @@ class ShapeRenderer(Component):
         return self._offset
     
     @property
+    def offset_x(self) -> float:
+        """Renvoie le décalage horizontal"""
+        return self._offset.x
+    
+    @property
+    def offset_y(self) -> float:
+        """Renvoie le décalage vertical"""
+        return self._offset.y
+    
+    @property
     def filling(self) -> bool:
         """Renvoie l'état du remplissage"""
         return self._filling

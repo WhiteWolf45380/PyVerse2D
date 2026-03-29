@@ -11,6 +11,13 @@ if TYPE_CHECKING:
 # ======================================== GESTIONNAIRE ========================================
 class InputsManager:
     """Gestionnaire des entrées utilisateur"""
+    __slots__ = (
+        "_listeners",
+        "_step", "_pressed", "_released_this_frame",
+        "_any_listeners", "_all_listeners", "_triggered_combos",
+        "_mouse_x", "_mouse_y",
+        "_scroll_dx", "_scroll_dy",
+    )
     MOUSELEFT = pyglet.window.mouse.LEFT
     MOUSERIGHT = pyglet.window.mouse.RIGHT
     MOUSEMIDDLE = pyglet.window.mouse.MIDDLE

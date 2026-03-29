@@ -86,22 +86,26 @@ class RenderSystem(System):
     # ======================================== SYNC SHAPE ========================================
     def _sync_shape(self, entity: Entity, tr: Transform, pipeline: Pipeline):
         """Crée ou met à jour le renderer de shape de l'entité"""
-        sr: ShapeRenderer = entity.get(ShapeRenderer)
+        sr: ShapeRenderer = entity.shape_renderer
         eid = entity.id
 
+        # Sprite invisible
         if not sr.is_visible():
             if eid in self._shapes:
                 self._shapes[eid].visible = False
             return
 
-        cx, cy = _world_center(sr.shape, tr, sr.offset)
+        # Calcul du z-order
         z = sr.z * 3 + _ORDER_SHAPE
 
+        # Construction du ShapeRenderer pyglet
         if eid not in self._shapes:
             self._shapes[eid] = PygletShapeRenderer(
                 shape = sr.shape,
-                cx = cx,
-                cy = cy,
+                x = tr.x + sr.offset_x * tr.scale,
+                y = tr.y + sr.offset_y * tr.scale,
+                anchor_x = tr.anchor_x,
+                anchor_y = tr.anchor_x,
                 scale = tr.scale,
                 rotation = tr.rotation,
                 filling = sr.filling,
@@ -114,8 +118,10 @@ class RenderSystem(System):
             )
         else:
             self._shapes[eid].update(
-                cx = cx,
-                cy = cy,
+                x = tr.x + sr.offset_x * tr.scale,
+                y = tr.y + sr.offset_y * tr.scale,
+                anchor_x = tr.anchor_x,
+                anchor_y = tr.anchor_y,
                 scale = tr.scale,
                 rotation = tr.rotation,
                 filling = sr.filling,
@@ -249,26 +255,3 @@ class RenderSystem(System):
         except FileNotFoundError:
             print(f"[RenderSystem] Cannot load image: {path}")
             return None
-
-
-# ======================================== WORLD CENTER ========================================
-def _world_center(shape, tr: Transform, offset: Vector) -> tuple[float, float]:
-    x_min, y_min, x_max, y_max = shape.bounding_box
-
-    # Anchor en espace local
-    local_ax = x_min + tr.anchor.x * (x_max - x_min)
-    local_ay = y_min + tr.anchor.y * (y_max - y_min)
-
-    # Scale + rotation de l'anchor
-    rad = math.radians(-tr.rotation)
-    cos_r, sin_r = math.cos(rad), math.sin(rad)
-    scaled_ax = local_ax * tr.scale
-    scaled_ay = local_ay * tr.scale
-    rotated_ax = scaled_ax * cos_r - scaled_ay * sin_r
-    rotated_ay = scaled_ax * sin_r + scaled_ay * cos_r
-
-    # Centre monde
-    return (
-        tr.x - rotated_ax + offset[0] * tr.scale,
-        tr.y - rotated_ay + offset[1] * tr.scale,
-    )
