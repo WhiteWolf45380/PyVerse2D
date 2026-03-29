@@ -61,8 +61,8 @@ class UILayer(Layer):
             raise ValueError("Cannot add a child widget directly, try to add its parent")
         if widget._layer is not None:
             raise ValueError(f"This widget {widget} is already in a scene")
+        widget._layer = self
         wrapper = WidgetWrapper(widget, name, z)
-        wrapper._layer = self
         insort(self._wrappers, wrapper)
     
     def remove(self, widget: Widget) -> None:
