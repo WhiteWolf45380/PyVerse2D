@@ -14,7 +14,6 @@ import pyglet.sprite
 import pyglet.text
 import pyglet.image
 
-import math
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
