@@ -9,6 +9,7 @@ from ..tile import TileMap, TileRenderer
 
 from numbers import Real
 from contextlib import nullcontext
+from pyglet.math import Mat4, Vec3
 
 # ======================================== LAYER ========================================
 class TileLayer(Layer):
@@ -159,11 +160,7 @@ class TileLayer(Layer):
 
         # Génération du contexte de rendu
         if self._parallax_clamp:
-            x0, y0 = pipeline.world_to_framebuffer(ox, oy)
-            sx_scale, sy_scale = pipeline.window.framebuffer_scale
-            sw = int(tm.cols * tw * cam.zoom * sx_scale)
-            sh = int(tm.rows * th * cam.zoom * sy_scale)
-            ctx = pipeline.scissor(x0, y0, sw, sh)
+            ctx = pipeline.scissor(ox, oy, tm.cols * tw, tm.rows * th)
         else:
             ctx = nullcontext()
         
@@ -171,7 +168,6 @@ class TileLayer(Layer):
         with ctx:
             # Effet parallax
             if self._parallax != (1.0, 1.0):
-                from pyglet.math import Mat4, Vec3
                 offset_x = cam.final_x - px
                 offset_y = cam.final_y - py
                 if offset_x != 0.0 or offset_y != 0.0:
