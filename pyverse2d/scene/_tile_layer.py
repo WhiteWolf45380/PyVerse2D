@@ -160,7 +160,7 @@ class TileLayer(Layer):
 
         # Génération du contexte de rendu
         if self._parallax_clamp:
-            ctx = pipeline.scissor(ox, oy, tm.cols * tw, tm.rows * th)
+            ctx = pipeline.scissor(ox + 1, oy + 1, tm.cols * tw - 2, tm.rows * th - 2)
         else:
             ctx = nullcontext()
         
