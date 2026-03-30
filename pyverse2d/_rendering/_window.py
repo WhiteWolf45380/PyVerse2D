@@ -122,6 +122,12 @@ class Window:
     def native(self) -> pyglet.window.Window: # type: ignore
         """Renvoie la fenêtre pyglet"""
         return self._window
+    
+    @property
+    def framebuffer_scale(self) -> tuple[float, float]:
+        """Renvoie le ratio pixels framebuffer / pixels logiques"""
+        vx, vy, vw, vh = self._viewport
+        return vw / self._screen.width, vh / self._screen.height
 
     # ======================================== CONVERSIONS ========================================
     def screen_to_window(self, x: float, y: float) -> tuple[float, float]:

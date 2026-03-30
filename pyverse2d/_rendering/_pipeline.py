@@ -6,6 +6,8 @@ from pyglet.graphics import Batch, Group
 from pyglet.math import Mat4
 
 from typing import TYPE_CHECKING
+from contextlib import contextmanager
+from ctypes import c_int
 
 if TYPE_CHECKING:
     from ..scene import Scene, Layer, Viewport, Camera
@@ -131,3 +133,55 @@ class Pipeline:
     def end(self) -> None:
         """Met fin à la connexion avec une scene"""
         self._scene = None
+
+    # ======================================== UTILITAIRES ========================================
+    def world_to_framebuffer(self, x: float, y: float) -> tuple[int, int]:
+        """
+        Convertit une coordonnée monde en pixels framebuffer
+
+        Args:
+            x(float): coordonnée horizontale monde
+            y(float): coordonnée verticale monde
+        """
+        cam = self._scene.camera
+        screen = self._window.screen
+        win_vx, win_vy, win_vw, win_vh = self._window.viewport
+
+        sx = win_vw / screen.width
+        sy = win_vh / screen.height
+
+        lx = (x - cam.final_x) * cam.zoom + screen.half_width
+        ly = (y - cam.final_y) * cam.zoom + screen.half_height
+
+        return int(win_vx + lx * sx), int(win_vy + ly * sy)
+    
+    @contextmanager
+    def scissor(self, wx: float, wy: float, ww: float, wh: float):
+        """
+        Context manager appliquant un scissor test en coordonnées monde
+
+        Args:
+            wx(float): x monde du coin bas-gauche
+            wy(float): y monde du coin bas-gauche
+            ww(float): largeur monde
+            wh(float): hauteur monde
+        """
+        x0, y0 = self.world_to_framebuffer(wx, wy)
+        sx, sy = self.window.framebuffer_scale
+        cam = self._scene.camera
+        w = int(ww * cam.zoom * sx)
+        h = int(wh * cam.zoom * sy)
+
+        was_enabled = (gl.GLboolean * 1)()
+        prev_box = (c_int * 4)()
+        gl.glGetBooleanv(gl.GL_SCISSOR_TEST, was_enabled)
+        gl.glGetIntegerv(gl.GL_SCISSOR_BOX, prev_box)
+
+        gl.glEnable(gl.GL_SCISSOR_TEST)
+        gl.glScissor(x0, y0, w, h)
+        try:
+            yield
+        finally:
+            gl.glScissor(*prev_box)
+            if not was_enabled[0]:
+                gl.glDisable(gl.GL_SCISSOR_TEST)

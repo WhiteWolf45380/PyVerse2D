@@ -7,11 +7,8 @@ from .._rendering._pipeline import Pipeline
 from ..abc import Layer
 from ..tile import TileMap, TileRenderer
 
-from pyglet import gl
 from numbers import Real
-from contextlib import contextmanager, nullcontext
-from pyglet.gl import glEnable, glDisable, glScissor, glGetBooleanv, glGetIntegerv, GL_SCISSOR_TEST, GL_SCISSOR_BOX
-from ctypes import c_int
+from contextlib import nullcontext
 
 # ======================================== LAYER ========================================
 class TileLayer(Layer):
@@ -161,14 +158,12 @@ class TileLayer(Layer):
         cr_max = min(chunk_rows, int((vy + vh - oy) // chunk_h) + 1)
 
         # Génération du contexte de rendu
-        if self._parallax_clamp and self._parallax != (1.0, 1.0):
-            map_x0 = ox
-            map_y0 = oy
-            sx = int((map_x0 - cam.final_x) * cam.zoom + screen.half_width)
-            sy = int((map_y0 - cam.final_y) * cam.zoom + screen.half_height)
-            sw = int(tm.cols * tw * cam.zoom)
-            sh = int(tm.rows * th * cam.zoom)
-            ctx = _scissor_context(sx, sy, sw, sh)
+        if self._parallax_clamp:
+            x0, y0 = pipeline.world_to_framebuffer(ox, oy)
+            sx_scale, sy_scale = pipeline.window.framebuffer_scale
+            sw = int(tm.cols * tw * cam.zoom * sx_scale)
+            sh = int(tm.rows * th * cam.zoom * sy_scale)
+            ctx = _scissor_context(x0, y0, sw, sh)
         else:
             ctx = nullcontext()
         
