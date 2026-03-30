@@ -212,11 +212,10 @@ class TileRenderer:
     Args:
         tile_map(TileMap): couche source
         chunk_size(int): nombre de tuiles par côté de chunk
-        z(int): z_order (géré en amont par l'ordre de draw)
     """
     __slots__ = ("_tile_map", "_chunk_size", "_texture", "_chunks", "_built")
 
-    def __init__(self, tile_map: TileMap, chunk_size: int, z: int):
+    def __init__(self, tile_map: TileMap, chunk_size: int):
         self._tile_map: TileMap = tile_map
         self._chunk_size: int = chunk_size
         self._texture: TileArrayTexture | None = None
