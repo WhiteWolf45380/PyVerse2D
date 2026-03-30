@@ -163,7 +163,7 @@ class TileLayer(Layer):
             sx_scale, sy_scale = pipeline.window.framebuffer_scale
             sw = int(tm.cols * tw * cam.zoom * sx_scale)
             sh = int(tm.rows * th * cam.zoom * sy_scale)
-            ctx = _scissor_context(x0, y0, sw, sh)
+            ctx = pipeline.scissor(x0, y0, sw, sh)
         else:
             ctx = nullcontext()
         
@@ -183,20 +183,3 @@ class TileLayer(Layer):
                 for cc in range(cc_min, cc_max):
                     self._renderer.draw(cc, cr)
             self._renderer.end()
-
-# ======================================== HELPERS ========================================
-@contextmanager
-def _scissor_context(x: int, y: int, w: int, h: int):
-    was_enabled = (gl.GLboolean * 1)()
-    prev_box = (c_int * 4)()
-    glGetBooleanv(GL_SCISSOR_TEST, was_enabled)
-    glGetIntegerv(GL_SCISSOR_BOX, prev_box)
-
-    glEnable(GL_SCISSOR_TEST)
-    glScissor(x, y, w, h)
-    try:
-        yield
-    finally:
-        glScissor(*prev_box)
-        if not was_enabled[0]:
-            glDisable(GL_SCISSOR_TEST)
