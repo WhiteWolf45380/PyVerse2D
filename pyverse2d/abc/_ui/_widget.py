@@ -297,7 +297,7 @@ class Widget(ABC):
             name(str, optional): identifiant local du composant
             z(int, optional): ordre de rendu local
         """
-        if child._layer != self._layer:
+        if child._layer is not None and child._layer != self._layer:
             raise ValueError(f"{child} is in another layer")
         if child.parent is not None:
             raise ValueError(f"{child} has already a parent")
