@@ -37,7 +37,7 @@ class Label(Widget):
         margin(int, optional): marge intérieure uniforme en pixels
     """
     __slots__ = (
-        "_text",
+        "_text", "_text_renderer",
         "_position", "_anchor", "_rotation",
         "_weight", "_italic", "_underline",
         "_color", "_opacity",
