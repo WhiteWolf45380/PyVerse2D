@@ -16,6 +16,7 @@ from ._behavior import (
 __all__ = [
     "Surface",
     "Label",
+    "Sprite",
 
     "ClickBehavior",
     "HoverBehavior",

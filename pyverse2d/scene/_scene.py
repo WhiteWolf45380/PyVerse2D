@@ -170,6 +170,8 @@ class Scene:
             dt(float): delta time
         """
         for layer in self._layers:
+            if not layer.is_active():
+                continue
             layer.update(dt)
         for fn in self._update_callbacks:
             fn(dt)
@@ -186,6 +188,8 @@ class Scene:
         camera_zoom = self.camera.zoom_matrix()
         
         for layer in self._layers:
+            if not layer.is_visible():
+                continue
             pipeline.layer(layer)
 
             if layer.camera_mode is CameraMode.WORLD:

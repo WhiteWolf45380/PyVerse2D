@@ -125,6 +125,14 @@ class Sprite(Widget):
         self._color = Color(value) if value is not None else None
     
     # ======================================== TRANSFORMATIONS ========================================
+    def flip(self, horizontal: bool = False, vertical: bool = False) -> None:
+        """Applique un mirroir
+
+        L'effet mirroir inverse le rendu horizontal/vertical de l'image
+        """
+        self._flip_x ^= horizontal
+        self._flip_y ^= vertical
+
     def resize(self, factor: Real) -> None:
         """Redimensionne l'image par un facteur
 
