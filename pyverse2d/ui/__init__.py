@@ -2,6 +2,7 @@
 from ._widget import (
     Surface,
     Label,
+    Sprite,
 )
 
 from ._behavior import (

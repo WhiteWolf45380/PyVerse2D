@@ -16,16 +16,22 @@ class Sprite(Widget):
         position: position ``(x, y)``
         anchor: ancre relative locale ``(ax, ay)``
         scale: facteur de redimensionnement
+        flip_x: mirroir horizontal
+        flip_y: mirroir vertical
         rotation: angle de rotation en degrés
         color: asset ``Color`` de teinte
         opacity: opacité
     """
+
+
     def __init__(
             self,
             image: Image,
             position: Point = (0.0, 0.0),
             anchor: Point = (0.5, 0.5),
             scale: Real = 1.0,
+            flip_x: bool = False,
+            flip_y: bool = False,
             rotation: Real = 0.0,
             color: Color = None,
             opacity: Real = 1.0,
@@ -38,6 +44,8 @@ class Sprite(Widget):
         self._image_renderer: PygletSpriteRenderer = None
 
         # Transform
+        self._flip_x: bool = expect(flip_x, bool)
+        self._flip_y: bool = expect(flip_y, bool)
         self._scale: float = positive(not_null(float(expect(scale, Real))))
         self._rotation: float = float(expect(rotation, Real))
 
@@ -68,6 +76,30 @@ class Sprite(Widget):
     @scale.setter
     def scale(self, value: Real) -> None:
         self._scale = positive(not_null(float(expect(value, Real))))
+
+    @property
+    def flip_x(self) -> bool:
+        """Mirroir horizontal
+
+        Cette propriété appliquera ou non une inversion horizontale de l'image
+        """
+        return self._flip_x
+    
+    @flip_x.setter
+    def flip_x(self, value: bool) -> None:
+        self._flip_x = expect(value, bool)
+
+    @property
+    def flip_y(self) -> bool:
+        """Mirroir vertical
+
+        Cette propriété appliquera ou non une inversion verticale de l'image
+        """
+        return self._flip_y
+    
+    @flip_y.setter
+    def flip_y(self, value: bool) -> None:
+        self._flip_y = expect(value, bool)
 
     @property
     def rotation(self) -> float:
@@ -116,8 +148,43 @@ class Sprite(Widget):
         """Affichage"""
         # Construction du renderer
         if self._image_renderer is None:
-            pass
+            self._image_renderer = PygletSpriteRenderer(
+                image = self._image,
+                x = context.origin.x,
+                y = context.origin.y,
+                anchor_x = self.anchor_x,
+                anchor_y = self.anchor_y,
+                scale_x = self._scale,
+                scale_y = self._scale,
+                flip_x = self._flip_x,
+                flip_y = self._flip_y,
+                rotation = self._rotation,
+                color = self._color,
+                opacity = context.opacity,
+                z = context.z,
+                pipeline = pipeline
+            )
         
         # Mise à jour du renderer
         else:
-            pass
+            self._image_renderer.update(
+                image = self._image,
+                x = context.origin.x,
+                y = context.origin.y,
+                anchor_x = self.anchor_x,
+                anchor_y = self.anchor_y,
+                scale_x = self._scale,
+                scale_y = self._scale,
+                flip_x = self._flip_x,
+                flip_y = self._flip_y,
+                rotation = self._rotation,
+                color = self._color,
+                opacity = context.opacity,
+                z = context.z,
+                pipeline = pipeline
+            )
+    
+    def _destroy(self):
+        """Destruction du widget"""
+        self._image_renderer.delete()
+        self._image_renderer = None
