@@ -97,7 +97,7 @@ class PygletShapeRenderer:
         self._border: _BorderRenderer = None
         self._build()
 
-    # ======================================== WORLD CENTER ========================================
+    # ======================================== INTERNALS ========================================
     def _build(self) -> None:
         """Construit les objets pyglet"""
         if self._filling and self._color is not None:
@@ -254,20 +254,21 @@ class PygletShapeRenderer:
         recompute_center: bool = False
 
         # Actualisation des paramètres
-        changes: list[str] = []
+        changes: list[str] = set()
         for key, value in kwargs.items():
-            current_attr = getattr(self, f"_{key}", _UNSET)
-            if value != current_attr and current_attr is not _UNSET:
-                setattr(self, f"_{key}", value)
-                if key in _CENTER_DEPS:
-                    recompute_center = True
-                else:
-                    changes.append(key)
+            current = getattr(self, f"_{key}", _UNSET)
+            if current is _UNSET or value == current:
+                continue
+            setattr(self, f"_{key}", value)
+            if key in _CENTER_DEPS:
+                recompute_center = True
+            else:
+                changes.add(key)
         
         # Modifications globales
         if recompute_center:
             self._compute_center()
-            changes.append("center")
+            changes.add("center")
 
         # Remplissage
         if self._filling:

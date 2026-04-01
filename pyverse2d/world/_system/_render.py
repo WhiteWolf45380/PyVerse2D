@@ -23,7 +23,7 @@ _ORDER_LABEL = 2
 # ======================================== SYSTEM ========================================
 class RenderSystem(System):
     """Système gérant le rendu des entités"""
-    __slots__ = ("_sprites", "_shapes", "_labels", "_image_cache")
+    __slots__ = ("_sprites", "_shapes", "_labels")
     phase = UpdatePhase.LATE
     exclusive = True
 
@@ -31,7 +31,6 @@ class RenderSystem(System):
         self._sprites: dict[int, PygletSpriteRenderer] = {}
         self._shapes: dict[int, PygletShapeRenderer] = {}
         self._labels: dict[int, PygletLabelRenderer] = {}
-        self._image_cache: dict = {}
 
     # ======================================== UPDATE ========================================
     def update(self, world: World, dt: float): ...
@@ -136,33 +135,19 @@ class RenderSystem(System):
                 self._sprites[eid].visible = False
             return
 
-        raw = self._load_image(sr.image.path)
-        if raw is None:
-            return
-
-        if sr.image.width: scale_x = sr.image.width / raw.width
-        else: scale_x = None
-        if sr.image.height: scale_y = sr.image.height / raw.height
-        else: scale_y = None
-
-        if scale_x is None and scale_y is None: scale_x = scale_y = 1.0
-        elif scale_x is None: scale_x = scale_y
-        elif scale_y is None: scale_y = scale_x
-
-        flip_x = -1 if sr.flip_x else 1
-        flip_y = -1 if sr.flip_y else 1
-
         z = sr.z * 3 + _ORDER_SPRITE
 
         if eid not in self._sprites:
             self._sprites[eid] = PygletSpriteRenderer(
-                texture = raw,
+                texture = sr.image,
                 x = tr.x + sr.offset[0] * tr.scale,
                 y = tr.y + sr.offset[1] * tr.scale,
                 anchor_x = tr.anchor.x,
                 anchor_y = tr.anchor.y,
-                scale_x = tr.scale * scale_x * sr.image.scale_factor * flip_x,
-                scale_y = tr.scale * scale_y * sr.image.scale_factor * flip_y,
+                scale_x = tr.scale,
+                scale_y = tr.scale,
+                flip_x = sr.flip_x,
+                flip_y = sr.flip_y,
                 rotation = tr.rotation,
                 opacity = sr.opacity,
                 color = sr.tint,
@@ -171,13 +156,15 @@ class RenderSystem(System):
             )
         else:
             self._sprites[eid].update(
-                texture = raw,
+                texture = sr.image,
                 x = tr.x + sr.offset[0] * tr.scale,
                 y = tr.y + sr.offset[1] * tr.scale,
                 anchor_x = tr.anchor.x,
                 anchor_y = tr.anchor.y,
-                scale_x = tr.scale * scale_x * sr.image.scale_factor * flip_x,
-                scale_y = tr.scale * scale_y * sr.image.scale_factor * flip_y,
+                scale_x = tr.scale,
+                scale_y = tr.scale,
+                flip_x = sr.flip_x,
+                flip_y = sr.flip_y,
                 rotation = tr.rotation,
                 opacity = sr.opacity,
                 color = sr.tint,
@@ -234,16 +221,3 @@ class RenderSystem(System):
                 z = z,
             )
             self._labels[eid].visible = True
-
-    # ======================================== IMAGE CACHE ========================================
-    def _load_image(self, path: str) -> pyglet.image.AbstractImage | None:
-        """Charge et met en cache une image depuis son chemin"""
-        if path in self._image_cache:
-            return self._image_cache[path]
-        try:
-            img = pyglet.image.load(path)
-            self._image_cache[path] = img
-            return img
-        except FileNotFoundError:
-            print(f"[RenderSystem] Cannot load image: {path}")
-            return None

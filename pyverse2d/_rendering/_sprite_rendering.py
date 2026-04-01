@@ -6,10 +6,19 @@ from ..asset import Color, Image
 
 import pyglet
 import pyglet.sprite
-from pyglet.graphics import Batch, Group
 
 # ======================================== CONSTANTS ========================================
 _UNSET = object()   # élément non défini
+_HANDLER_GROUPS = {
+    "position_x": "position",
+    "position_y": "position",
+    "anchor_x": "anchor",
+    "anchor_y": "anchor",
+    "scale_x": "scales",
+    "scale_y": "scales",
+    "flip_x": "scales",
+    "flip_y": "scales",
+}
 
 # ======================================== SPRITE RENDERER ========================================
 class PygletSpriteRenderer:
@@ -91,31 +100,6 @@ class PygletSpriteRenderer:
             print(f"[PygletSpriteRenderer] Cannot load image: {path}")
             return None
 
-    # ======================================== SCALE HELPERS ========================================
-    def _effective_scales(self, raw: pyglet.image.AbstractImage) -> tuple[float, float]:
-        """
-        Calcule les scales effectifs en combinant :
-          - scale_x / scale_y  (transform, fournis de l'extérieur)
-          - dimensions cibles de l'asset Image
-          - scale_factor de l'asset Image
-          - flip_x / flip_y
-        """
-        img_sx: float | None = (self._image.width / raw.width if self._image.width else None)
-        img_sy: float | None = (self._image.height / raw.height if self._image.height else None)
-
-        if img_sx is None and img_sy is None:
-            img_sx = img_sy = 1.0
-        elif img_sx is None:
-            img_sx = img_sy
-        elif img_sy is None:
-            img_sy = img_sx
-
-        f  = self._image.scale_factor
-        fx = -1 if self._flip_x else 1
-        fy = -1 if self._flip_y else 1
-        return self._scale_x * img_sx * f * fx, self._scale_y * img_sy * f * fy
-
-    # ======================================== BUILD ========================================
     def _build(self) -> None:
         """Construit le sprite pyglet"""
         raw = self._load_image(self._image.path)
@@ -140,6 +124,29 @@ class PygletSpriteRenderer:
         self._sprite.opacity = int(self._opacity * 255)
         if self._color is not None:
             self._sprite.color = self._color.rgb8
+
+    def _effective_scales(self, raw: pyglet.image.AbstractImage) -> tuple[float, float]:
+        """
+        Calcule les scales effectifs en combinant :
+          - scale_x / scale_y  (transform, fournis de l'extérieur)
+          - dimensions cibles de l'asset Image
+          - scale_factor de l'asset Image
+          - flip_x / flip_y
+        """
+        img_sx: float | None = (self._image.width / raw.width if self._image.width else None)
+        img_sy: float | None = (self._image.height / raw.height if self._image.height else None)
+
+        if img_sx is None and img_sy is None:
+            img_sx = img_sy = 1.0
+        elif img_sx is None:
+            img_sx = img_sy
+        elif img_sy is None:
+            img_sy = img_sx
+
+        f  = self._image.scale_factor
+        fx = -1 if self._flip_x else 1
+        fy = -1 if self._flip_y else 1
+        return self._scale_x * img_sx * f * fx, self._scale_y * img_sy * f * fy
 
     # ======================================== GETTERS ========================================
     @property
@@ -255,8 +262,7 @@ class PygletSpriteRenderer:
             z(int, optional): z-order
             pipeline(Pipeline, optional): pipeline de rendu
         """
-        changes: list[str] = []
-
+        changes: list[str] = set()
         for key, value in kwargs.items():
             current = getattr(self, f"_{key}", _UNSET)
             if current is _UNSET or value == current:
@@ -265,7 +271,10 @@ class PygletSpriteRenderer:
             if key == "image":
                 self._rebuild()
                 return
-            changes.append(key)
+            elif key in _HANDLER_GROUPS:
+                changes.add(_HANDLER_GROUPS[key])
+            else:
+                changes.add(key)
 
         for key in changes:
             handler = getattr(self, f"_handle_{key}", None)
@@ -279,45 +288,19 @@ class PygletSpriteRenderer:
             self._sprite = None
 
     # ======================================== HANDLERS ========================================
-    def _handle_x(self) -> None:
-        """Actualisation de la position horizontale"""
-        self._sprite.x = self._x
+    def _handle_position(self) -> None:
+        """Actualisation de la position"""
+        self._sprite.position = self._x, self._y
 
-    def _handle_y(self) -> None:
-        """Actualisation de la position verticale"""
-        self._sprite.y = self._y
+    def _handle_anchor(self) -> None:
+        """Actualisation de l'ancre"""
+        self._sprite.image.anchor = int(self._anchor_x * self._sprite.image.width), int(self._anchor_y * self._sprite.image.height)
 
-    def _handle_anchor_x(self) -> None:
-        """Actualisation de l'ancre horizontale"""
-        self._sprite.image.anchor_x = int(self._anchor_x * self._sprite.image.width)
-
-    def _handle_anchor_y(self) -> None:
-        """Actualisation de l'ancre verticale"""
-        self._sprite.image.anchor_y = int(self._anchor_y * self._sprite.image.height)
-
-    def _handle_scale_x(self) -> None:
-        """Actualisation du facteur de redimensionnement horizontal"""
+    def _handle_scales(self) -> None:
+        """Actualisation du facteur de redimensionnement"""
         raw = self._load_image(self._image.path)
         if raw:
-            self._sprite.scale_x, _ = self._effective_scales(raw)
-
-    def _handle_scale_y(self) -> None:
-        """Actualisation du facteur de redimensionnement vertical"""
-        raw = self._load_image(self._image.path)
-        if raw:
-            _, self._sprite.scale_y = self._effective_scales(raw)
-
-    def _handle_flip_x(self) -> None:
-        """Actualisation du miroir horizontal"""
-        raw = self._load_image(self._image.path)
-        if raw:
-            self._sprite.scale_x, _ = self._effective_scales(raw)
-
-    def _handle_flip_y(self) -> None:
-        """Actualisation du miroir vertical"""
-        raw = self._load_image(self._image.path)
-        if raw:
-            _, self._sprite.scale_y = self._effective_scales(raw)
+            self._sprite.scale_x, self._sprite.scale_y = self._effective_scales(raw)
 
     def _handle_rotation(self) -> None:
         """Actualisation de la rotation"""

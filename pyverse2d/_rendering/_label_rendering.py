@@ -99,7 +99,7 @@ class PygletLabelRenderer:
         self._label: pyglet.text.Label = None
         self._build()
 
-    # ======================================== BUILD ========================================
+    # ======================================== INTERNALS ========================================
     def _build(self) -> None:
         """Construit le label pyglet et applique tous les styles"""
         font = self._text.font
@@ -300,7 +300,7 @@ class PygletLabelRenderer:
             pipeline(Pipeline, optional): pipeline de rendu
         """
         rebuild: bool = False
-        changes: list[str] = []
+        changes: list[str] = set()
 
         # Actualisation des paramètres
         for key, value in kwargs.items():
@@ -311,7 +311,7 @@ class PygletLabelRenderer:
             if key in _REBUILD_KEYS:
                 rebuild = True
             else:
-                changes.append(key)
+                changes.add(key)
 
         # Reconstruction si nécessaire
         if rebuild:
