@@ -16,7 +16,7 @@ HorizontalAlign = Literal["left", "center", "right"]
 # ======================================== WIDGET ========================================
 class Label(Widget):
     """
-    Composant UI simple: Label
+    Composant UI simple: Texte
 
     Args:
         text(Text): texte à rendre
@@ -65,6 +65,7 @@ class Label(Widget):
             align: HorizontalAlign = "left",
             margin: int = 0,
         ):
+        # Initialisation du widget
         super().__init__(position, anchor, opacity)
 
         # Texte
@@ -261,6 +262,7 @@ class Label(Widget):
 
     def _draw(self, pipeline: Pipeline, context: RenderContext) -> None:
         """Affichage"""
+        # Construction du renderer
         if self._text_renderer is None:
             self._text_renderer = PygletLabelRenderer(
                 text = self._text,
@@ -285,6 +287,7 @@ class Label(Widget):
                 pipeline = pipeline,
             )
     
+        # Mise à jour du renderer
         else:
             self._text_renderer.update(
                 text = self._text,

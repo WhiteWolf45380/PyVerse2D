@@ -37,13 +37,17 @@ class Surface(Widget):
         ):
         # Initialisation du widget
         super().__init__(position, anchor, opacity)
+
+        # Forme
         self._shape: Shape = expect(shape, Shape)
         self._shape_renderer: PygletShapeRenderer = None
 
-        # Paramètres
-        self._color: Color = Color(color)
+        # Transformation
         self._scale: float = 1.0
         self._rotation: float = 0.0
+
+        # Affichage
+        self._color: Color = Color(color)
 
     # ======================================== GETTERS ========================================
     @property
@@ -113,6 +117,7 @@ class Surface(Widget):
     
     def _draw(self, pipeline: Pipeline, context: RenderContext) -> None:
         """Affichage"""
+        # Construction du renderer
         if self._shape_renderer is None:
             self._shape_renderer = PygletShapeRenderer(
                 shape = self._shape,
@@ -128,6 +133,7 @@ class Surface(Widget):
                 z = context.z,
             )
 
+        # Mise à jour du renderer
         else:
             self._shape_renderer.update(
                 x = context.origin.x,

@@ -98,7 +98,16 @@ class PygletShapeRenderer:
         self._build()
 
     # ======================================== WORLD CENTER ========================================
+    def _build(self) -> None:
+        """Construit les objets pyglet"""
+        if self._filling and self._color is not None:
+            self._fill = _FillRenderer(self._shape, self._cx, self._cy, self._scale, self._rotation, self._color, self._opacity, self._z, self._pipeline)
+
+        if self._border_width > 0 and self._border_color is not None:
+            self._border = _BorderRenderer(self._shape, self._cx, self._cy, self._scale, self._rotation, self._border_width, self._border_color, self._opacity, self._z, self._pipeline)
+
     def _compute_center(self) -> None:
+        """Calcul le centre monde"""
         x_min, y_min, x_max, y_max = self._shape.bounding_box
 
         # Anchor en espace local
@@ -116,15 +125,6 @@ class PygletShapeRenderer:
         # Centre monde
         self._cx = self._x - rotated_ax
         self._cy = self._y - rotated_ay
-
-    # ======================================== BUILD ========================================
-    def _build(self) -> None:
-        """Construit les objets pyglet"""
-        if self._filling and self._color is not None:
-            self._fill = _FillRenderer(self._shape, self._cx, self._cy, self._scale, self._rotation, self._color, self._opacity, self._z, self._pipeline)
-
-        if self._border_width > 0 and self._border_color is not None:
-            self._border = _BorderRenderer(self._shape, self._cx, self._cy, self._scale, self._rotation, self._border_width, self._border_color, self._opacity, self._z, self._pipeline)
 
     # ======================================== GETTERS ========================================
     @property
