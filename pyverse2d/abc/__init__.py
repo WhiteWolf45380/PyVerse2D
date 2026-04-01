@@ -10,7 +10,7 @@ from ._request import Request
 
 from ._ecs import Component, System
 
-from ._ui import Widget, Behavior
+from ._ui import Behavior, Widget
 
 from ._layer import Layer
 
@@ -31,8 +31,8 @@ __all__ = [
     "Component",
     "System",
 
-    "Widget",
     "Behavior",
+    "Widget",
 
     "Layer",
 ]

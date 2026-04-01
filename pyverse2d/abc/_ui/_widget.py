@@ -6,6 +6,8 @@ from ..._flag import Super
 from ...math import Point
 from ..._rendering import Pipeline, RenderContext
 
+from ._behavior import Behavior
+
 from abc import ABC, abstractmethod
 from bisect import insort
 from numbers import Real
@@ -13,7 +15,6 @@ from typing import Callable, Type, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ...scene import UILayer
-    from ._behavior import Behavior
     from ...ui import (
         ClickBehavior,
         HoverBehavior,
@@ -30,7 +31,13 @@ class Widget(ABC):
         anchor(Point, optional): ancre locale
         opacity(float, optional): opacité
     """
-    __slots__ = ("_layer", "_parent", "_children", "_position", "_anchor", "_opacity", "_active", "_visible", "_activate_process", "_deactivate_process", "_show_process", "_hide_process")
+    __slots__ = (
+        "_layer", "_parent", "_children",
+        "_position", "_anchor",
+        "_opacity", "_active", "_visible",
+        "_activate_process", "_deactivate_process", "_show_process", "_hide_process",
+        "_click", "_hover", "_select", "_focus",
+    )
 
     def __init__(
             self,
@@ -59,6 +66,12 @@ class Widget(ABC):
         self._deactivate_process: list[Callable] = []
         self._show_process: list[Callable] = []
         self._hide_process: list[Callable] = []
+
+        # Behaviors
+        self._click: ClickBehavior = None
+        self._hover: HoverBehavior = None
+        self._select: SelectBehavior = None
+        self._focus: FocusBehavior = None
 
     # ======================================== GETTERS ========================================
     @property
@@ -362,25 +375,66 @@ class Widget(ABC):
             insort(self._children, wrapper)
 
     # ======================================== BEHAVIORS ========================================
-    def add_behavior(self, behavior: Behavior) -> None: ...
+    def add_behavior(self, behavior: Behavior) -> None:
+        """Ajoute un comportement
 
-    def remove_behavior(self, behavior: Behavior | Type[Behavior]) -> None: ...
+        Les comportements sont exclusifs par widget
+        """
+        if getattr(self, f"_{behavior._ID}", None) is not None:
+            raise ValueError(f"This widget already has a {type(behavior).__name__}, try to remove it first")
+        behavior.attach(self)
+        setattr(self, f"_{behavior._ID}", behavior)
 
-    def get_behavior(self, behavior_type: type[Behavior]) -> Behavior | None: ...
+    def remove_behavior(self, behavior: Behavior | Type[Behavior]) -> None:
+        """Retire un comportement
 
-    def has_behavior(self, behavior_type: type[Behavior]) -> bool: ...
+        Args:
+            behavior: élément ``Behavior`` ou ``Type`` de behavior à retirer
+        """
+        if isinstance(behavior, Behavior) and getattr(self, f"_{behavior._ID}", None) != behavior:
+            raise ValueError("This widget does not own that behavior")
+        elif getattr(self, f"_{behavior._ID}", None) is None:
+            raise ValueError(f"This widget has no {type(behavior).__name__}")
+        behavior.detach(self)
+        setattr(self, f"_{behavior._ID}", None)
+
+    def get_behavior(self, behavior: type[Behavior] | str) -> Behavior | None:
+        """Renvoie un comportement
+
+        Args:
+            behavior: ``Type`` ou ``id`` du comportement
+        """
+        id_ = behavior if isinstance(behavior, str) else behavior._ID
+        return getattr(self, f"_{id_}", None)
+
+    def has_behavior(self, behavior: type[Behavior] | str) -> bool:
+        """Vérfie la possession d'un comportement
+
+        Args:
+            behavior: ``Type`` ou ``id`` du comportement
+        """
+        id_ = behavior if isinstance(behavior, str) else behavior._ID
+        return getattr(self, f"_{id_}", None) is not None
 
     @property
-    def click(self) -> ClickBehavior: ...
+    def click(self) -> ClickBehavior:
+        """Comportement de clique"""
+        return self._click
 
     @property
-    def hover(self) -> HoverBehavior: ...
+    def hover(self) -> HoverBehavior:
+        """Comportement de survol"""
+        return self._hover
 
     @property
-    def select(self) -> SelectBehavior: ...
+    def select(self) -> SelectBehavior:
+        """Comportement de sélection"""
+        return self._select
 
     @property
-    def focus(self) -> FocusBehavior: ...
+    def focus(self) -> FocusBehavior:
+        """Comportement de concentration"""
+        return self._focus
 
     # ======================================== HOOKS ========================================
     def on_activate(self, fn: Callable) -> Callable:
