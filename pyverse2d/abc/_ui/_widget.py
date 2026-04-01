@@ -9,15 +9,21 @@ from ..._rendering import Pipeline, RenderContext
 from abc import ABC, abstractmethod
 from bisect import insort
 from numbers import Real
-from typing import Callable, TYPE_CHECKING
+from typing import Callable, Type, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ...scene import UILayer
+    from ._behavior import Behavior
+    from ...ui import (
+        ClickBehavior,
+        HoverBehavior,
+        SelectBehavior,
+        FocusBehavior,
+    )
 
 # ======================================== ABSTRACT CLASS ========================================
 class Widget(ABC):
-    """
-    Classe abstraite des composants UI
+    """Classe abstraite des composants UI
 
     Args:
         position(Point, optional): position
@@ -354,6 +360,27 @@ class Widget(ABC):
             wrapper.z = z
             self._children.remove(child)
             insort(self._children, wrapper)
+
+    # ======================================== BEHAVIORS ========================================
+    def add_behavior(self, behavior: Behavior) -> None: ...
+
+    def remove_behavior(self, behavior: Behavior | Type[Behavior]) -> None: ...
+
+    def get_behavior(self, behavior_type: type[Behavior]) -> Behavior | None: ...
+
+    def has_behavior(self, behavior_type: type[Behavior]) -> bool: ...
+
+    @property
+    def click(self) -> ClickBehavior: ...
+
+    @property
+    def hover(self) -> HoverBehavior: ...
+
+    @property
+    def select(self) -> SelectBehavior: ...
+
+    @property
+    def focus(self) -> FocusBehavior: ...
 
     # ======================================== HOOKS ========================================
     def on_activate(self, fn: Callable) -> Callable:
