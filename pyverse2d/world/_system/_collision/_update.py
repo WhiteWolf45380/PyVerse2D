@@ -7,7 +7,7 @@ from math import sqrt
 from ...._internal import Processor
 from ....math import Vector
 from ..._world import World
-from ..._component import Transform, Collider, GroundSensor
+from ..._component import Transform, Collider, GroundSensor, RigidBody
 from ._registry import dispatch, Contact, world_center
 from ._spatial_hash import SpatialHash
 from ._resolve import CachedContact, resolve
@@ -135,6 +135,19 @@ def _cleanup_cache(ctx: UpdateContext):
     for key in list(ctx.cache):
         if key not in ctx.active_keys:
             del ctx.cache[key]
+
+@update_processor.step
+def _wake_lost_supports(ctx: UpdateContext):
+    """Réveille les RigidBody dont les contacts ont disparu"""
+    for entity in ctx.entities:
+        if not entity.has(RigidBody):
+            continue
+        rb = entity.get(RigidBody)
+        if not rb.is_sleeping():
+            continue
+        col = entity.get(Collider)
+        if not col._colliding:
+            rb.wake()
 
 @update_processor.step
 def _solve(ctx: UpdateContext):
