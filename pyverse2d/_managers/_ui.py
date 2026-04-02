@@ -25,7 +25,7 @@ class UIManager(Manager):
         # Widgets dominants
         self._hovered: Widget = None        # Widget survolé
         self._selected: Widget = None       # Widget selectionné
-        self._focus: Widget = None          # Widget concentré
+        self._focused: Widget = None        # Widget concentré
 
     def update(self, dt: float) -> None:
         """Actualisation"""
