@@ -1,6 +1,6 @@
 # ======================================== IMPORTS ========================================
 from ..._flag import Key
-from ..._managers._inputs import InputsManager, Listener
+from ..._managers._inputs import Listener
 from ...abc import Behavior
 
 from typing import Callable, Any
@@ -12,13 +12,9 @@ class ClickBehavior(Behavior):
     Args:
         ...
     """
-    __slots__ = ("_inputs", "_down_listeners", "_up_listeners")
+    __slots__ = ("_down_listeners", "_up_listeners")
 
     def __init__(self):
-        # Association du manager
-        from pyverse2d import inputs
-        self._inputs: InputsManager = inputs
-
         # Initialisation du comportement
         super().__init__("click")
 

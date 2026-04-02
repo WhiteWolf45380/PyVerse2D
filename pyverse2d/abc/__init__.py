@@ -8,6 +8,8 @@ from ._asset import Asset
 
 from ._request import Request
 
+from ._manager import Manager
+
 from ._ecs import Component, System
 
 from ._ui import Behavior, Widget
@@ -27,6 +29,8 @@ __all__ = [
     "Asset",
 
     "Request",
+
+    "Manager",
 
     "Component",
     "System",

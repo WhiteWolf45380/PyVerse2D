@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 from .._flag import Key
+from ..abc import Manager
+
+from ._context import ContextManager
 
 from pyglet.window import Window as PygletWindow
 
@@ -10,9 +13,10 @@ if TYPE_CHECKING:
     from .._rendering import Window
 
 # ======================================== GESTIONNAIRE ========================================
-class InputsManager:
+class InputsManager(Manager):
     """Gestionnaire des entrées utilisateur"""
     __slots__ = (
+        "_ctx",
         "_listeners",
         "_step", "_pressed", "_released_this_frame",
         "_any_listeners", "_all_listeners", "_triggered_combos",
@@ -21,7 +25,10 @@ class InputsManager:
     )
     Listener: ClassVar[type[Listener]] = Listener
 
-    def __init__(self):
+    def __init__(self, context_manager: ContextManager):
+        # Contexte de managers
+        self._ctx: ContextManager = context_manager
+
         # Listeners
         self._listeners: dict[int, list[Listener]] = {}
         self._any_listeners: list[Listener] = []
@@ -405,6 +412,11 @@ class InputsManager:
     def scroll_y(self) -> float:
         """Renvoie le défilement vertical de la molette cette frame"""
         return self._scroll_dy
+    
+    # ======================================== LIFE CYCLE ========================================
+    def update(self, dt: float) -> None:
+        """Actualisation"""
+        self.flush()
     
 # ======================================== LISTENER ========================================
 class Listener:

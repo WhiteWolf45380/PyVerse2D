@@ -2,24 +2,34 @@
 from __future__ import annotations
 from ._version import __version__
 
-from . import abc, math, shape, asset, request, world, tile, ui, scene
-
-from ._rendering import Screen, Window
-from ._rendering._pipeline import Pipeline
-
-from ._flag import Key as key
-
-from ._managers import InputsManager
-
 import pyglet
 
+# ======================================== PRIMITIVES ========================================
+from . import abc, math, shape, asset, request
+from ._flag import Key as key
+
 # ======================================== STATE ========================================
+from ._rendering import Screen, Window, Pipeline
+
 _window: Window | None = None
 _pipeline: Pipeline | None = None
 _fps: int = 60
 
 # ======================================== MANAGERS ========================================
-inputs: InputsManager = InputsManager()
+from ._managers import ContextManager, InputsManager, UIManager
+
+_context_manager: ContextManager = ContextManager()
+
+# Inputs
+inputs: InputsManager = InputsManager(_context_manager)
+_context_manager.inputs = inputs
+
+# Ui
+ui_manager: UIManager = UIManager(_context_manager)
+_context_manager.ui_manager = ui_manager
+
+# ======================================== NODES ========================================
+from . import world, tile, ui, scene
 
 # ======================================== SETTERS ========================================
 def set_window(window: Window):
@@ -56,13 +66,14 @@ def set_fps(fps: int):
 def run(update: callable = None):
     """Démarre la boucle de mise à jour"""
     if _window is None:
-        raise RuntimeError("No window set - call set_window() before run()")
+        raise RuntimeError("No window set, try set_window() before run()")
 
     def _update(dt: float):
+        for manager in _context_manager:
+            manager.update(dt)
         scene.update(dt)
         if update is not None:
             update(dt)
-        inputs.flush()
 
     pyglet.clock.schedule_interval(_update, 1 / _fps)
     pyglet.app.run()
@@ -84,7 +95,9 @@ __all__ = [
 
     "key",
 
+    "_context_manager",
     "inputs",
+    "ui_manager",
 
     "set_window",
     "set_fps",
