@@ -142,12 +142,16 @@ def _wake_lost_supports(ctx: UpdateContext):
     for entity in ctx.entities:
         if not entity.has(RigidBody):
             continue
-        rb = entity.get(RigidBody)
+        rb = entity.rigid_body
         if not rb.is_sleeping():
             continue
-        col = entity.get(Collider)
+        col = entity.collider
         if not col._colliding:
-            rb.wake()
+            rb._lost_support_elapsed += ctx.dt
+            if col._lost_support_elapsed > col._COYOTE_TIME:
+                rb.wake()
+        else:
+            rb._lost_support_elapsed = 0.0
 
 @update_processor.step
 def _solve(ctx: UpdateContext):

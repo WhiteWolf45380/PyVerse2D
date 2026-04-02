@@ -5,7 +5,6 @@ from ..._internal import expect
 from ...abc import Component, Shape
 from ...math import Point
 
-from numbers import Real
 from typing import Iterator
 
 # ======================================== COMPONENT ========================================
@@ -21,8 +20,9 @@ class Collider(Component):
         trigger(bool, optional): collision fantôme
         active(bool, optional): collision active
     """
-    __slots__ = ("_shape", "_offset", "_category", "_mask", "_trigger", "_active", "_colliding")
+    __slots__ = ("_shape", "_offset", "_category", "_mask", "_trigger", "_active", "_colliding", "_coyote_elapsed")
     requires = ("Transform",)
+    _COYOTE_TIME = 0.1  # temps avant perte du contact
 
     def __init__(
             self,
@@ -40,6 +40,7 @@ class Collider(Component):
         self._trigger: bool = expect(trigger, bool)
         self._active: bool = expect(active, bool)
         self._colliding: list[Collider] = []
+        self._coyote_elapsed: float = 0.0
     
     # ======================================== CONVERSIONS ========================================
     def __repr__(self) -> str:
