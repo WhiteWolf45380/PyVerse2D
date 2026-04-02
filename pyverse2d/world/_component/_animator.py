@@ -8,6 +8,31 @@ from ...asset import Animation, Image
 from dataclasses import dataclass
 from typing import Callable, ClassVar
 
+# ======================================== REQUEST ========================================
+@dataclass(frozen=True)
+class AnimationRequest(Request):
+    """
+    Requête d'animation
+
+    Args:
+        animation(Animation): animation à activer
+        loop(bool, optional): répétition de l'animation
+        cutable(bool, optional): supprimer / reset si elle perd la main
+        priority(int, optional): niveau de priorité de l'animation
+        tag(str, optional): label de l'animation
+        condition(callable, optional): condition d'activation de l'animation
+        on_start(callable, optional): fonction de début d'animation
+        on_end(callable, optional): fonction de fin d'animation
+    """
+    animation: Animation
+    loop: bool = False
+    cutable: bool = True
+    priority: int = 0
+    tag: str | None = None
+    condition: Callable[[], bool] | None = None
+    on_start: Callable[[], None] | None = None
+    on_end: Callable[[], None] | None = None
+
 # ======================================== COMPONENT ========================================
 class Animator(Component):
     """
@@ -97,29 +122,3 @@ class Animator(Component):
             tag(str): label des requêtes à supprimer
         """
         self._requests = [request for request in self._requests if request.tag != tag]
-
-
-# ======================================== REQUEST ========================================
-@dataclass(frozen=True)
-class AnimationRequest(Request):
-    """
-    Requête d'animation
-
-    Args:
-        animation(Animation): animation à activer
-        loop(bool, optional): répétition de l'animation
-        cutable(bool, optional): supprimer / reset si elle perd la main
-        priority(int, optional): niveau de priorité de l'animation
-        tag(str, optional): label de l'animation
-        condition(callable, optional): condition d'activation de l'animation
-        on_start(callable, optional): fonction de début d'animation
-        on_end(callable, optional): fonction de fin d'animation
-    """
-    animation: Animation
-    loop: bool = False
-    cutable: bool = True
-    priority: int = 0
-    tag: str | None = None
-    condition: Callable[[], bool] | None = None
-    on_start: Callable[[], None] | None = None
-    on_end: Callable[[], None] | None = None
