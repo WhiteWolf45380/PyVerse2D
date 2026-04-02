@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 # ======================================== ABSTRACT CLASS ========================================
 class System(ABC):
     """Classe abstraite des systèmes"""
+    __slots__ = ()
     phase: UpdatePhase = UpdatePhase.UPDATE
     exclusive: bool = False
     requires: tuple[type, ...] = ()
