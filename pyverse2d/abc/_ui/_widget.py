@@ -1,7 +1,7 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from ..._internal import expect
+from ..._internal import expect, clamped
 from ..._flag import Super
 from ...math import Point
 from ..._rendering import Pipeline, RenderContext
@@ -55,7 +55,7 @@ class Widget(ABC):
         self._anchor: Point = Point(anchor)
 
         # Design
-        self._opacity: float = float(expect(opacity, Real))
+        self._opacity: float = clamped(float(expect(opacity, Real)))
 
         # Etat
         self._active: bool = True
@@ -205,6 +205,11 @@ class Widget(ABC):
     def anchor_y(self, value: Real) -> None:
         """Fixe l'ancre verticale"""
         self._anchor.y = value
+
+    @opacity.setter
+    def opacity(self, value: Real) -> None:
+        """Fixe l'opacité"""
+        self._opacity: float = clamped(float(expect(value, Real)))
 
     @active.setter
     def active(self, value: bool) -> None:
