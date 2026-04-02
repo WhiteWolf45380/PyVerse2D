@@ -240,7 +240,7 @@ class Widget(ABC):
         """Vérifie la collision avec un point"""
         scale = getattr(self, "_scale", 1.0)
         rotation = getattr(self, "_rotation", 0.0)
-        return self.hitbox.world_contains(point, self.x, self.y, anchor_x=self._anchor_x, anchor_y=self._anchor_y, scale=scale, rotation=rotation)
+        return self.hitbox.world_contains(point, self.x, self.y, anchor_x=self.anchor_x, anchor_y=self.anchor_y, scale=scale, rotation=rotation)
 
     # ========================================  STATE ========================================
     def activate(self, propagate: bool = True) -> None:
