@@ -401,6 +401,7 @@ class Widget(ABC):
         if getattr(self, f"_{behavior._ID}", None) is not None:
             raise ValueError(f"This widget already has a {type(behavior).__name__}, try to remove it first")
         behavior.attach(self)
+        self._behaviors.add(behavior._ID)
         setattr(self, f"_{behavior._ID}", behavior)
 
     def remove_behavior(self, behavior: Behavior | Type[Behavior]) -> None:
@@ -414,6 +415,7 @@ class Widget(ABC):
         elif getattr(self, f"_{behavior._ID}", None) is None:
             raise ValueError(f"This widget has no {type(behavior).__name__}")
         behavior.detach(self)
+        self._behaviors.remove(behavior._ID)
         setattr(self, f"_{behavior._ID}", None)
 
     def get_behavior(self, behavior: type[Behavior] | str) -> Behavior | None:
