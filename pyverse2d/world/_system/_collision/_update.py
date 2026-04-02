@@ -147,11 +147,11 @@ def _wake_lost_supports(ctx: UpdateContext):
             continue
         col = entity.collider
         if not col._colliding:
-            rb._lost_support_elapsed += ctx.dt
-            if col._lost_support_elapsed > col._COYOTE_TIME:
+            rb._coyote_elapsed += ctx.dt
+            if col._coyote_elapsed > col._COYOTE_TIME:
                 rb.wake()
         else:
-            rb._lost_support_elapsed = 0.0
+            rb._coyote_elapsed = 0.0
 
 @update_processor.step
 def _solve(ctx: UpdateContext):
