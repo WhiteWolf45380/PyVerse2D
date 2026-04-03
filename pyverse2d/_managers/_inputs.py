@@ -21,8 +21,8 @@ class InputsManager(Manager):
         "_window",
         "_listeners", "_any_listeners", "_all_listeners",
         "_step", "_pressed", "_released_this_frame", "_triggered_combos",
-        "_relative_origin", "_mouse_x", "_mouse_y",
-        "_scroll_dx", "_scroll_dy",
+        "_relative_origin", "_mouse_x", "_mouse_y", "mouse_out",
+        "_mouse_dx", "_mouse_dy", "_drag_dx", "_drag_dy", "_scroll_dx", "_scroll_dy",
     )
 
     def __init__(self, context_manager: ContextManager):
@@ -43,11 +43,15 @@ class InputsManager(Manager):
         self._released_this_frame: list = []
         self._triggered_combos: set = set()
 
-        # Paramètres dynamiques
+        # Souris
         self._relative_origin: Point = Point(0, 0)
         self._mouse_x: float = 0.0
         self._mouse_y: float = 0.0
         self._mouse_out: float = False
+        self._mouse_dx: float = 0.0
+        self._mouse_dy: float = 0.0
+        self._drag_dx: float = 0.0
+        self._drag_dy: float = 0.0
         self._scroll_dx: float = 0.0
         self._scroll_dy: float = 0.0
 
@@ -83,10 +87,14 @@ class InputsManager(Manager):
         @pyglet_window.event
         def on_mouse_motion(x, y, dx, dy):
             self._compute_mouse(x, y)
+            self._mouse_dx = dx * self._window.width / self._window.screen.width
+            self._mouse_dy = dy * self._window.height / self._window.screen.height
 
         @pyglet_window.event
         def on_mouse_drag(x, y, dx, dy, buttons, modifiers):
             self._compute_mouse(x, y)
+            self._drag_dx = dx * self._window.width / self._window.screen.width
+            self._drag_dy = dy * self._window.height / self._window.screen.height
 
         @pyglet_window.event
         def on_mouse_scroll(x, y, scroll_x, scroll_y):
@@ -351,7 +359,7 @@ class InputsManager(Manager):
         return self._mouse_y
 
     @property
-    def mouse_pos(self) -> tuple[float, float]:
+    def mouse_position(self) -> tuple[float, float]:
         """Renvoie la position absolue de la souris"""
         return self._mouse_x, self._mouse_y
     
@@ -371,9 +379,29 @@ class InputsManager(Manager):
         return self._mouse_y - self._relative_origin.y
     
     @property
-    def relative_mouse_pos(self) -> tuple[float, float]:
+    def relative_mouse_position(self) -> tuple[float, float]:
         """Renvoie la position relative de la souris"""
         return self.relative_mouse_x, self.relative_mouse_y
+    
+    @property
+    def mouse_dx(self) -> float:
+        """Renvoie le déplacement horizontal de la souris"""
+        return self._mouse_dx
+    
+    @property
+    def mouse_dy(self) -> float:
+        """Renvoie le déplacement vertical de la souris"""
+        return self._mouse_dy
+    
+    @property
+    def drag_dx(self) -> float:
+        """Renvoie le glissement horizontal du maintient"""
+        return self._drag_dx
+    
+    @property
+    def drag_dy(self) -> float:
+        """Renvoie le glissement vertical du maintient"""
+        return self._drag_dy
 
     @property
     def scroll_x(self) -> float:
