@@ -7,7 +7,7 @@ from ._camera import Camera
 from ._viewport import Viewport
 from ._world_layer import WorldLayer
 from ._tile_layer import TileLayer
-from ._ui_layer import UILayer
+from ._gui_layer import GuiLayer
 from ._scene import Scene
 
 from pyverse2d import inputs
@@ -100,7 +100,7 @@ __all__ = [
 
     "WorldLayer",
     "TileLayer",
-    "UILayer",
+    "GuiLayer",
     "Scene",
 
     "get_current",

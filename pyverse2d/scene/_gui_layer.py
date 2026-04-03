@@ -11,12 +11,12 @@ from bisect import insort
 from numbers import Real
 
 # ======================================== LAYER ========================================
-class UILayer(Layer):
+class GuiLayer(Layer):
     """
-    Layer contenant des composants UI
+    Layer contenant des composants Gui
 
     Args:
-        widgets(Widget, optional): composants ui
+        widgets(Widget, optional): composants gui
         camera_mode(CameraMode, optional): camera behavior
     """
     __slots__ = ("_wrappers", "_opacity")
@@ -148,7 +148,7 @@ class UILayer(Layer):
 
 # ======================================== WRAPPER ========================================
 class WidgetWrapper:
-    """Wrapper des composants UI"""
+    """Wrapper des composants Gui"""
     __slots__ = ("_widget", "name", "z")
 
     def __init__(self, widget: Widget, name: str, z: int):
