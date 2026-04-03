@@ -17,11 +17,12 @@ class Behavior(ABC):
     Args:
         id_: identifiant du comportement
     """
-    __slots__ = ("_owner",)
+    __slots__ = ("_owner", "_enabled")
     _ID: str = "default"
 
     def __init__(self):
         self._owner: Widget = None
+        self._enabled: bool = True
 
     # ======================================== PROPERTIES ========================================
     @property
@@ -33,11 +34,13 @@ class Behavior(ABC):
     def owner(self) -> Widget:
         """Composant possesseur"""
         return self._owner
+    
+    # ======================================== PREDICATES ========================================
+    def is_enabled(self) -> bool:
+        """Vérifie l'activité"""
+        return self._enabled
 
-    # ======================================== HOOKS ========================================
-    @abstractmethod
-    def _attach(self, widget: Widget) -> None: ...
-
+    # ======================================== STATE ========================================
     def attach(self, widget: Widget) -> None:
         """Assigne un ``Widget`` possesseur
 
@@ -47,15 +50,37 @@ class Behavior(ABC):
         if self._owner is not None:
             raise ValueError("This behavior is already attached")
         self._owner = widget
-        self._attach(widget)
-    
-    @abstractmethod
-    def detach(self) -> None: ...
+        self._on_attach()
 
     def detach(self) -> None:
         """Supprime l'assignation au ``Widget`` possesseur"""
+        self._on_detach()
         self._owner = None
-        self._detach()
+
+    def enable(self) -> None:
+        """Active le ``Behavior``"""
+        if self._enabled:
+            return
+        self._on_enable()
+
+    def disable(self) -> None:
+        """Désactive le ``Behavior``"""
+        if not self._enabled:
+            return
+        self._on_disable()
+
+    # ======================================== HOOKS ========================================
+    @abstractmethod
+    def _on_attach(self) -> None: ...
+
+    @abstractmethod
+    def _on_detach(self) -> None: ...
+
+    @abstractmethod
+    def _on_enable(self) -> None: ...
+
+    @abstractmethod
+    def _on_disable(self) -> None: ...
 
     # ======================================== LIFE CYCLE ========================================
     @abstractmethod

@@ -1,13 +1,20 @@
 # ======================================== IMPORTS ========================================
-from ...abc import Behavior, Request
+from __future__ import annotations
+
+from ...abc import Widget, Behavior
 from ...math import Point
 
 from pyverse2d import inputs, ui
 
+from typing import Callable
+
 # ======================================== BEHAVIOR ========================================
 class HoverBehavior(Behavior):
     """Behavior gérant le survol"""
-    __slots__ = ("_hovered",)
+    __slots__ = (
+        "_hovered",
+        "_on_enter", "_when_hovered", "_on_leave"
+    )
     _ID: str = "hover"
 
     def __init__(self):
@@ -17,7 +24,26 @@ class HoverBehavior(Behavior):
         # Etat
         self._hovered: bool = False
 
+        # Hooks
+        self._on_enter: _CallbackList = _CallbackList()
+        self._when_hovered: _CallbackList = _CallbackList()
+        self._on_leave: _CallbackList = _CallbackList()
+
     # ======================================== PROPERTIES ========================================
+    @property
+    def on_enter(self) -> _CallbackList:
+        """Fonctions appelées à l'entrée"""
+        return self._on_enter
+
+    @property
+    def when_hovered(self) -> _CallbackList:
+        """Fonctions appelées durant le survol"""
+        return self._when_hovered
+
+    @property
+    def on_leave(self) -> _CallbackList:
+        """Fonctions appelées à la sortie"""
+        return self._on_leave
 
     # ======================================== PREDICATES ========================================
     def is_hovered(self) -> bool:
@@ -25,25 +51,25 @@ class HoverBehavior(Behavior):
         return self._hovered
 
     # ======================================== HOOKS ========================================
-    def _attach(self, widget) -> None:
+    def _on_attach(self) -> None:
         """Hook d'attachement"""
         pass
 
-    def _detach(self) -> None:
+    def _on_detach(self) -> None:
         """Hook de détachement"""
+        if self._hovered:
+            ui.unhover()
+
+    def _on_enable(self) -> None:
+        """Hook d'activation"""
         pass
 
-    def on_enter(self) -> None:
-        """Au moment du survol"""
-        pass
-
-    def when_hovered(self) -> Request:
-        """Durant le survol"""
-        pass
-
-    def on_leave(self) -> None:
-        """Au moment de la fin du survol"""
-        pass
+    def _on_disable(self) -> None:
+        """Hook de désactivation"""
+        if self._hovered:
+            self._on_leave.trigger()
+            self._hovered = False
+            ui.hover()
 
     # ======================================== LIFE CYCLE ========================================
     def update(self, dt: float) -> None:
@@ -57,13 +83,35 @@ class HoverBehavior(Behavior):
         # Hooks de changement d'état
         if hovered:
             if not self._hovered:
-                self.on_enter()
-            self.when_hovered()
-        elif not hovered and self._hovered:
-            self.on_leave()
+                self.on_enter.trigger()
+            self.when_hovered.trigger()
+        elif self._hovered:
+            self.on_leave.trigger()
         self._hovered = hovered
 
     # ======================================== HELPERS ========================================
     def _collides(self, point: Point) -> bool:
         """Vérifie si un point est dans le widget"""
         return self._owner.collidespoint(point)
+    
+# ======================================== INTERNALS ========================================
+class _CallbackList:
+    """Stockage des hooks"""
+    __slots__ = ("_callbacks",)
+
+    def __init__(self):
+        self._callbacks: list[Callable] = []
+
+    def __call__(self, callback: Callable) -> Callable:
+        """Ajoute une fonction"""
+        self._callbacks.append(callback)
+        return callback
+    
+    def remove(self, func: Callable) -> Callable:
+        """Supprime une fonction"""
+        self._callbacks.remove(func)
+
+    def trigger(self) -> None:
+        """Appelle les fonctions"""
+        for func in self._callbacks:
+            func()
