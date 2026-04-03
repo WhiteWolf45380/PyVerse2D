@@ -33,9 +33,9 @@ class InputsManager(Manager):
         self._window: Window = None
 
         # Listeners
-        self._listeners: dict[int, list[Listener]] = {}
-        self._any_listeners: list[Listener] = []
-        self._all_listeners: list[Listener] = []
+        self._listeners: dict[int, list[_Listener]] = {}
+        self._any_listeners: list[_Listener] = []
+        self._all_listeners: list[_Listener] = []
 
         # Events
         self._step: list = []
@@ -114,7 +114,7 @@ class InputsManager(Manager):
             repeat: bool = False,
             priority: int = 0,
             give_key: bool = False
-        ) -> Listener:
+        ) -> _Listener:
         """Ajoute un listener sur une entrée utilisateur
 
         Args:
@@ -132,14 +132,14 @@ class InputsManager(Manager):
         if args is None: args = []
         if kwargs is None: kwargs = {}
 
-        def _remove(l: Listener):
+        def _remove(l: _Listener):
             lst = self._listeners.get(key)
             if lst and l in lst:
                 lst.remove(l)
                 if not lst:
                     del self._listeners[key]
 
-        listener = Listener(
+        listener = _Listener(
             callback, args, kwargs, priority, _remove,
             up=up, condition=condition, once=once,
             repeat=repeat, give_key=give_key,
@@ -172,7 +172,7 @@ class InputsManager(Manager):
             condition: Callable = None,
             priority: int = 0,
             give_key: bool = False
-        ) -> Listener:
+        ) -> _Listener:
         """Déclenche le callback sur n'importe quelle pression sauf les exclusions
 
         Args:
@@ -192,11 +192,11 @@ class InputsManager(Manager):
         if args is None: args = []
         if kwargs is None: kwargs = {}
 
-        def _remove(l: Listener):
+        def _remove(l: _Listener):
             if l in self._any_listeners:
                 self._any_listeners.remove(l)
 
-        listener = Listener(
+        listener = _Listener(
             callback, args, kwargs, priority, _remove,
             once=once, condition=condition,
             give_key=give_key, exclude=set(exclude),
@@ -215,7 +215,7 @@ class InputsManager(Manager):
             condition: Callable = None,
             repeat: bool = False,
             priority: int = 0
-        ) -> Listener:
+        ) -> _Listener:
         """Déclenche le callback quand toutes les touches sont pressées simultanément
 
         Args:
@@ -231,11 +231,11 @@ class InputsManager(Manager):
         if args is None: args = []
         if kwargs is None: kwargs = {}
 
-        def _remove(l: Listener):
+        def _remove(l: _Listener):
             if l in self._all_listeners:
                 self._all_listeners.remove(l)
 
-        listener = Listener(callback, args, kwargs, priority, _remove, once=once, condition=condition, repeat=repeat, keys=set(keys))
+        listener = _Listener(callback, args, kwargs, priority, _remove, once=once, condition=condition, repeat=repeat, keys=set(keys))
         self._insert_by_priority(self._all_listeners, listener)
         return listener
 
@@ -268,7 +268,9 @@ class InputsManager(Manager):
             if not self._is_currently_pressed(event_id):
                 continue
             for listener in list(listeners):
-                if not listener.active:
+                if not listener.is_active():
+                    continue
+                if not listener.is_enabled():
                     continue
                 if not listener.repeat:
                     continue
@@ -278,8 +280,10 @@ class InputsManager(Manager):
 
         # Combos (when_all)
         for listener in list(self._all_listeners):
-            if not listener.active:
+            if not listener.is_active():
                 continue
+            if not listener.is_enabled():
+                    continue
             if not all(self._is_currently_pressed(k) for k in listener.keys):
                 continue
             if listener.condition and not listener.condition():
@@ -437,7 +441,9 @@ class InputsManager(Manager):
         self._step.append(event_id)
 
         for listener in list(self._listeners.get(event_id, [])):
-            if not listener.active:
+            if not listener.is_active():
+                continue
+            if not listener.is_enabled():
                 continue
             if listener.up:
                 continue
@@ -448,7 +454,9 @@ class InputsManager(Manager):
             listener._fire(event_id)
 
         for listener in list(self._any_listeners):
-            if not listener.active:
+            if not listener.is_active():
+                continue
+            if not listener.is_enabled():
                 continue
             if event_id in listener.exclude:
                 continue
@@ -462,7 +470,9 @@ class InputsManager(Manager):
         self._released_this_frame.append(event_id)
 
         for listener in list(self._listeners.get(event_id, [])):
-            if not listener.active:
+            if not listener.is_active():
+                continue
+            if not listener.is_enabled():
                 continue
             if not listener.up:
                 continue
@@ -471,7 +481,7 @@ class InputsManager(Manager):
             listener._fire(event_id)
 
     # ======================================== HELPERS ========================================
-    def _insert_by_priority(self, lst: list, listener: Listener) -> None:
+    def _insert_by_priority(self, lst: list, listener: _Listener) -> None:
         """Insère un listener dans une liste triée par priorité décroissante"""
         for i, l in enumerate(lst):
             if listener.priority > l.priority:
@@ -488,7 +498,7 @@ class InputsManager(Manager):
         self._mouse_out = not (-hw <= self._mouse_x <= hw and -hh <= self._mouse_y <= hh)
     
 # ======================================== LISTENER ========================================
-class Listener:
+class _Listener:
     """Représente un listener d'entrée utilisateur"""
     __slots__ = (
         "callback",
@@ -501,6 +511,7 @@ class Listener:
         "give_key",
         "exclude",
         "keys",
+        "_enabled",
         "_active",
         "_remove_fn",
     )
@@ -532,8 +543,27 @@ class Listener:
         self.give_key = give_key
         self.exclude = exclude or set()
         self.keys = keys or set()
+        self._enabled = True
         self._active = True
         self._remove_fn = remove_fn
+
+    # ======================================== PREDICATES ========================================
+    def is_enabled(self) -> bool:
+        """Renvoie True si le listener est activé"""
+        return self._enabled
+
+    def is_active(self) -> bool:
+        """Renvoie True si le listener est encore actif"""
+        return self._active
+    
+    # ======================================== STATE ========================================
+    def enable(self) -> None:
+        """Active le listener"""
+        self._enabled = True
+    
+    def disable(self) -> None:
+        """Désactive le listener"""
+        self._enabled = False
 
     def invalidate(self) -> None:
         """Désactive et désinscrit ce listener"""
@@ -541,11 +571,7 @@ class Listener:
             self._active = False
             self._remove_fn(self)
 
-    @property
-    def active(self) -> bool:
-        """Renvoie True si le listener est encore actif"""
-        return self._active
-
+    # ======================================== HELPERS ========================================
     def _fire(self, event_id: int = None) -> None:
         """Appelle le callback avec les arguments enregistrés"""
         kw = dict(self.kwargs)

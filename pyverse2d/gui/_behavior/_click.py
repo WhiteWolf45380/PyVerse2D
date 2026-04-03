@@ -1,7 +1,8 @@
 # ======================================== IMPORTS ========================================
 from ..._flag import Key
-from ..._managers._inputs import Listener
-from ...abc import Behavior, Widget
+from ..._managers._inputs import _Listener
+from ...abc import Behavior
+from ...math import Point
 
 from pyverse2d import inputs
 
@@ -9,10 +10,7 @@ from typing import Callable, Any
 
 # ======================================== BEHAVIOR ========================================
 class ClickBehavior(Behavior):
-    """Behavior gérant le clique
-
-    La détection ne peut se faire que si le widget possède un ``HoverBehavior``.
-    """
+    """Behavior gérant le clique"""
     __slots__ = ("_down_listeners", "_up_listeners")
     _ID: str = "click"
 
@@ -21,8 +19,8 @@ class ClickBehavior(Behavior):
         super().__init__()
 
         # Actions
-        self._down_listeners: dict[str, Listener] = {}
-        self._up_listeners: dict[str, Listener] = {}
+        self._down_listeners: dict[str, _Listener] = {}
+        self._up_listeners: dict[str, _Listener] = {}
 
     def add(
         self,
@@ -58,7 +56,7 @@ class ClickBehavior(Behavior):
         elif name in self._down_listeners:
             raise ValueError(f"This bhavior already has a Listener {name}")
 
-        down_listener: Listener = inputs.add_listener(
+        down_listener: _Listener = inputs.add_listener(
             key = key,
             callback = callback,
             args = args,
@@ -72,7 +70,7 @@ class ClickBehavior(Behavior):
         self._down_listeners[name] = down_listener
 
         if when_up:
-            up_listener: Listener = inputs.add_listener(
+            up_listener: _Listener = inputs.add_listener(
                 key = key,
                 up = True,
             )
@@ -113,17 +111,21 @@ class ClickBehavior(Behavior):
             self.remove(name)
 
     # ======================================== HOOKS ========================================
-    def _attach(self, widget: Widget) -> None:
-        """Hook d'attachement
-        
-        Args:
-            widget: composant UI maître
-        """
+    def _on_attach(self) -> None:
+        """Hook d'attachement"""
         pass
 
-    def _detach(self) -> None:
+    def _on_detach(self) -> None:
         """Hook de détachement"""
         self.remove_all()
+
+    def _on_enable(self) -> None:
+        """Hook d'activation"""
+        pass
+
+    def _on_disable(self) -> None:
+        """Hook de désactivation"""
+        self._disable_all()
 
     # ======================================== LIFE CYCLE ========================================
     def update(self, dt: float) -> None:
@@ -133,4 +135,22 @@ class ClickBehavior(Behavior):
     # ======================================== INTERNALS ========================================
     def _is_hovered(self) -> bool:
         """Vérifie si le widget est survolé"""
-        return self._owner.hover is not None and self._owner.hover._is_hovered()
+        return self._collides(inputs.relative_mouse_position)
+    
+    def _collides(self, point: Point) -> bool:
+        """Vérifie si un point est dans le widget"""
+        return self._owner.collidespoint(point)
+    
+    def _enable_all(self) -> None:
+        """Active toutes les actions"""
+        for listener in self._down_listeners.values():
+            listener.enable()
+        for listener in self._up_listeners.values():
+            listener.enable()
+    
+    def _disable_all(self) -> None:
+        """Désactive toutes les actions"""
+        for listener in self._down_listeners.values():
+            listener.disable()
+        for listener in self._up_listeners.values():
+            listener.disable()

@@ -1,7 +1,7 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from ...abc import Widget, Behavior
+from ...abc import Behavior
 from ...math import Point
 
 from pyverse2d import inputs, ui
@@ -13,7 +13,8 @@ class HoverBehavior(Behavior):
     """Behavior gérant le survol"""
     __slots__ = (
         "_hovered",
-        "_on_enter", "_when_hovered", "_on_leave"
+        "_on_enter", "_on_leave",
+        "_when_hovered", "_when_unhovered"
     )
     _ID: str = "hover"
 
@@ -26,24 +27,30 @@ class HoverBehavior(Behavior):
 
         # Hooks
         self._on_enter: _CallbackList = _CallbackList()
-        self._when_hovered: _CallbackList = _CallbackList()
         self._on_leave: _CallbackList = _CallbackList()
-
+        self._when_hovered: _CallbackList = _CallbackList()
+        self._when_unhovered: _CallbackList = _CallbackList()
+        
     # ======================================== PROPERTIES ========================================
     @property
     def on_enter(self) -> _CallbackList:
         """Fonctions appelées à l'entrée"""
         return self._on_enter
+    
+    @property
+    def on_leave(self) -> _CallbackList:
+        """Fonctions appelées à la sortie"""
+        return self._on_leave
 
     @property
     def when_hovered(self) -> _CallbackList:
         """Fonctions appelées durant le survol"""
         return self._when_hovered
-
+    
     @property
-    def on_leave(self) -> _CallbackList:
-        """Fonctions appelées à la sortie"""
-        return self._on_leave
+    def when_unhovered(self) -> _CallbackList:
+        """Fonctions appelées durant le non-survol"""
+        return self._when_unhovered
 
     # ======================================== PREDICATES ========================================
     def is_hovered(self) -> bool:
@@ -85,8 +92,10 @@ class HoverBehavior(Behavior):
             if not self._hovered:
                 self.on_enter.trigger()
             self.when_hovered.trigger()
-        elif self._hovered:
-            self.on_leave.trigger()
+        else:
+            if self._hovered:
+                self.on_leave.trigger()
+            self.when_unhovered.trigger()
         self._hovered = hovered
 
     # ======================================== HELPERS ========================================
