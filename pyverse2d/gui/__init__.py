@@ -12,6 +12,8 @@ from ._behavior import (
     FocusBehavior,
 )
 
+from ._selection_group import SelectionGroup
+
 # ======================================== EXPORTS ========================================
 __all__ = [
     "Surface",
@@ -22,4 +24,6 @@ __all__ = [
     "HoverBehavior",
     "SelectBehavior",
     "FocusBehavior",
+
+    "SelectionGroup",
 ]

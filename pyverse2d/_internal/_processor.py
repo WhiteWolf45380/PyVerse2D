@@ -2,7 +2,7 @@
 from __future__ import annotations
 from typing import Callable
 
-# ======================================== PIPELINE ========================================
+# ======================================== TOOL ========================================
 class Processor:
     """
     Exécute une séquence de fonctions sur un contexte

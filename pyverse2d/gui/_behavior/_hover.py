@@ -1,12 +1,11 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
+from ..._internal import CallbackList
 from ...abc import Behavior
 from ...math import Point
 
 from pyverse2d import inputs, ui
-
-from typing import Callable
 
 # ======================================== BEHAVIOR ========================================
 class HoverBehavior(Behavior):
@@ -26,29 +25,29 @@ class HoverBehavior(Behavior):
         self._hovered: bool = False
 
         # Hooks
-        self._on_enter: _CallbackList = _CallbackList()
-        self._on_leave: _CallbackList = _CallbackList()
-        self._when_hovered: _CallbackList = _CallbackList()
-        self._when_unhovered: _CallbackList = _CallbackList()
+        self._on_enter: CallbackList = CallbackList()
+        self._on_leave: CallbackList = CallbackList()
+        self._when_hovered: CallbackList = CallbackList()
+        self._when_unhovered: CallbackList = CallbackList()
         
     # ======================================== PROPERTIES ========================================
     @property
-    def on_enter(self) -> _CallbackList:
+    def on_enter(self) -> CallbackList:
         """Fonctions appelées à l'entrée"""
         return self._on_enter
     
     @property
-    def on_leave(self) -> _CallbackList:
+    def on_leave(self) -> CallbackList:
         """Fonctions appelées à la sortie"""
         return self._on_leave
 
     @property
-    def when_hovered(self) -> _CallbackList:
+    def when_hovered(self) -> CallbackList:
         """Fonctions appelées durant le survol"""
         return self._when_hovered
     
     @property
-    def when_unhovered(self) -> _CallbackList:
+    def when_unhovered(self) -> CallbackList:
         """Fonctions appelées durant le non-survol"""
         return self._when_unhovered
 
@@ -102,25 +101,3 @@ class HoverBehavior(Behavior):
     def _collides(self, point: Point) -> bool:
         """Vérifie si un point est dans le widget"""
         return self._owner.collidespoint(point)
-    
-# ======================================== INTERNALS ========================================
-class _CallbackList:
-    """Stockage des hooks"""
-    __slots__ = ("_callbacks",)
-
-    def __init__(self):
-        self._callbacks: list[Callable] = []
-
-    def __call__(self, callback: Callable) -> Callable:
-        """Ajoute une fonction"""
-        self._callbacks.append(callback)
-        return callback
-    
-    def remove(self, func: Callable) -> Callable:
-        """Supprime une fonction"""
-        self._callbacks.remove(func)
-
-    def trigger(self) -> None:
-        """Appelle les fonctions"""
-        for func in self._callbacks:
-            func()

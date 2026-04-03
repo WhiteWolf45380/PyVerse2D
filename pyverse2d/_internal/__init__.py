@@ -9,6 +9,7 @@ from ._validators import (
 )
 
 from ._processor import Processor
+from ._callbacks import CallbackList
 
 # ======================================== EXPORTS ========================================
 __all__ = [
@@ -20,4 +21,5 @@ __all__ = [
     "rgba",
 
     "Processor",
+    "CallbackList",
 ]

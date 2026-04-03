@@ -10,7 +10,10 @@ from typing import Callable, Any
 
 # ======================================== BEHAVIOR ========================================
 class ClickBehavior(Behavior):
-    """Behavior gérant le clique"""
+    """Behavior gérant le clique
+    
+    Ce ``Behavior`` s'associe automatiquement au ``HoverBehavior`` si le ``Widget`` en possède un.
+    """
     __slots__ = ("_down_listeners", "_up_listeners")
     _ID: str = "click"
 
@@ -149,7 +152,9 @@ class ClickBehavior(Behavior):
     # ======================================== INTERNALS ========================================
     def _is_hovered(self) -> bool:
         """Vérifie si le widget est survolé"""
-        return self._collides(inputs.relative_mouse_position)
+        if self._owner.hover is None:
+            return self._collides(inputs.relative_mouse_position)
+        return self._owner.hover.is_hovered()
     
     def _collides(self, point: Point) -> bool:
         """Vérifie si un point est dans le widget"""
