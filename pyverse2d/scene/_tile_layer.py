@@ -135,8 +135,8 @@ class TileLayer(Layer):
 
         cam = pipeline.camera
         screen = pipeline.screen
-        px = cam.final_x * self._parallax[0]
-        py = cam.final_y * self._parallax[1]
+        px = cam.x * self._parallax[0]
+        py = cam.y * self._parallax[1]
 
         vx = px - screen.half_width
         vy = py - screen.half_height
@@ -168,8 +168,8 @@ class TileLayer(Layer):
         with ctx:
             # Effet parallax
             if self._parallax != (1.0, 1.0):
-                offset_x = cam.final_x - px
-                offset_y = cam.final_y - py
+                offset_x = cam.x - px
+                offset_y = cam.y - py
                 if offset_x != 0.0 or offset_y != 0.0:
                     pipeline.set_view(Mat4.from_translation(Vec3(offset_x, offset_y, 0)) @ cam.view_matrix())
 
