@@ -128,7 +128,7 @@ class Sprite(Widget):
     @property
     def hitbox(self):
         """Hitbox du sprite"""
-        return Rect(self._image.width, self._image.height)
+        return Rect(self._image_renderer.width, self._image_renderer.height)
     
     # ======================================== TRANSFORMATIONS ========================================
     def flip(self, horizontal: bool = False, vertical: bool = False) -> None:
