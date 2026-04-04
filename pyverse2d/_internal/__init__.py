@@ -3,9 +3,10 @@ from ._validators import (
     typename,
     expect,
     not_null,
+    not_in,
     positive,
     clamped,
-    rgba
+    rgba,
 )
 
 from ._processor import Processor
@@ -16,6 +17,7 @@ __all__ = [
     "typename",
     "expect",
     "not_null",
+    "not_in",
     "positive",
     "clamped",
     "rgba",

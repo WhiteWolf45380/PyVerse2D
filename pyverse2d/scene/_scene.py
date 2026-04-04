@@ -169,6 +169,7 @@ class Scene:
         Args:
             dt(float): delta time
         """
+        self.camera.update(dt)
         for layer in reversed(self._layers):
             if not layer.is_active():
                 continue
@@ -186,7 +187,6 @@ class Scene:
         pipeline.begin(self)
         camera_view = self.camera.view_matrix()
         camera_zoom = self.camera.zoom_matrix()
-        
         for layer in self._layers:
             if not layer.is_visible():
                 continue

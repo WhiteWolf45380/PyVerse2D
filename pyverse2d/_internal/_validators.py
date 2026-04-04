@@ -187,6 +187,26 @@ def not_null(value: object, arg: str = "Argument"):
     # Objet custom
     return value
 
+def not_in(value: object, forbidden: object | tuple[object], arg: str = "Argument"):
+    """
+    Vérifie que la valeur ne soit pas parmi les valeurs interdites
+
+    Args:
+        value(object): valeur à vérifier
+        forbidden(object | tuple[object]): valeur(s) interdite(s)
+        arg(str): nom de l'argument à vérifier
+    """
+    # Execution sans debug
+    if not __debug__:
+        return value
+
+    forbidden = forbidden if isinstance(forbidden, tuple) else (forbidden,)
+    if value in forbidden:
+        readable = " | ".join(repr(f) for f in forbidden)
+        raise ValueError(f"{arg} cannot be {readable}, got {value!r}")
+    return value
+
+# ======================================== NUMBER CHECK ========================================
 def positive(value: object, arg: str = "Argument"):
     """
     Vérifie que la valeur soit positive
@@ -204,7 +224,7 @@ def positive(value: object, arg: str = "Argument"):
     # Par défaut
     return  value
 
-def clamped(value: object, min: float = 0.0, max: float = 1.0, arg: str ="Argument"):
+def clamped(value: object, min: float = 0.0, max: float = 1.0, arg: str = "Argument"):
     
     """
     Vérifie que la valeur soit comprise entre min et max
