@@ -27,6 +27,7 @@ class FollowRequest(Request):
     """Requête de transition"""
     entity: Entity
     smoothing: float
+    max_speed: float
 
 # ======================================== CAMERA ========================================
 class Camera:
@@ -212,6 +213,7 @@ class Camera:
             self,
             entity: Entity,
             smoothing: Real,
+            max_speed: Real,
         ) -> None:
         """
         Suit le Transform d'une entité
@@ -219,13 +221,15 @@ class Camera:
         Args:
             entity: entité à suivre
             smoothing: facteur de retard relatif [0, 1[
+            max_speed: vitesse maximale de déplacement en px/s
         """
         if not expect(entity, Entity).has(Transform):
             raise ValueError(f"Entity {entity.id[:8]}... has no Transform component")
         if self.in_transition():
             self.stop_transition()
         smoothing = not_in(clamped(float(expect(smoothing, Real))), 1)
-        self._follow = self.FollowRequest(entity, smoothing)
+        max_speed = positive(not_null(float(expect(max_speed, Real))))
+        self._follow = self.FollowRequest(entity, smoothing, max_speed)
 
     def unfollow(self) -> None:
         """Détache la camera de l'entité suivie"""
@@ -273,7 +277,17 @@ class Camera:
             return self.unfollow()
         target = entity.transform.position
         t = 1 - self._follow.smoothing ** dt
-        self._go(*_step_position(self._position.x, self._position.y, target.x, target.y, t))
+        x, y = _step_position(self._position.x, self._position.y, target.x, target.y, t)
+        if self._follow.max_speed is not None:
+            dx = x - self._position.x
+            dy = y - self._position.y
+            max_dist = self._follow.max_speed * dt
+            dist = (dx ** 2 + dy ** 2) ** 0.5
+            if dist > max_dist:
+                scale = max_dist / dist
+                x = self._position.x + dx * scale
+                y = self._position.y + dy * scale
+        self._go(x, y)
 
     def _go(self, x: float = None, y: float = None) -> None:
         """Déplacement instantanné optimisé"""
