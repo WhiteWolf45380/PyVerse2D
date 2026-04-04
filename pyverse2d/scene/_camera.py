@@ -190,8 +190,8 @@ class Camera:
     def follow(
             self,
             entity: Entity,
-            smoothing: Real,
-            max_speed: Real,
+            smoothing: Real = 0.0,
+            max_speed: Real = None,
         ) -> None:
         """
         Suit le Transform d'une entité
@@ -205,8 +205,8 @@ class Camera:
             raise ValueError(f"Entity {entity.id[:8]}... has no Transform component")
         if self.in_transition():
             self.stop_transition()
-        smoothing = not_in(clamped(float(expect(smoothing, Real))), 1)
-        max_speed = positive(not_null(float(expect(max_speed, Real))))
+        not_in(clamped(float(expect(smoothing, Real))), 1)
+        if max_speed is not None: positive(not_null(float(expect(max_speed, Real))))
         self._follow = self.FollowRequest(entity, smoothing, max_speed)
 
     def unfollow(self) -> None:
