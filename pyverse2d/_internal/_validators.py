@@ -224,7 +224,37 @@ def positive(value: object, arg: str = "Argument"):
     # Par défaut
     return  value
 
-def clamped(value: object, min: float = 0.0, max: float = 1.0, arg: str = "Argument"):
+def over(value: object, threshold: Real, arg: str = "Argument"):
+    """
+    Vérifie que la valeur soit supérieure à un seuil
+
+    Args:
+        value(object): valeur à vérifier
+        threshold(Real): seuil minimum exclu
+        arg(str): nom de l'argument à vérifier
+    """
+    if isinstance(value, Real):
+        if value <= threshold:
+            raise ValueError(f"{arg} must be over {threshold}")
+        return value
+    return value
+
+def under(value: object, threshold: Real, arg: str = "Argument"):
+    """
+    Vérifie que la valeur soit inférieure à un seuil
+
+    Args:
+        value(object): valeur à vérifier
+        threshold(Real): seuil maximum exclu
+        arg(str): nom de l'argument à vérifier
+    """
+    if isinstance(value, Real):
+        if value >= threshold:
+            raise ValueError(f"{arg} must be under {threshold}")
+        return value
+    return value
+
+def clamped(value: object, min: Real = 0.0, max: Real = 1.0, arg: str = "Argument"):
     
     """
     Vérifie que la valeur soit comprise entre min et max

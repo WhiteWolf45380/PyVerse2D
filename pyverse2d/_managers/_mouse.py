@@ -10,7 +10,7 @@ import pyglet.window.mouse as _mouse
 from typing import TypeAlias
 
 # ======================================== STR ========================================
-_NAMES: dict[int, str] = {
+_NAMES: dict[MouseManager.Button] = {
     _mouse.LEFT:   "Left Click",
     _mouse.RIGHT:  "Right Click",
     _mouse.MIDDLE: "Middle Click",
@@ -56,9 +56,9 @@ class MouseManager(Manager):
         self._scroll_dy: float = 0.0
 
         # Boutons
-        self._step: list[int] = []
-        self._pressed: dict[int, bool] = {}
-        self._released_this_frame: list[int] = []
+        self._step: list[MouseManager.Button] = []
+        self._pressed: dict[MouseManager.Button, bool] = {}
+        self._released_this_frame: list[MouseManager.Button] = []
 
         # Abonnements
         self._ctx.event.on_mouse_motion(self._on_motion)
@@ -67,6 +67,7 @@ class MouseManager(Manager):
         self._ctx.event.on_mouse_release(self._on_release)
         self._ctx.event.on_mouse_enter(self._on_enter)
         self._ctx.event.on_mouse_leave(self._on_leave)
+        self._ctx.event.on_mouse_scroll(self._on_scroll)
 
     # ======================================== BUTTONS ========================================
     @staticmethod
@@ -127,7 +128,7 @@ class MouseManager(Manager):
     @property
     def drag(self) -> tuple[float, float]:
         """Glissement lors du maintien"""
-        return self._drag_dx, self.drag_dy
+        return self._drag_dx, self._drag_dy
 
     @property
     def drag_dx(self) -> float:
@@ -207,26 +208,31 @@ class MouseManager(Manager):
     def _on_motion(self, x: float, y: float, dx: float, dy: float) -> None:
         """Déplacement de la souris"""
         self._compute_position(x, y)
+        self._check_out()
         self._mouse_dx = dx * self._window.width / self._window.screen.width
         self._mouse_dy = dy * self._window.height / self._window.screen.height
 
     def _on_drag(self, x: float, y: float, dx: float, dy: float, buttons: int) -> None:
         """Glissement lors du maintien"""
         self._compute_position(x, y)
+        self._check_out()
         self._drag_dx = dx * self._window.width / self._window.screen.width
         self._drag_dy = dy * self._window.height / self._window.screen.height
 
     def _on_press(self, x: float, y: float, button: int) -> None:
         """Pression d'un bouton"""
         self._compute_position(x, y)
+        self._check_out()
 
     def _on_release(self, x: float, y: float, button: int) -> None:
         """Relachement d'un bouton"""
         self._compute_position(x, y)
+        self._check_out()
 
     def _on_enter(self, x: float, y: float) -> None:
         """Entrée dans la fenêtre"""
         self._compute_position(x, y)
+        self._check_out()
 
     def _on_leave(self, x: float, y: float) -> None:
         """Sortie de la fenêtre"""
@@ -244,5 +250,8 @@ class MouseManager(Manager):
         lx, ly = self._window.window_to_screen(x, y)
         self._mouse_x = lx - self._window.screen.half_width
         self._mouse_y = ly - self._window.screen.half_height
+
+    def _check_out(self) -> None:
+        """Vérifie que la souris soit en dehors du viewport de la fenêtre"""
         hw, hh = self._window.screen.half_width, self._window.screen.half_height
         self._mouse_out = not (-hw <= self._mouse_x <= hw and -hh <= self._mouse_y <= hh)

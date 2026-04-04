@@ -151,9 +151,9 @@ class KeyManager(Manager):
         super().__init__(context_manager)
 
         # Etat
-        self._step: list[int] = []
-        self._pressed: dict[int, bool] = {}
-        self._released_this_frame: list[int] = []
+        self._step: list[KeyManager.Key] = []
+        self._pressed: dict[KeyManager.Key, bool] = {}
+        self._released_this_frame: list[KeyManager.Key] = []
 
         # Abonnements
         self._ctx.event.on_key_press.subscribe(self._on_press)

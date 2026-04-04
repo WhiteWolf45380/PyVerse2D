@@ -1,66 +1,42 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from .._flag import Key
 from ..abc import Manager
-from ..math import Point
 
 from ._context import ContextManager
 
-from pyglet.window import Window as PygletWindow
-
-from typing import TYPE_CHECKING, Any, Callable
-if TYPE_CHECKING:
-    from .._rendering import Window
+from typing import Any, Callable, TypeAlias
 
 # ======================================== GESTIONNAIRE ========================================
 class InputsManager(Manager):
     """Gestionnaire des entrées utilisateur"""
     __slots__ = (
-        "_listeners", "_any_listeners", "_all_listeners",
-        "_step", "_pressed", "_released_this_frame", "_triggered_combos",
-        "_relative_origin", "_mouse_x", "_mouse_y", "_mouse_out",
-        "_mouse_dx", "_mouse_dy", "_drag_dx", "_drag_dy", "_scroll_dx", "_scroll_dy",
+        "_listeners", "_any_listeners", "_any_of_listeners", "_all_of_listeners",
+        "_triggered_combos",
     )
 
+    Input: TypeAlias = int
+
     def __init__(self, context_manager: ContextManager):
-        # Initialisation du gestionnaire
         super().__init__(context_manager)
 
         # Listeners
         self._listeners: dict[int, list[_Listener]] = {}
         self._any_listeners: list[_Listener] = []
-        self._all_listeners: list[_Listener] = []
-
-        # Events
-        self._step: list = []
-        self._pressed: dict = {}
-        self._released_this_frame: list = []
+        self._any_of_listeners: list[_Listener] = []
+        self._all_of_listeners: list[_Listener] = []
         self._triggered_combos: set = set()
 
-    # ======================================== BIND WINDOW ========================================
-    def bind(self, window: Window) -> None:
-        """
-        Lie le gestionnaire à une fenêtre pyglet
-
-        Args:
-            window: fenêtre à assigner
-        """
-        self._window = window
-        pyglet_window: PygletWindow = window.native
-
-        @pyglet_window.event
-        def on_key_press(symbol, modifiers):
-            self._on_press(symbol)
-
-        @pyglet_window.event
-        def on_key_release(symbol, modifiers):
-            self._on_release(symbol)
+        # Abonnements
+        self._ctx.event.on_key_press.subscribe(self._on_press)
+        self._ctx.event.on_key_release.subscribe(self._on_release)
+        self._ctx.event.on_mouse_press.subscribe(self._on_mouse_press)
+        self._ctx.event.on_mouse_release.subscribe(self._on_mouse_release)
 
     # ======================================== LISTENERS ========================================
     def add_listener(
             self,
-            key: Key.Input,
+            key: Input,
             callback: Callable,
             args: list[Any] = None,
             kwargs: dict[str, Any] = None,
@@ -69,12 +45,12 @@ class InputsManager(Manager):
             once: bool = False,
             repeat: bool = False,
             priority: int = 0,
-            give_key: bool = False
+            give_key: bool = False,
         ) -> _Listener:
         """Ajoute un listener sur une entrée utilisateur
 
         Args:
-            key(Key.Input): identifiant de l'événement
+            key(Input): identifiant de l'événement
             callback(callable): fonction à appeler
             args(list): arguments positionnels
             kwargs(dict): arguments nommés
@@ -106,11 +82,11 @@ class InputsManager(Manager):
         self._insert_by_priority(self._listeners[key], listener)
         return listener
 
-    def remove_listener(self, key: Key.Input, callback: Callable) -> None:
+    def remove_listener(self, key: Input, callback: Callable) -> None:
         """Supprime un listener sur une entrée par callback
 
         Args:
-            key(Key.Input): identifiant de l'événement
+            key(Input): identifiant de l'événement
             callback(callable): callback à supprimer
         """
         if key in self._listeners:
@@ -121,13 +97,13 @@ class InputsManager(Manager):
     def when_any(
             self,
             callback: Callable,
-            exclude: list[Key.Input] = None,
+            exclude: list[Input] = None,
             args: list[Any] = None,
             kwargs: dict[str, Any] = None,
             once: bool = False,
             condition: Callable = None,
             priority: int = 0,
-            give_key: bool = False
+            give_key: bool = False,
         ) -> _Listener:
         """Déclenche le callback sur n'importe quelle pression sauf les exclusions
 
@@ -140,9 +116,6 @@ class InputsManager(Manager):
             condition(callable): condition booléenne
             priority(int): priorité d'exécution
             give_key(bool): passe event_id en paramètre key
-
-        Returns:
-            Listener: le listener créé (appeler .invalidate() pour le retirer)
         """
         if exclude is None: exclude = []
         if args is None: args = []
@@ -161,21 +134,65 @@ class InputsManager(Manager):
         self._insert_by_priority(self._any_listeners, listener)
         return listener
 
-    def when_all(
+    def when_any_of(
             self,
-            keys: list[Key.Input],
+            keys: list[Input],
+            callback: Callable,
+            args: list[Any] = None,
+            kwargs: dict[str, Any] = None,
+            up: bool = False,
+            condition: Callable = None,
+            once: bool = False,
+            repeat: bool = False,
+            priority: int = 0,
+            give_key: bool = False,
+        ) -> _Listener:
+        """Déclenche le callback si l'une des entrées est pressée
+
+        Args:
+            keys(list): entrées dont l'une doit être pressée
+            callback(callable): fonction à appeler
+            args(list): arguments positionnels
+            kwargs(dict): arguments nommés
+            up(bool): déclenche au relâchement si True
+            condition(callable): condition booléenne
+            once(bool): supprime après première activation
+            repeat(bool): déclenche chaque frame tant que pressé
+            priority(int): priorité d'exécution
+            give_key(bool): passe event_id en paramètre key au callback
+        """
+        if args is None: args = []
+        if kwargs is None: kwargs = {}
+
+        def _remove(l: _Listener):
+            if l in self._any_of_listeners:
+                self._any_of_listeners.remove(l)
+
+        listener = _Listener(
+            callback, args, kwargs, priority, _remove,
+            up=up, condition=condition, once=once,
+            repeat=repeat, give_key=give_key,
+            any_of=set(keys),
+        )
+
+        self._insert_by_priority(self._any_of_listeners, listener)
+        return listener
+
+    def when_all_of(
+            self,
+            keys: list[Input],
             callback: Callable,
             args: list[Any] = None,
             kwargs: dict[str, Any] = None,
             once: bool = False,
             condition: Callable = None,
             repeat: bool = False,
-            priority: int = 0
+            priority: int = 0,
         ) -> _Listener:
-        """Déclenche le callback quand toutes les touches sont pressées simultanément
+        """Déclenche le callback quand toutes les entrées sont pressées simultanément
 
         Args:
-            keys(list): touches devant être pressées simultanément
+            keys(list): entrées devant être pressées simultanément
             callback(callable): fonction à appeler
             args(list): arguments positionnels
             kwargs(dict): arguments nommés
@@ -188,17 +205,19 @@ class InputsManager(Manager):
         if kwargs is None: kwargs = {}
 
         def _remove(l: _Listener):
-            if l in self._all_listeners:
-                self._all_listeners.remove(l)
+            if l in self._all_of_listeners:
+                self._all_of_listeners.remove(l)
 
-        listener = _Listener(callback, args, kwargs, priority, _remove, once=once, condition=condition, repeat=repeat, keys=set(keys))
-        self._insert_by_priority(self._all_listeners, listener)
+        listener = _Listener(
+            callback, args, kwargs, priority, _remove,
+            once=once, condition=condition,
+            repeat=repeat, keys=set(keys),
+        )
+        self._insert_by_priority(self._all_of_listeners, listener)
         return listener
 
-    # ======================================== LIFE CYCLE ========================================
     def remove_callback(self, callback: Callable) -> None:
-        """
-        Supprime un callback de tous les types de listeners
+        """Supprime un callback de tous les types de listeners
 
         Args:
             callback(callable): callback à supprimer partout
@@ -212,11 +231,19 @@ class InputsManager(Manager):
             if l.callback == callback:
                 l.invalidate()
 
-        for l in list(self._all_listeners):
+        for l in list(self._any_of_listeners):
             if l.callback == callback:
                 l.invalidate()
 
-    # ======================================== FLUSH ========================================
+        for l in list(self._all_of_listeners):
+            if l.callback == callback:
+                l.invalidate()
+
+    # ======================================== LIFE CYCLE ========================================
+    def update(self, dt: float) -> None:
+        """Actualisation"""
+        pass
+
     def flush(self) -> None:
         """Nettoie les états courants"""
         # Repeat sur touches individuelles
@@ -224,26 +251,27 @@ class InputsManager(Manager):
             if not self._is_currently_pressed(event_id):
                 continue
             for listener in list(listeners):
-                if not listener.is_active():
-                    continue
-                if not listener.is_enabled():
-                    continue
-                if not listener.repeat:
-                    continue
-                if listener.condition and not listener.condition():
-                    continue
+                if not listener.is_active(): continue
+                if not listener.is_enabled(): continue
+                if not listener.repeat: continue
+                if listener.condition and not listener.condition(): continue
                 listener._fire(event_id)
 
-        # Combos (when_all)
-        for listener in list(self._all_listeners):
-            if not listener.is_active():
-                continue
-            if not listener.is_enabled():
-                    continue
-            if not all(self._is_currently_pressed(k) for k in listener.keys):
-                continue
-            if listener.condition and not listener.condition():
-                continue
+        # Repeat sur when_any_of
+        for listener in list(self._any_of_listeners):
+            if not listener.is_active(): continue
+            if not listener.is_enabled(): continue
+            if not listener.repeat: continue
+            if not any(self._is_currently_pressed(k) for k in listener.any_of): continue
+            if listener.condition and not listener.condition(): continue
+            listener._fire()
+
+        # Combos (when_all_of)
+        for listener in list(self._all_of_listeners):
+            if not listener.is_active(): continue
+            if not listener.is_enabled(): continue
+            if not all(self._is_currently_pressed(k) for k in listener.keys): continue
+            if listener.condition and not listener.condition(): continue
 
             combo_key = frozenset(listener.keys)
 
@@ -260,104 +288,65 @@ class InputsManager(Manager):
             if all(self._is_currently_pressed(k) for k in combo)
         }
 
-        # Consolide _pressed
-        for event_id in self._step:
-            if event_id not in self._released_this_frame:
-                self._pressed[event_id] = True
-
-        self._step.clear()
-        self._released_this_frame.clear()
-        self._scroll_dx = 0.0
-        self._scroll_dy = 0.0
-
-    # ======================================== KEY EVENTS ========================================
-    def _is_currently_pressed(self, event_id: int) -> bool:
-        """
-        Vérifie si une touche est pressée cette frame ou maintenue
-
-        Args:
-            event_id(int): identifiant de la touche
-        """
-        return self._pressed.get(event_id, False) or event_id in self._step
-
-    def is_pressed(self, event_id: int) -> bool:
-        """
-        Vérifie si une touche est maintenue enfoncée
-
-        Args:
-            event_id(int): identifiant de la touche
-        """
-        return self._pressed.get(event_id, False)
-
-    def just_pressed(self, event_id: int) -> bool:
-        """
-        Vérifie si une touche vient d'être pressée cette frame
-
-        Args:
-            event_id(int): identifiant de la touche
-        """
-        return event_id in self._step
-
-    def just_released(self, event_id: int) -> bool:
-        """
-        Vérifie si une touche vient d'être relâchée cette frame
-
-        Args:
-            event_id(int): identifiant de la touche
-        """
-        return event_id in self._released_this_frame
-    
-    # ======================================== LIFE CYCLE ========================================
-    def update(self, dt: float) -> None:
-        """Actualisation"""
-        self.flush()
-
     # ======================================== INTERNALS ========================================
+    def _is_currently_pressed(self, event_id: int) -> bool:
+        """Vérifie si une entrée est pressée cette frame ou maintenue"""
+        return (
+            self._ctx.key.is_pressed(event_id) or self._ctx.key.just_pressed(event_id) or
+            self._ctx.mouse.is_pressed(event_id) or self._ctx.mouse.just_pressed(event_id)
+        )
+
     def _on_press(self, event_id: int) -> None:
         """Traite une pression"""
-        self._step.append(event_id)
-
         for listener in list(self._listeners.get(event_id, [])):
-            if not listener.is_active():
-                continue
-            if not listener.is_enabled():
-                continue
-            if listener.up:
-                continue
-            if listener.repeat:
-                continue
-            if listener.condition and not listener.condition():
-                continue
+            if not listener.is_active(): continue
+            if not listener.is_enabled(): continue
+            if listener.up: continue
+            if listener.repeat: continue
+            if listener.condition and not listener.condition(): continue
+            listener._fire(event_id)
+
+        for listener in list(self._any_of_listeners):
+            if not listener.is_active(): continue
+            if not listener.is_enabled(): continue
+            if event_id not in listener.any_of: continue
+            if listener.up: continue
+            if listener.repeat: continue
+            if listener.condition and not listener.condition(): continue
             listener._fire(event_id)
 
         for listener in list(self._any_listeners):
-            if not listener.is_active():
-                continue
-            if not listener.is_enabled():
-                continue
-            if event_id in listener.exclude:
-                continue
-            if listener.condition and not listener.condition():
-                continue
+            if not listener.is_active(): continue
+            if not listener.is_enabled(): continue
+            if event_id in listener.exclude: continue
+            if listener.condition and not listener.condition(): continue
             listener._fire(event_id)
 
     def _on_release(self, event_id: int) -> None:
         """Traite un relâchement"""
-        self._pressed[event_id] = False
-        self._released_this_frame.append(event_id)
-
         for listener in list(self._listeners.get(event_id, [])):
-            if not listener.is_active():
-                continue
-            if not listener.is_enabled():
-                continue
-            if not listener.up:
-                continue
-            if listener.condition and not listener.condition():
-                continue
+            if not listener.is_active(): continue
+            if not listener.is_enabled(): continue
+            if not listener.up: continue
+            if listener.condition and not listener.condition(): continue
             listener._fire(event_id)
 
-    # ======================================== HELPERS ========================================
+        for listener in list(self._any_of_listeners):
+            if not listener.is_active(): continue
+            if not listener.is_enabled(): continue
+            if event_id not in listener.any_of: continue
+            if not listener.up: continue
+            if listener.condition and not listener.condition(): continue
+            listener._fire(event_id)
+
+    def _on_mouse_press(self, x: float, y: float, button: int) -> None:
+        """Pression d'un bouton souris"""
+        self._on_press(button)
+
+    def _on_mouse_release(self, x: float, y: float, button: int) -> None:
+        """Relâchement d'un bouton souris"""
+        self._on_release(button)
+
     def _insert_by_priority(self, lst: list, listener: _Listener) -> None:
         """Insère un listener dans une liste triée par priorité décroissante"""
         for i, l in enumerate(lst):
@@ -366,14 +355,6 @@ class InputsManager(Manager):
                 return
         lst.append(listener)
 
-    def _compute_mouse(self, x: float, y: float) -> None:
-        """Calcule la position de la souris"""
-        lx, ly = self._window.window_to_screen(x, y)
-        self._mouse_x = lx - self._window.screen.half_width
-        self._mouse_y = ly - self._window.screen.half_height
-        hw, hh = self._window.screen.half_width, self._window.screen.half_height
-        self._mouse_out = not (-hw <= self._mouse_x <= hw and -hh <= self._mouse_y <= hh)
-    
 # ======================================== LISTENER ========================================
 class _Listener:
     """Représente un listener d'entrée utilisateur"""
@@ -387,6 +368,7 @@ class _Listener:
         "priority",
         "give_key",
         "exclude",
+        "any_of",
         "keys",
         "_enabled",
         "_active",
@@ -407,6 +389,7 @@ class _Listener:
             repeat: bool = False,
             give_key: bool = False,
             exclude: set = None,
+            any_of: set = None,
             keys: set = None,
         ):
         self.callback = callback
@@ -419,6 +402,7 @@ class _Listener:
         self.repeat = repeat
         self.give_key = give_key
         self.exclude = exclude or set()
+        self.any_of = any_of or set()
         self.keys = keys or set()
         self._enabled = True
         self._active = True
@@ -432,12 +416,12 @@ class _Listener:
     def is_active(self) -> bool:
         """Renvoie True si le listener est encore actif"""
         return self._active
-    
+
     # ======================================== STATE ========================================
     def enable(self) -> None:
         """Active le listener"""
         self._enabled = True
-    
+
     def disable(self) -> None:
         """Désactive le listener"""
         self._enabled = False
