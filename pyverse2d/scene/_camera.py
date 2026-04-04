@@ -3,16 +3,14 @@ from __future__ import annotations
 
 from .._internal import expect, not_null, positive, clamped, not_in
 from ..math import Point, Vector
+from ..math.easing import EasingFunc, is_easing
 from ..abc import Request
 from ..world import Entity, Transform
 
 from pyglet.math import Mat4, Vec3
 from numbers import Real
 from dataclasses import dataclass
-from typing import Callable, ClassVar, Type
-
-# ======================================== ALIAS ========================================
-EasingFunc = Callable[[float], float]
+from typing import ClassVar, Type
 
 # ======================================== REQUEST ========================================
 @dataclass(slots=True)
@@ -59,7 +57,7 @@ class Camera:
         self._follow: FollowRequest = None
 
         # Paramètres flottants
-        self._final_position: Point = self._position
+        self._final_position: Point = self._position.copy()
 
     # ======================================== PROPERTIES ========================================
     @property
@@ -72,8 +70,7 @@ class Camera:
     
     @position.setter
     def position(self, value: Point):
-        self._position = Point(value)
-        self._compute_final_position()
+        self._go(value[0], value[1])
 
     @property
     def x(self) -> float:
@@ -85,8 +82,7 @@ class Camera:
     
     @x.setter
     def x(self, value: Real):
-        self._position._x = value
-        self._compute_final_position()
+        self._go(x=value)
 
     @property
     def y(self) -> float:
@@ -98,8 +94,7 @@ class Camera:
     
     @y.setter
     def y(self, value: Real):
-        self._position._y = value
-        self._compute_final_position()
+        self._go(y=value)
 
     @property
     def offset(self) -> Vector:
@@ -137,7 +132,7 @@ class Camera:
     
     @offset_y.setter
     def offset_y(self, value: Real) -> None:
-        self._offset_y = value
+        self._offset.y = value
         self._compute_final_position()
 
     @property
@@ -183,8 +178,7 @@ class Camera:
         Args:
             vector: vecteur de translation
         """
-        self._position += Vector(vector)
-        self._compute_final_position()
+        self._go(self._position.x + vector[0], self._position.y + vector[1])
 
     def goto(
             self,
@@ -201,11 +195,11 @@ class Camera:
         """
         if self.is_following():
             self.unfollow()
-        start = self._position
+        start = self._position.copy()
         end = Point(position)
         duration = positive(float(expect(duration, Real)))
         elapsed = 0.0
-        easing = callable(easing) if easing is not None else None
+        if easing is not None and not is_easing(easing): raise ValueError("easing must be an EasingFunc from pyverse2d.math.easing")
         self._transition = self.TransitionRequest(start, end, duration, elapsed, easing)
 
     def stop_transition(self) -> None:
@@ -231,13 +225,12 @@ class Camera:
         if self.in_transition():
             self.stop_transition()
         smoothing = not_in(clamped(float(expect(smoothing, Real))), 1)
-        self._follow = FollowRequest(entity, smoothing)
+        self._follow = self.FollowRequest(entity, smoothing)
 
     def unfollow(self) -> None:
         """Détache la camera de l'entité suivie"""
         if self._follow is None:
             return
-        self._position = self._follow.entity.transform.position.copy()
         self._follow = None
 
     # ======================================== LIFE CYCLE ========================================
@@ -245,7 +238,7 @@ class Camera:
         """Actualisation"""
         if self.in_transition():
             self._update_transition(dt)
-        if self.is_following():
+        elif self.is_following():
             self._update_follow(dt)
 
     # ======================================== RENDER ========================================
@@ -261,32 +254,34 @@ class Camera:
         return Mat4.from_scale(Vec3(self._zoom, self._zoom, 1))
 
     # ======================================== INTERNALS ========================================
-    def _update_transtion(self, dt: float) -> None:
+    def _update_transition(self, dt: float) -> None:
         """Actualise la transition"""
         tr = self._transition
         tr.elapsed += dt
         if tr.elapsed >= tr.duration:
             self._go(tr.end.x, tr.end.y)
-            self._transition = None
-            return
+            return self.stop_transition()
         t = tr.elapsed / tr.duration
         if tr.easing is not None:
             t = tr.easing(t)
-        self._go(_step_position(tr.start.x, tr.start.y, tr.end.x, tr.end.y, t))
+        self._go(*_step_position(tr.start.x, tr.start.y, tr.end.x, tr.end.y, t))
 
     def _update_follow(self, dt: float) -> None:
         """Actualise le suivi"""
         entity = self._follow.entity
         if not entity.is_active() or not entity.has(Transform):
-            self._follow = None
-            return
+            return self.unfollow()
         target = entity.transform.position
         t = 1 - self._follow.smoothing ** dt
-        self._go(_step_position(self._position.x, self._position.y, target.x, target.y, t))
+        self._go(*_step_position(self._position.x, self._position.y, target.x, target.y, t))
 
-    def _go(self, x: float, y: float) -> None:
+    def _go(self, x: float = None, y: float = None) -> None:
         """Déplacement instantanné optimisé"""
-        self._position.x, self._position.y = x, y
+        if x is not None:
+            self._position.x = x
+        if y is not None:
+            self._position.y = y
+        self._compute_final_position()
 
     def _compute_final_position(self) -> None:
         """Calcul la position finale"""
