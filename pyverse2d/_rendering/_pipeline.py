@@ -150,8 +150,8 @@ class Pipeline:
         sx = win_vw / screen.width
         sy = win_vh / screen.height
 
-        lx = (x - cam.final_x) * cam.zoom + screen.half_width
-        ly = (y - cam.final_y) * cam.zoom + screen.half_height
+        lx = (x - cam.x) * cam.zoom + screen.half_width
+        ly = (y - cam.y) * cam.zoom + screen.half_height
 
         return int(win_vx + lx * sx), int(win_vy + ly * sy)
     
