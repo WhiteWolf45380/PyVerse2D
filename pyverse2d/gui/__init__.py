@@ -1,6 +1,7 @@
 # ======================================== IMPORTS ========================================
 from ._widget import (
     Surface,
+    Border,
     Label,
     Sprite,
 )
@@ -17,6 +18,7 @@ from ._selection_group import SelectionGroup
 # ======================================== EXPORTS ========================================
 __all__ = [
     "Surface",
+    "Border",
     "Label",
     "Sprite",
 
