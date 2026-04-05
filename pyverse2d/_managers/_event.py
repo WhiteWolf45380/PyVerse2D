@@ -179,84 +179,32 @@ class EventManager(Manager):
         super().bind(window)
         pw: PygletWindow = window.native
 
-        # Clavier
-        @pw.event
-        def on_key_press(symbol, modifiers):
-            self._on_key_press.emit(symbol)
-
-        @pw.event
-        def on_key_release(symbol, modifiers):
-            self._on_key_release.emit(symbol)
-
-        @pw.event
-        def on_text(text):
-            self._on_text.emit(text)
-
-        @pw.event
-        def on_text_motion(motion):
-            self._on_text_motion.emit(motion)
-
-        @pw.event
-        def on_text_motion_select(motion):
-            self._on_text_motion_select.emit(motion)
-
-        # Souris
-        @pw.event
-        def on_mouse_press(x, y, button, modifiers):
-            self._on_mouse_press.emit(x, y, button)
-
-        @pw.event
-        def on_mouse_release(x, y, button, modifiers):
-            self._on_mouse_release.emit(x, y, button)
-
-        @pw.event
-        def on_mouse_motion(x, y, dx, dy):
-            self._on_mouse_motion.emit(x, y, dx, dy)
-
-        @pw.event
-        def on_mouse_drag(x, y, dx, dy, buttons, modifiers):
-            self._on_mouse_drag.emit(x, y, dx, dy, buttons)
-
-        @pw.event
-        def on_mouse_scroll(x, y, scroll_x, scroll_y):
-            self._on_mouse_scroll.emit(x, y, scroll_x, scroll_y)
-
-        @pw.event
-        def on_mouse_enter(x, y):
-            self._on_mouse_enter.emit(x, y)
-
-        @pw.event
-        def on_mouse_leave(x, y):
-            self._on_mouse_leave.emit(x, y)
-
-        # Fenêtre
-        @pw.event
-        def on_resize(width, height):
-            self._on_resize.emit(width, height)
-
-        @pw.event
-        def on_close():
-            self._on_close.emit()
-
-        @pw.event
-        def on_activate():
-            self._on_activate.emit()
-
-        @pw.event
-        def on_deactivate():
-            self._on_deactivate.emit()
-
-        @pw.event
-        def on_show():
-            self._on_show.emit()
-
-        @pw.event
-        def on_hide():
-            self._on_hide.emit()
-
-        @pw.event
-        def on_move(x, y):
-            self._on_move.emit(x, y)
+        pw.push_handlers(
+            # Clavier
+            on_key_press=lambda symbol, modifiers: self._on_key_press.emit(symbol),
+            on_key_release=lambda symbol, modifiers: self._on_key_release.emit(symbol),
+            on_text=lambda text: self._on_text.emit(text),
+            on_text_motion=lambda motion: self._on_text_motion.emit(motion),
+            on_text_motion_select=lambda motion: self._on_text_motion_select.emit(motion),
+        
+            # Souris
+            on_mouse_press=lambda x, y, button, modifiers: self._on_mouse_press.emit(x, y, button),
+            on_mouse_release=lambda x, y, button, modifiers: self._on_mouse_release.emit(x, y, button),
+            on_mouse_motion=lambda x, y, dx, dy: self._on_mouse_motion.emit(x, y, dx, dy),
+            on_mouse_drag=lambda x, y, dx, dy, buttons, modifiers: self._on_mouse_drag.emit(x, y, dx, dy, buttons),
+            on_mouse_scroll=lambda x, y, scroll_x, scroll_y: self._on_mouse_scroll.emit(x, y, scroll_x, scroll_y),
+            on_mouse_enter=lambda x, y: self._on_mouse_enter.emit(x, y),
+            on_mouse_leave=lambda x, y: self._on_mouse_leave.emit(x, y),
+        
+            # Fenêtre
+            on_resize=lambda width, height: self._on_resize.emit(width, height),
+            on_close=lambda: self._on_close.emit(),
+            on_activate=lambda: self._on_activate.emit(),
+            on_deactivate=lambda: self._on_deactivate.emit(),
+            on_show=lambda: self._on_show.emit(),
+            on_hide=lambda: self._on_hide.emit(),
+            on_move=lambda x, y: self._on_move.emit(x, y),
+        )
     
     # ======================================== LIFE CYCLE ========================================
     def update(self, dt: float) -> None:
