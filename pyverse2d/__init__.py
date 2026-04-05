@@ -59,7 +59,9 @@ def set_window(window: Window):
         raise TypeError("Expected a Window instance")
     _window = window
     _pipeline = Pipeline(window)
-    inputs.bind(window)
+
+    for manager in _context_manager:
+        manager.bind(window)
 
     @_window.native.event
     def on_draw():
