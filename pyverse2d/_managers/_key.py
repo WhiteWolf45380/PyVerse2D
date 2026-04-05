@@ -182,7 +182,7 @@ class KeyManager(Manager):
         return self._pressed.get(key, False) or key in self._step
 
     # ======================================== LIFE CYCLE ========================================
-    def update(self) -> None:
+    def update(self, dt: float) -> None:
         """Actualisation"""
         pass
 
