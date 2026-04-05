@@ -487,9 +487,7 @@ class _BorderRenderer:
         z(int): z-order
         pipeline(Pipeline): pipeline de rendu
     """
-    __slots__ = ("_vlist", "_n", "_width", "_batch", "_group", "_local_contour", "_visible")
-
-    _DEFAULT_SHADER = pyglet.graphics.get_default_shader()
+    __slots__ = ("_vlist", "_n", "_width", "_program", "_batch", "_group", "_local_contour", "_visible")
 
     def __init__(
         self,
@@ -507,6 +505,7 @@ class _BorderRenderer:
         self._vlist = None
         self._n: int = 0
         self._width: int = width
+        self._program: pyglet.graphics.shader.ShaderProgram = pyglet.graphics.get_default_shader()
         self._batch: Batch = None
         self._group: Group = None
         self._visible: bool = True
@@ -562,7 +561,7 @@ class _BorderRenderer:
         for i in range(0, len(flat), 2):
             flat_3d.extend([flat[i], flat[i+1], 0.0])
 
-        self._vlist = self._DEFAULT_SHADER.vertex_list(
+        self._vlist = self._program.vertex_list(
             self._n,
             pyglet.gl.GL_TRIANGLE_STRIP,
             self._batch,
@@ -599,7 +598,7 @@ class _BorderRenderer:
             return
         self._visible = value
         target_batch = self._batch if value else None
-        self._vlist.migrate(target_batch, pyglet.gl.GL_TRIANGLE_STRIP, self._group, self._DEFAULT_SHADER)
+        self._vlist.migrate(target_batch, pyglet.gl.GL_TRIANGLE_STRIP, self._group, self._program)
 
     # ======================================== LIFE CYCLE ========================================
     def update(self, psr: PygletShapeRenderer, changes: list[str]) -> None:
