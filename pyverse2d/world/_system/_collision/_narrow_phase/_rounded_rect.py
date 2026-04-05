@@ -25,6 +25,7 @@ def rounded_rect_circle(sa: RoundedRect, ax, ay, scale_a, rot_a, sb: Circle, bx,
     return Contact(c.normal.__class__(-c.normal.x, -c.normal.y), c.depth)
 
 # ======================================== RoundedRect × Ellipse ========================================
+@register(RoundedRect, Ellipse)
 def rounded_rect_ellipse(sa: RoundedRect, ax, ay, scale_a, rot_a, sb: Ellipse, bx, by, scale_b, rot_b) -> Contact | None:
     """RoundedRect vs Ellipse"""
     ex, ey, rx, ry, _ = sb.world_transform(bx, by, scale_b, rot_b)
