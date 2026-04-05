@@ -567,7 +567,7 @@ class _BorderRenderer:
             pyglet.gl.GL_TRIANGLE_STRIP,
             self._batch,
             self._group,
-            position=('f', flat),
+            position=('f', flat_3d),
             colors=('Bn', (r, g, b, a) * self._n),
         )
 
