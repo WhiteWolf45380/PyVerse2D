@@ -1122,8 +1122,22 @@ class _RoundedRectRenderer:
         if self._shape is not None:
             self._shape.delete()
 
-        x = self._x - self._w * 0.5
-        y = self._y - self._h * 0.5
+        # offset du centre vers bottom-left
+        ox = -self._w * 0.5
+        oy = -self._h * 0.5
+
+        # rotation horaire → angle négatif en math
+        rad = math.radians(-self._rotation)
+        cos_r = math.cos(rad)
+        sin_r = math.sin(rad)
+
+        # rotation de l'offset
+        rx = ox * cos_r - oy * sin_r
+        ry = ox * sin_r + oy * cos_r
+
+        # position finale corrigée
+        x = self._x + rx
+        y = self._y + ry
 
         self._shape = pyglet.shapes.RoundedRectangle(
             x,
@@ -1136,6 +1150,5 @@ class _RoundedRectRenderer:
             group=self._group
         )
 
-        # rotation pyglet (autour du coin bas gauche)
         self._shape.rotation = self._rotation
         self._shape.opacity = self._opacity
