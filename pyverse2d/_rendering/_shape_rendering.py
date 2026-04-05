@@ -964,7 +964,7 @@ class _CapsuleRenderer:
 # ======================================== CAPSULE HELPERS ========================================
 def _capsule_centers(cx: float, cy: float, spine: float, rotation: float) -> tuple[float, float, float, float]:
     """Retourne les centres (ax, ay, bx, by) des deux demi-sphères"""
-    rad = math.radians(rotation)
+    rad = math.radians(-rotation)
     half = spine * 0.5
     return (
         cx - math.sin(rad) * half, cy + math.cos(rad) * half,
