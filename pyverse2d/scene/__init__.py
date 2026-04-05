@@ -10,7 +10,7 @@ from ._tile_layer import TileLayer
 from ._gui_layer import GuiLayer
 from ._scene import Scene
 
-from pyverse2d import inputs
+from pyverse2d import mouse
 
 # ======================================== STATE ========================================
 _stack: list[Scene] = []
@@ -73,9 +73,9 @@ def update(dt: float):
     """Actualisation des scènes"""
     for scene in reversed(_stack):
         if scene.state in _update_states:
-            inputs.set_relative_origin(scene.viewport.origin)
+            mouse.set_viewport_origin(scene.viewport.origin)
             scene.update(dt)
-    inputs.set_relative_origin((0, 0))
+    mouse.set_viewport_origin((0, 0))
 
 def draw(pipeline: Pipeline):
     """Affichage des scènes"""
