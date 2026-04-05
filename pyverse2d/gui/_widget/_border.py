@@ -10,21 +10,22 @@ from ...math import Point
 from numbers import Real
 
 # ======================================== WIDGET ========================================
-class Surface(Widget):
+class Border(Widget):
     """
-    Composant UI simple: Surface
+    Composant UI simple: Bordure
 
     Args:
-        shape(Shape): forme de la surface
+        shape(Shape): forme de la bordure
         position(Point, optional): position
         anchor(Point, optional): ancre locale relative
-        color(Color, optional): couleur de remplissage
+        width(bool, optional): largeur de la bodure
+        color(Color, optional): couleur de la bordure
         opacité(Real, optional): opacité [0; 1]
     """
     __slots__ = (
         "_shape", "_shape_renderer",
         "_scale", "_rotation",
-        "_color",
+        "_width", "_color",
     )
 
     def __init__(
@@ -32,7 +33,8 @@ class Surface(Widget):
             shape: Shape,
             position: Point = (0.0, 0.0),
             anchor: Point = (0.5, 0.5),
-            color: Color = (125, 125, 125),
+            width: int = 1,
+            color: Color = (0, 0, 0),
             opacity: Real = 1.0,
         ):
         # Initialisation du widget
@@ -47,6 +49,7 @@ class Surface(Widget):
         self._rotation: float = 0.0
 
         # Affichage
+        self._width: int = expect(width, int)
         self._color: Color = Color(color)
 
     # ======================================== GETTERS ========================================
@@ -54,6 +57,11 @@ class Surface(Widget):
     def shape(self) -> Shape:
         """Renvoie la forme de la surface"""
         return self._shape
+    
+    @property
+    def width(self) -> int:
+        """Renvoie la largeur de la bordure"""
+        return self._width
     
     @property
     def color(self) -> Color:
@@ -80,6 +88,11 @@ class Surface(Widget):
     def shape(self, value: Shape) -> None:
         """Fixe la forme de la surface"""
         self._shape = expect(value, Shape)
+
+    @width.setter
+    def width(self, value: int) -> None:
+        """Fixe la largeur de la bordure"""
+        self._width = expect(value, int)
     
     @color.setter
     def color(self, value: Color) -> None:
@@ -132,7 +145,9 @@ class Surface(Widget):
                 anchor_y = self.anchor_y,
                 scale = self._scale,
                 rotation = self._rotation,
-                color = self._color,
+                filling = False,
+                border_width = self._width,
+                border_color = self._color,
                 opacity = context.opacity,
                 pipeline = pipeline,
                 z = context.z,
@@ -147,7 +162,9 @@ class Surface(Widget):
                 anchor_y = self.anchor_y,
                 scale = self._scale,
                 rotation = self._rotation,
-                color = self._color,
+                filling = False,
+                border_width = self._width,
+                border_color = self._color,
                 opacity = context.opacity,
                 pipeline=pipeline,
                 z=context.z,
