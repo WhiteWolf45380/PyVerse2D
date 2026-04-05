@@ -11,7 +11,7 @@ import pyglet.shapes
 import pyglet.gl
 from pyglet.graphics import Batch, Group
 
-from typing import Callable
+from typing import Callable, TypeAlias, Literal
 import math
 import numpy as np
 
@@ -23,6 +23,8 @@ _CIRCLE_BORDER_SEGMENTS = 64        # précision des cercles
 _ELLIPSE_BORDER_SEGMENTS = 64       # précision des ellipses
 _CAPSULE_BORDER_SEGMENTS = 32       # précision des capsules
 _ROUNDED_RECT_BORDER_SEGMENTS = 16  # Précision des rectangles arrondis
+
+BorderAlign: TypeAlias = Literal["in", "center", "out"]
 
 # ======================================== PUBLIC ========================================
 class PygletShapeRenderer:
@@ -40,6 +42,7 @@ class PygletShapeRenderer:
         filling(bool, optional): remplissage
         color(Color, optional): couleur de remplissage
         border_width(int, optional): épaisseur de la bordure
+        border_align(BorderAlign, optional): alignement de la bordure
         border_color(Color, optional): couleur de la bordure
         opacity(float, optional): opacité [0.0; 1.0]
         z(int, optional): z-order
@@ -49,7 +52,7 @@ class PygletShapeRenderer:
         "_shape",
         "_x", "_y", "_anchor_x", "_anchor_y",
         "_scale", "_rotation",
-        "_filling", "_color", "_border_width", "_border_color", "_opacity",
+        "_filling", "_color", "_border_width", "_border_align", "_border_color", "_opacity",
         "_z", "_pipeline", 
         "_cx", "_cy",
         "_fill", "_border"
@@ -67,6 +70,7 @@ class PygletShapeRenderer:
         filling: bool = True,
         color: Color = None,
         border_width: int = 0,
+        border_align: BorderAlign = "center",
         border_color: Color = None,
         opacity: float = 1.0,
         z: int = 0,
@@ -83,6 +87,7 @@ class PygletShapeRenderer:
         self._filling: bool = filling
         self._color: Color = color
         self._border_width: int = border_width
+        self._border_align: BorderAlign = border_align
         self._border_color: Color = border_color
         self._opacity: float = opacity
         self._z: int = z
@@ -105,7 +110,7 @@ class PygletShapeRenderer:
             self._fill = _FillRenderer(self._shape, self._cx, self._cy, self._scale, self._rotation, self._color, self._opacity, self._z, self._pipeline)
 
         if self._border_width > 0 and self._border_color is not None:
-            self._border = _BorderRenderer(self._shape, self._cx, self._cy, self._scale, self._rotation, self._border_width, self._border_color, self._opacity, self._z, self._pipeline)
+            self._border = _BorderRenderer(self._shape, self._cx, self._cy, self._scale, self._rotation, self._border_width, self._border_align, self._border_color, self._opacity, self._z, self._pipeline)
 
     def _compute_center(self) -> None:
         """Calcul le centre monde"""
@@ -172,6 +177,11 @@ class PygletShapeRenderer:
     def border_width(self) -> int:
         """Renvoie l'épaisseur de la bordure"""
         return self._border_width
+    
+    @property
+    def border_align(self) -> BorderAlign:
+        """Renvoie l'alignement de la bordure"""
+        return self._border_align
     
     @property
     def border_color(self) -> Color:
@@ -246,6 +256,7 @@ class PygletShapeRenderer:
             filling(bool, optional): remplissage
             color(Color, optional): couleur de remplissage
             border_width(int, optional): épaisseur de bordure
+            border_align(BorderAlign, optional): alignement de la bordure
             border_color(Color, optional): couleur de bordure
             opacity(float, optional): opacité
             z(int, optional): zorder
@@ -286,7 +297,7 @@ class PygletShapeRenderer:
             if self._border is not None:
                 self._border.update(self, changes)
             elif self._border_color is not None:
-                self._border = _BorderRenderer(self._shape, self._cx, self._cy, self._scale, self._rotation, self._border_width, self._border_color, self._opacity, self._z, self._pipeline)
+                self._border = _BorderRenderer(self._shape, self._cx, self._cy, self._scale, self._rotation, self._border_width, self._border_align, self._border_color, self._opacity, self._z, self._pipeline)
         elif self._border is not None:
             self._border.delete()
             self._border = None
@@ -482,12 +493,13 @@ class _BorderRenderer:
         scale(float): facteur de redimensionnement
         rotation(float): angle de rotation en degrés
         width(int): épaisseur de la bordure
+        align(BorderAlign): alignement
         color(Color): couleur de la bordure
         opacité(float): opacité
         z(int): z-order
         pipeline(Pipeline): pipeline de rendu
     """
-    __slots__ = ("_vlist", "_n", "_width", "_program", "_batch", "_group", "_local_contour", "_visible")
+    __slots__ = ("_vlist", "_n", "_width", "_align", "_program", "_batch", "_group", "_local_contour", "_visible", "_stored_colors")
 
     def __init__(
         self,
@@ -497,6 +509,7 @@ class _BorderRenderer:
         scale: float,
         rotation: float,
         width: int,
+        align: BorderAlign,
         color: Color,
         opacity: float,
         z: int,
@@ -505,10 +518,12 @@ class _BorderRenderer:
         self._vlist = None
         self._n: int = 0
         self._width: int = width
+        self._align: BorderAlign = align
         self._program: pyglet.graphics.shader.ShaderProgram = pyglet.shapes.get_default_shader()
         self._batch: Batch = None
         self._group: Group = None
         self._visible: bool = True
+        self._stored_colors: list = None
         self._local_contour: np.ndarray = _local_contour(shape)
         self._build(cx, cy, scale, rotation, width, color, opacity, z, pipeline)
 
@@ -520,6 +535,7 @@ class _BorderRenderer:
         scale: float,
         rotation: float,
         width: int,
+        align: BorderAlign,
         color: Color,
         opacity: float,
         z: int,
@@ -548,7 +564,7 @@ class _BorderRenderer:
         self._width = width
 
         # Meshes
-        strip = self._world_strip(cx, cy, scale, rotation, width)
+        strip = self._world_strip(cx, cy, scale, rotation, width, align)
         self._n = len(strip)
         flat = strip.flatten().tolist()
 
@@ -570,14 +586,14 @@ class _BorderRenderer:
             colors=('Bn', (r, g, b, a) * self._n),
         )
 
-    def _world_strip(self, cx: float, cy: float, scale: float, rotation: float, width: float) -> np.ndarray:
+    def _world_strip(self, cx: float, cy: float, scale: float, rotation: float, width: float, align: BorderAlign) -> np.ndarray:
         """Génère le contour monde + strip"""
         world = _apply_transform(self._local_contour, cx, cy, scale, rotation)
-        return _build_strip(world, width)
+        return _build_strip(world, width, align)
 
     def _refresh_vertices(self, psr: PygletShapeRenderer) -> None:
         """Réactualise les arrêtes"""
-        strip = self._world_strip(psr.cx, psr.cy, psr.scale, psr.rotation, psr.border_width)
+        strip = self._world_strip(psr.cx, psr.cy, psr.scale, psr.rotation, psr.border_width, psr.border_align)
         flat = strip.flatten().tolist()
         flat_3d = []
         for i in range(0, len(flat), 2):
@@ -597,17 +613,32 @@ class _BorderRenderer:
         if value == self._visible:
             return
         self._visible = value
-        target_batch = self._batch if value else None
-        self._vlist.migrate(target_batch, pyglet.gl.GL_TRIANGLE_STRIP, self._group, self._program)
+        if value:
+            self._vlist.colors[:] = self._stored_colors
+        else:
+            self._stored_colors = list(self._vlist.colors[:])
+            self._vlist.colors[:] = (0.0, 0.0, 0.0, 0.0) * self._n
 
     # ======================================== LIFE CYCLE ========================================
     def update(self, psr: PygletShapeRenderer, changes: list[str]) -> None:
         """Actualisation de la bordure"""
+        needs_rebuild = False
+        needs_refresh = False
+
         for key in changes:
-            handler: Callable = getattr(self, f"handle_{key}", None)
-            if handler and handler(psr):
-                self._rebuild(psr)
-                break
+            handler = getattr(self, f"handle_{key}", None)
+            if handler is None:
+                continue
+            result = handler(psr)
+            if result == "rebuild":
+                needs_rebuild = True
+            elif result == "refresh":
+                needs_refresh = True
+
+        if needs_rebuild:
+            self._rebuild(psr)
+        elif needs_refresh:
+            self._refresh_vertices(psr)
 
     def delete(self) -> None:
         """Libère les ressources pyglet"""
@@ -619,20 +650,25 @@ class _BorderRenderer:
     # ======================================== HANDLERS ========================================
     def handle_center(self, psr: PygletShapeRenderer) -> None:
         """Actualisation de la position"""
-        self._refresh_vertices(psr)
+        return "refresh"
 
     def handle_scale(self, psr: PygletShapeRenderer) -> None:
         """Actualisation du facteur de redimensionnement"""
-        self._refresh_vertices(psr)
+        return "refresh"
 
     def handle_rotation(self, psr: PygletShapeRenderer) -> None:
         """Actualisation de l'angle de rotation"""
-        self._refresh_vertices(psr)
+        return "refresh"
 
     def handle_border_width(self, psr: PygletShapeRenderer) -> None:
         """Actualisation de l'épaisseur de la bordure"""
         self._width = psr.border_width
-        self._refresh_vertices(psr)
+        return "refresh"
+
+    def handle_border_align(self, psr: PygletShapeRenderer) -> None:
+        """Actualisation de l'alignement de la bordure"""
+        self._align = psr.border_align
+        return "refresh"
 
     def handle_border_color(self, psr: PygletShapeRenderer) -> None:
         """Actualisation de la couleur"""
@@ -648,11 +684,11 @@ class _BorderRenderer:
 
     def handle_z(self, psr: PygletShapeRenderer) -> None:
         """Actualisation du z-order"""
-        return True
+        return "rebuild"
 
     def handle_pipeline(self, psr: PygletShapeRenderer) -> None:
         """Actualisation de la pipeline de rendu"""
-        return True
+        return "rebuild"
 
     # ======================================== HELPERS ========================================
     def _rebuild(self, psr: PygletShapeRenderer) -> None:
@@ -724,50 +760,50 @@ def _rounded_rect_local_contour(shape: RoundedRect) -> np.ndarray:
     return contour.astype(np.float32)
  
  
-def _build_strip(contour: np.ndarray, width: float) -> np.ndarray:
+def _build_strip(contour: np.ndarray, width: float, align: str = "center") -> np.ndarray:
     """Génère un triangle strip (N+1)*2 points autour d'un contour fermé"""
-    # Topologie
     n = len(contour)
     prev_pts = contour[(np.arange(n) - 1) % n]
     next_pts = contour[(np.arange(n) + 1) % n]
- 
+
     def edge_normals(a: np.ndarray, b: np.ndarray) -> np.ndarray:
-        """Calcul les normales des arrêtes"""
         d = b - a
         lengths = np.linalg.norm(d, axis=1, keepdims=True)
         lengths = np.where(lengths == 0, 1, lengths)
         d /= lengths
         return np.column_stack((-d[:, 1], d[:, 0]))
- 
-    # Normales des arrêtes entrantes et sortantes
+
     n1 = edge_normals(prev_pts, contour)
     n2 = edge_normals(contour, next_pts)
 
-    # Calcul des bissectrices
     miter = n1 + n2
     miter_len = np.linalg.norm(miter, axis=1, keepdims=True)
     miter_len = np.where(miter_len == 0, 1, miter_len)
     miter /= miter_len
-    
-    # Ajustement de la longueur
+
     dot = np.einsum('ij,ij->i', n1, miter).reshape(-1, 1)
     dot = np.where(np.abs(dot) < 0.01, 0.01, dot)
-    half = width / 2.0
-    miter_dist = np.clip(half / dot, -width * 3, width * 3)
- 
-    # Calcul des contours offset
-    outer = contour + miter * miter_dist
-    inner = contour - miter * miter_dist
- 
-    # Construction du strip
+
+    if align == "center":
+        half = width / 2.0
+        miter_dist = np.clip(half / dot, -width * 3, width * 3)
+        outer = contour + miter * miter_dist
+        inner = contour - miter * miter_dist
+    elif align == "out":
+        miter_dist = np.clip(width / dot, -width * 3, width * 3)
+        outer = contour + miter * miter_dist
+        inner = contour
+    elif align == "in":
+        miter_dist = np.clip(width / dot, -width * 3, width * 3)
+        outer = contour
+        inner = contour - miter * miter_dist
+
     strip = np.empty(((n + 1) * 2, 2), dtype=np.float32)
     strip[0::2][:n] = outer
     strip[1::2][:n] = inner
-
-    # Fermeture du strip
     strip[-2] = outer[0]
     strip[-1] = inner[0]
- 
+
     return strip
  
  
