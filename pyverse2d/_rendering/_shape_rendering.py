@@ -573,16 +573,12 @@ class _BorderRenderer:
         a = int(a * opacity)
 
         # Arrêtes
-        flat_3d = []
-        for i in range(0, len(flat), 2):
-            flat_3d.extend([flat[i], flat[i+1], 0.0])
-
         self._vlist = self._program.vertex_list(
             self._n,
             pyglet.gl.GL_TRIANGLE_STRIP,
             self._batch,
             self._group,
-            position=('f', flat_3d),
+            position=('f', flat),
             colors=('Bn', (r, g, b, a) * self._n),
         )
 
@@ -595,10 +591,7 @@ class _BorderRenderer:
         """Réactualise les arrêtes"""
         strip = self._world_strip(psr.cx, psr.cy, psr.scale, psr.rotation, psr.border_width, psr.border_align)
         flat = strip.flatten().tolist()
-        flat_3d = []
-        for i in range(0, len(flat), 2):
-            flat_3d.extend([flat[i], flat[i+1], 0.0])
-        self._vlist.position[:] = flat_3d
+        self._vlist.position[:] = flat
     
     # ======================================== GETTERS ========================================
     @property
