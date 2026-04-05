@@ -8,6 +8,10 @@ from ...abc import Widget, Shape
 from ...math import Point
 
 from numbers import Real
+from typing import TypeAlias, Literal
+
+# ======================================== ALIAS ========================================
+BorderAlign: TypeAlias = Literal["in", "center", "out"]
 
 # ======================================== WIDGET ========================================
 class Border(Widget):
@@ -19,13 +23,14 @@ class Border(Widget):
         position(Point, optional): position
         anchor(Point, optional): ancre locale relative
         width(bool, optional): largeur de la bodure
+        align(BorderAlign, optional): alignement de la bordure
         color(Color, optional): couleur de la bordure
         opacité(Real, optional): opacité [0; 1]
     """
     __slots__ = (
         "_shape", "_shape_renderer",
         "_scale", "_rotation",
-        "_width", "_color",
+        "_width", "_align", "_color",
     )
 
     def __init__(
@@ -34,6 +39,7 @@ class Border(Widget):
             position: Point = (0.0, 0.0),
             anchor: Point = (0.5, 0.5),
             width: int = 1,
+            align: BorderAlign = "center",
             color: Color = (0, 0, 0),
             opacity: Real = 1.0,
         ):
@@ -50,6 +56,7 @@ class Border(Widget):
 
         # Affichage
         self._width: int = expect(width, int)
+        self._align: BorderAlign = expect(BorderAlign, str)
         self._color: Color = Color(color)
 
     # ======================================== GETTERS ========================================
@@ -62,6 +69,11 @@ class Border(Widget):
     def width(self) -> int:
         """Renvoie la largeur de la bordure"""
         return self._width
+    
+    @property
+    def align(self) -> BorderAlign:
+        """Renvoie l'alignement de la bordure"""
+        return self._align
     
     @property
     def color(self) -> Color:
@@ -93,6 +105,11 @@ class Border(Widget):
     def width(self, value: int) -> None:
         """Fixe la largeur de la bordure"""
         self._width = expect(value, int)
+
+    @align.setter
+    def align(self, value: BorderAlign) -> None:
+        """Fixe l'alignement de la bordure"""
+        self._align = expect(value, str)
     
     @color.setter
     def color(self, value: Color) -> None:
@@ -147,6 +164,7 @@ class Border(Widget):
                 rotation = self._rotation,
                 filling = False,
                 border_width = self._width,
+                border_align = self._align,
                 border_color = self._color,
                 opacity = context.opacity,
                 pipeline = pipeline,
@@ -164,6 +182,7 @@ class Border(Widget):
                 rotation = self._rotation,
                 filling = False,
                 border_width = self._width,
+                border_align = self._align,
                 border_color = self._color,
                 opacity = context.opacity,
                 pipeline=pipeline,
