@@ -45,6 +45,7 @@ class Entity:
 
         # Composants
         self._transform: Transform = None
+        self._follow: Follow = None
         self._shape_renderer: ShapeRenderer = None
         self._sprite_renderer: SpriteRenderer = None
         self._text_renderer: TextRenderer = None
