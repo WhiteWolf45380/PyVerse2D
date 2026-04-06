@@ -10,24 +10,9 @@ from math import exp
 # ======================================== SYSTEM ========================================
 class PhysicsSystem(System):
     """Système intégrant la physique des corps dynamiques"""
-    __slots__ = ("_pixels_per_meter")
+    __slots__ = ()
     order = 50
     exclusive = True
-
-    def __init__(self, pixels_per_meter: float = 100.0):
-        self._pixels_per_meter: float = float(pixels_per_meter)
-
-    # ======================================== GETTERS ========================================
-    @property
-    def pixels_per_meter(self) -> float:
-        """Renvoie l'échelle px/m"""
-        return self._pixels_per_meter
-
-    # ======================================== SETTERS ========================================
-    @pixels_per_meter.setter
-    def pixels_per_meter(self, value: float):
-        """Fixe l'échelle px/m"""
-        self._pixels_per_meter = float(value)
 
     # ======================================== UPDATE ========================================
     def update(self, world: World, dt: float):
@@ -38,7 +23,7 @@ class PhysicsSystem(System):
             world(World): monde à mettre à jour
             dt(float): delta time
         """
-        ppm = self._pixels_per_meter
+        ppm = world.pixels_per_meter
 
         for entity in world.query(RigidBody, Transform):
             rb: RigidBody = entity.get(RigidBody)

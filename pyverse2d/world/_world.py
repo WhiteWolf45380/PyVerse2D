@@ -1,19 +1,30 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from .._internal import expect
+from .._internal import expect, over
 from ..abc import Component, System
 
 from ._entity import Entity
 
 from typing import Type
+from numbers import Real
 
 # ======================================== OBJECT ========================================
 class World:
-    """Gère le monde virtuel et l'organisation des entités"""
-    def __init__(self):
+    """Gère le monde virtuel et l'organisation des entités
+
+    Args:
+        pixels_per_meter: rapport de conversions entre les screen pixels et les mètres
+    """
+    def __init__(self, pixels_per_meter: Real = 20.0):
+        # Paramètres
+        self._pixels_per_meter: float = over(float(expect(pixels_per_meter, Real)), 0, include=False)
+
+        # Composants
         self._all_entities: dict[str, Entity] = {}
         self._all_systems: list[System] = []
+
+        # Cache
         self._query_cache: dict[tuple, list[Entity]] = {}
         self._cache_dirty: bool = True
 
@@ -29,17 +40,28 @@ class World:
     def __len__(self) -> int:
         """Renvoie le nombre d'entités dans le monde"""
         return len(self._all_entities)
+    
+    # ======================================== PROPERTIES ========================================
+    @property
+    def pixels_per_meter(self) -> float:
+        """Echelle de conversion
 
-    # ======================================== UPDATE ========================================
-    def update(self, dt: float):
+        Défini le rapport entre les pixels de ``Screen`` et les distances du monde en mètres
         """
-        Actualise le monde en respectant l'ordre des phases
+        return self._pixels_per_meter
+    
+    @pixels_per_meter.setter
+    def pixels_per_meter(self, value: Real) -> None:
+        self._pixels_per_meter = over(float(expect(value, Real)), 0, include=False)
 
-        Args:
-            dt(float): delta time en secondes
-        """
-        for system in self._all_systems:
-            system.update(self, dt)
+    # ======================================== COLLECTIONS ========================================
+    def to_pixels(self, meters: Real) -> float:
+        """Conversion mètres vers pixels"""
+        return meters * self._pixels_per_meter
+    
+    def to_meters(self, pixels: Real) -> float:
+        """Conversion pixels vers mètres"""
+        return pixels / self._pixels_per_meter
 
     # ======================================== ENTITIES ========================================
     def add_entity(self, entity: Entity):
@@ -178,3 +200,14 @@ class World:
             if isinstance(s, system_type):
                 return s
         raise ValueError(f"World has no {system_type.__name__} system")
+    
+    # ======================================== UPDATE ========================================
+    def update(self, dt: float):
+        """
+        Actualise le monde en respectant l'ordre des phases
+
+        Args:
+            dt(float): delta time en secondes
+        """
+        for system in self._all_systems:
+            system.update(self, dt)

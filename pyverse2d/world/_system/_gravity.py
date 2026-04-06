@@ -7,18 +7,15 @@ from ...math import Vector
 from .._world import World
 from .._component import Transform, RigidBody
 
-from numbers import Real
-
 # ======================================== SYSTEM ========================================
 class GravitySystem(System):
-    """
-    Système appliquant la force gravitationnelle sur les corps dynamiques
+    """Système appliquant une force gravitationnelle sur les corps dynamiques
 
     Args:
         gravity(Real): force gravitationnelle en N/kg
     """
     __slots__ = ("_gravity")
-    order = 1
+    order = 0
     exclusive = False
     requires = ("PhysicsSystem",)
 

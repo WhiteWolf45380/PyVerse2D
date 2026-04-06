@@ -22,6 +22,7 @@ class Follow(Component):
         offset: ``Vecteur`` de décalage par rapport à l'offset
         smoothing: facteur de retard relatif [0, 1]
         max_speed: vitesse maximale en m/s
+        radius: rayon de tolérance
     """
     __slots__ = ("_entity", "_offset", "_smoothing", "_max_speed")
     requires = ("Transform",)
@@ -31,13 +32,15 @@ class Follow(Component):
             entity: Entity,
             offset: Vector = (0.0, 0.0),
             smoothing: Real = 0.0,
-            max_speed: Real = None
+            max_speed: Real = None,
+            radius: Real = 0.0,
         ):
         from .._entity import Entity
         self._entity: Entity = expect(entity, Entity)
         self._offset: Vector = Vector(offset)
         self._smoothing: float = clamped(float(expect(smoothing, Real)), include_max=False)
         self._max_speed: float | None = over(float(expect(max_speed, Real)), 0.0, include=False) if max_speed is not None else None
+        self._radius: float = abs(float(expect(radius, Real)))
         if not self._entity.has("Transform"):
             raise ValueError(f"Entity {self._entity.id}... has no Transform component")
 
@@ -115,3 +118,15 @@ class Follow(Component):
     @max_speed.setter
     def max_speed(self, value: Real | None) -> None:
         self._max_speed = over(float(expect(value, Real)), 0.0, include=False) if value is not None else None
+
+    @property
+    def radius(self) -> float:
+        """Rayon de suivi
+        
+        Défini le rayon de tolérance autour de la cible.
+        """
+        return self._radius
+    
+    @radius.setter
+    def radius(self, value: Real) -> None:
+        abs(float(expect(value, Real)))
