@@ -561,7 +561,7 @@ class _BorderRenderer:
 
         # Paramètres
         self._batch = pipeline.batch
-        self._group = pyglet.shapes._ShapeGroup(pyglet.gl.GL_SRC_ALPHA, pyglet.gl.GL_ONE_MINUS_SRC_ALPHA, self._program, pipeline.get_group(z=z))
+        self._group =_ShapeGroup(self._program, pipeline.get_group(z=z))
         self._width = width
 
         # Meshes
@@ -688,7 +688,7 @@ class _BorderRenderer:
     def _rebuild(self, psr: PygletShapeRenderer) -> None:
         """Reconstruit la bordure avec les paramètres courants"""
         self.delete()
-        self._build(psr.cx, psr.cy, psr.scale, psr.rotation, psr.border_width, psr.border_color, psr.opacity, psr.z, psr.pipeline)
+        self._build(psr.cx, psr.cy, psr.scale, psr.rotation, psr.border_width, psr.border_align, psr.border_color, psr.opacity, psr.z, psr.pipeline)
 
 # ======================================== BORDER HELPERS ========================================
 def _local_contour(shape: Shape) -> np.ndarray:
@@ -729,9 +729,9 @@ def _capsule_local_contour(shape: Capsule) -> np.ndarray:
 
 def _rounded_rect_local_contour(shape: RoundedRect) -> np.ndarray:
     """Contour local d'un rectangle arrondi centré à l'origine"""
-    r   = shape.radius
-    hx  = shape.inner_width  * 0.5
-    hy  = shape.inner_height * 0.5
+    r = shape.radius
+    hx = shape.inner_width  * 0.5
+    hy = shape.inner_height * 0.5
 
     seg = max(_ROUNDED_RECT_BORDER_SEGMENTS, int(r * 0.75))
     corners = [
@@ -807,6 +807,38 @@ def _apply_transform(pts: np.ndarray, cx: float, cy: float, scale: float, rotati
     cos_r, sin_r = math.cos(rad), math.sin(rad)
     rot = np.array([[cos_r, -sin_r], [sin_r, cos_r]], dtype=np.float32)
     return (pts * scale) @ rot.T + np.array([cx, cy], dtype=np.float32)
+
+# ======================================== RENDER GROUP ========================================
+class _ShapeGroup(pyglet.graphics.Group):
+    """Groupe de vertices"""
+    __slots__ = ("program", "_initialized")
+
+    _cache = {}
+
+    def __new__(cls, program, parent=None):
+        key = (id(program), id(parent))
+        instance = cls._cache.get(key)
+
+        if instance is None:
+            instance = super().__new__(cls)
+            cls._cache[key] = instance
+
+        return instance
+
+    def __init__(self, program, parent=None):
+        if self._initialized:
+            return
+        super().__init__(parent)
+        self.program = program
+        self._initialized = True
+
+    def set_state(self):
+        pyglet.gl.glEnable(pyglet.gl.GL_BLEND)
+        pyglet.gl.glBlendFunc(pyglet.gl.GL_SRC_ALPHA, pyglet.gl.GL_ONE_MINUS_SRC_ALPHA)
+        self.program.use()
+
+    def unset_state(self):
+        pass
 
 # ======================================== CAPSULE RENDERER ========================================
 class _CapsuleRenderer:
