@@ -5,7 +5,8 @@ from .._internal import expect, not_null, positive, clamped, not_in
 from ..math import Point, Vector
 from ..math.easing import EasingFunc, is_easing
 from ..abc import Request
-from ..world import Entity, Transform
+
+from ._world_layer import EntityView
 
 from pyglet.math import Mat4, Vec3
 from numbers import Real
@@ -25,7 +26,7 @@ class TransitionRequest(Request):
 @dataclass(frozen=True, slots=True)
 class FollowRequest(Request):
     """Requête de transition"""
-    entity: Entity
+    entity_view: EntityView
     smoothing: float
     max_speed: float
 
@@ -189,7 +190,7 @@ class Camera:
 
     def follow(
             self,
-            entity: Entity,
+            entity_view: EntityView,
             smoothing: Real = 0.0,
             max_speed: Real = None,
         ) -> None:
@@ -201,13 +202,12 @@ class Camera:
             smoothing: facteur de retard relatif [0, 1[
             max_speed: vitesse maximale de déplacement en px/s
         """
-        if not expect(entity, Entity).has(Transform):
-            raise ValueError(f"Entity {entity.id[:8]}... has no Transform component")
+        expect(entity_view, EntityView)
         if self.in_transition():
             self.stop_transition()
         not_in(clamped(float(expect(smoothing, Real))), 1)
         if max_speed is not None: positive(not_null(float(expect(max_speed, Real))))
-        self._follow = self.FollowRequest(entity, smoothing, max_speed)
+        self._follow = self.FollowRequest(entity_view, smoothing, max_speed)
 
     def unfollow(self) -> None:
         """Détache la camera de l'entité suivie"""
@@ -249,10 +249,11 @@ class Camera:
 
     def _update_follow(self, dt: float) -> None:
         """Actualise le suivi"""
-        entity = self._follow.entity
-        if not entity.is_active() or not entity.has(Transform):
+        entity_view = self._follow.entity_view
+        entity = entity_view.entity
+        if not entity.is_active():
             return self.unfollow()
-        target_x, target_y = entity.transform.position.x + self._offset.x, entity.transform.position.y + self._offset.y
+        target_x, target_y = entity_view.x + self._offset.x, entity_view.y + self._offset.y
         t = 1 - self._follow.smoothing ** dt
         x, y = _step_position(self._position.x, self._position.y, target_x, target_y, t)
         if self._follow.max_speed is not None:

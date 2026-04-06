@@ -1,9 +1,11 @@
 # ======================================== IMPORTS ========================================
+from __future__ import annotations
+
 from .._internal import expect
 from .._flag import CameraMode
 from .._rendering._pipeline import Pipeline
 
-from ..world import World, RenderSystem
+from ..world import World, RenderSystem, Entity
 from ..abc import Layer
 
 # ======================================== LAYER ========================================
@@ -19,19 +21,25 @@ class WorldLayer(Layer):
         super().__init__(camera_mode)
         self._world: World | None = expect(world, (World, None))
     
-    # ======================================== GETTERS ========================================
+    # ======================================== PROPERTIES ========================================
     @property
     def world(self) -> World | None:
-        """Renvoie le monde assigné"""
+        """Monde associé"""
         return self._world
 
-    # ======================================== SETTERS ========================================
     @world.setter
     def world(self, value: World | None):
-        """Fixe le monde assigné"""
         self._world = expect(value, (World, None))
 
-    # ======================================== CYCLE DE VIE ========================================
+    # ======================================== COLLECTIONS ========================================
+    def entity_view(self, entity: Entity) -> EntityView:
+        """Renvoie la vue d'une entité en dimension ``Screen``
+        
+        Cette vue permet notamment à la ``Camera`` de suivre une entité dans son monde.
+        """
+        return EntityView(entity, self._world.pixels_per_meter)
+
+    # ======================================== HOOKS ========================================
     def on_start(self):
         """Activation du layer"""
         ...
@@ -40,7 +48,7 @@ class WorldLayer(Layer):
         """Désactivation du layer"""
         ...
 
-    # ======================================== LOOP ========================================
+    # ======================================== LIFE CYCLE ========================================
     def update(self, dt: float):
         """Actualisation du layer"""
         if self._world is not None:
@@ -50,3 +58,25 @@ class WorldLayer(Layer):
         """Affichage du layer"""
         if self._world is not None and self._world.has_system(RenderSystem):
             self._world.get_system(RenderSystem).draw(self._world, pipeline)
+
+# ======================================== ENTITY VIEW ========================================
+class EntityView:
+    """Wrapper de vue d'une entité"""
+    def __init__(self, entity: Entity, ppm: float):
+        self._entity = entity
+        self._ppm = ppm
+
+    @property
+    def entity(self) -> Entity:
+        """Entité"""
+        return self._entity
+
+    @property
+    def x(self) -> float:
+        """Coordonnée horizontale"""
+        return self._entity.transform.x * self._ppm
+
+    @property
+    def y(self) -> float:
+        """Coordonnée verticale"""
+        return self._entity.transform.y * self._ppm
