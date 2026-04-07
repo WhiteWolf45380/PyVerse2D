@@ -1,7 +1,7 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from .._internal import expect, not_null, positive, clamped, not_in
+from .._internal import expect, not_null, positive, clamped, not_in, over
 from ..math import Point, Vector
 from ..math.easing import EasingFunc, is_easing
 from ..abc import Request
@@ -27,31 +27,46 @@ class TransitionRequest(Request):
 class FollowRequest(Request):
     """Requête de transition"""
     entity_view: EntityView
+    offset: Vector
     smoothing: float
     max_speed: float
 
 # ======================================== CAMERA ========================================
 class Camera:
-    """
-    Définit le point de vue dans le monde
+    """Définit un point de vue
 
     Args:
-        position(Point): position de la caméra
-        zoom (Real): facteur de zoom
+        position: position de la caméra
+        view_width: largeur de vision (en unités)
+        view_height: hauteur de vision (en unités)
+        zoom: facteur de zoom
+        rotation: angle de rotation en degrés
     """
     __slots__ = (
-        "_position", "_offset", "_zoom",
+        "_position", "_view_width", "_view_height",
+        "_zoom", "_rotation"
         "_transition", "_follow",
     )
 
     TransitionRequest: ClassVar[Type[TransitionRequest]] = TransitionRequest
     FollowRequest: ClassVar[Type[FollowRequest]] = FollowRequest
 
-    def __init__(self, position: Point = (0.0, 0.0), zoom: Real = 1.0):
-        # Transform
+    def __init__(
+            self,
+            position: Point = (0.0, 0.0),
+            view_width: Real | None = None,
+            view_height: Real | None = None,
+            zoom: Real = 1.0,
+            rotation: Real = 0.0,
+        ):
+        # Vision
         self._position: Point = Point(position)
-        self._offset: Vector = Vector(0.0, 0.0)
-        self._zoom: float = float(positive(not_null(expect(zoom, Real))))
+        self._view_width: float = over(float(expect(view_width, Real)), 0, include=False) if view_width is not None else None
+        self._view_height: float = over(float(expect(view_height, Real)), 0, include=False) if view_height is not None else None
+
+        # Transformation
+        self._zoom: float = over(float(expect(zoom, Real)), 0, include=False)
+        self._rotation: float = float(expect(rotation, Real))
 
         # Etat
         self._transition: TransitionRequest = None
@@ -60,87 +75,90 @@ class Camera:
     # ======================================== PROPERTIES ========================================
     @property
     def position(self) -> Point:
-        """Position brute
+        """Position de la vision
 
-        La position peut être un objet ``Point`` ou un tuple ``(x, y)``
+        La position peut être un objet ``Point`` ou un tuple ``(x, y)``.
         """
         return self._position
     
     @position.setter
-    def position(self, value: Point):
-        self._go(value[0], value[1])
+    def position(self, value: Point) -> None:
+        self._position.x = value[0]
+        self._position.y = value[1]
 
     @property
     def x(self) -> float:
-        """Position brute horizontale
+        """Coordonnée horizontale
         
-        La coordonnée doit être un ``Réel``
+        La coordonnée doit être un ``Réel``.
         """
         return self._position.x
     
     @x.setter
-    def x(self, value: Real):
-        self._go(x=value)
+    def x(self, value: Real) -> None:
+        self._position.x = value
 
     @property
     def y(self) -> float:
-        """Position brute verticale
+        """Coordonnée verticale.
         
-        La coordonnée doit être un ``Réel``
+        La coordonnée doit être un ``Réel``.
         """
         return self._position.y
     
     @y.setter
-    def y(self, value: Real):
-        self._go(y=value)
+    def y(self, value: Real) -> None:
+        self._position.y = value
 
     @property
-    def offset(self) -> Vector:
-        """Vecteur de décalage par rapport à la position suivie
+    def view_width(self) -> float:
+        """Largeur de vision (en unités)
 
-        Le vecteur peut être un objet ``Vector`` ou un tuple ``(vx, vy)``
+        La largeur doit être un ``Réel`` positif non nul.
+        Mettre à None pour correspondre automatiquement à la largeur du viewport.
         """
-        return self._offset
+        return self._view_width
     
-    @offset.setter
-    def offset(self, value: Vector) -> None:
-        self._offset = Vector(value)
-    
+    @view_width.setter
+    def view_width(self, value: Real | None) -> None:
+        self._view_width = over(float(expect(value, Real)), 0, include=False) if value is not None else None
+
     @property
-    def offset_x(self) -> float:
-        """Décalage horizontal par rapport à la position suivie
+    def view_height(self) -> float:
+        """Hauteur de vision (en unités)
         
-        La composante doit être un ``Réel``
+        La hauteur doit être un ``Réel`` positif non nul.
+        Mettre à None pour correspondre automatiquement à la hauteur du viewport.
         """
-        return self._offset.x
+        return self._view_height
     
-    @offset_x.setter
-    def offset_x(self, value: Real) -> None:
-        self._offset._x = value
-    
-    @property
-    def offset_y(self) -> float:
-        """Décalage vertical par rapport à la position suivie
-        
-        La composante doit être un ``Réel``
-        """
-        return self._offset.y
-    
-    @offset_y.setter
-    def offset_y(self, value: Real) -> None:
-        self._offset.y = value
+    @view_height.setter
+    def view_height(self, value: Real | None) -> None:
+        self._view_height = over(float(expect(value, Real)), 0, include=False) if value is not None else None
 
     @property
     def zoom(self) -> float:
         """Facteur de zoom
         
-        Le facteur doit être un ``Réel`` positif non nul
+        Le facteur doit être un ``Réel`` positif non nul.
         """
         return self._zoom
     
     @zoom.setter
     def zoom(self, value: Real):
-        self._zoom = positive(not_null(float(expect(value, Real))))
+        self._zoom = over(float(expect(value, Real)), 0, include=False)
+
+    @property
+    def rotation(self) -> float:
+        """Angle de rotation
+
+        La rotation se fait en ``degrés`` dans le sens trigonométrique ``(CCW)``.
+        """
+        return self._rotation
+    
+    @rotation.setter
+    def rotation(self, value: Real) -> None:
+        self._rotation = float(expect(value, Real))
 
     # ======================================== PREDICATES ========================================
     def is_following(self) -> bool:
@@ -158,7 +176,8 @@ class Camera:
         Args:
             vector: vecteur de translation
         """
-        self._go(self._position.x + vector[0], self._position.y + vector[1])
+        self._position.x += vector[0]
+        self._position.y += vector[1]
 
     def goto(
             self,
@@ -191,6 +210,7 @@ class Camera:
     def follow(
             self,
             entity_view: EntityView,
+            offset: Vector = (0.0, 0.0),
             smoothing: Real = 0.0,
             max_speed: Real = None,
         ) -> None:
@@ -205,9 +225,10 @@ class Camera:
         expect(entity_view, EntityView)
         if self.in_transition():
             self.stop_transition()
+        vector = Vector(vector)
         not_in(clamped(float(expect(smoothing, Real))), 1)
         if max_speed is not None: positive(not_null(float(expect(max_speed, Real))))
-        self._follow = self.FollowRequest(entity_view, smoothing, max_speed)
+        self._follow = self.FollowRequest(entity_view, offset, smoothing, max_speed)
 
     def unfollow(self) -> None:
         """Détache la camera de l'entité suivie"""
@@ -223,37 +244,31 @@ class Camera:
         elif self.is_following():
             self._update_follow(dt)
 
-    # ======================================== RENDER ========================================
-    def view_matrix(self) -> Mat4:
-        """Produit la matrice de vue à appliquer à l'écran"""
-        translate = Mat4.from_translation(Vec3(-self._position.x, -self._position.y, 0))
-        scale = Mat4.from_scale(Vec3(self._zoom, self._zoom, 1))
-        return translate @ scale
-    
-    def zoom_matrix(self) -> Mat4:
-        """Produit uniquement la matrice de zoom à appliquer à l'écran"""
-        return Mat4.from_scale(Vec3(self._zoom, self._zoom, 1))
-
-    # ======================================== INTERNALS ========================================
     def _update_transition(self, dt: float) -> None:
         """Actualise la transition"""
         tr = self._transition
         tr.elapsed += dt
+    
         if tr.elapsed >= tr.duration:
             self._go(tr.end.x, tr.end.y)
             return self.stop_transition()
+    
         t = tr.elapsed / tr.duration
         if tr.easing is not None:
             t = tr.easing(t)
+    
         self._go(*_step_position(tr.start.x, tr.start.y, tr.end.x, tr.end.y, t))
 
     def _update_follow(self, dt: float) -> None:
         """Actualise le suivi"""
         entity_view = self._follow.entity_view
         entity = entity_view.entity
+        offset = self._follow.offset
+
         if not entity.is_active():
             return self.unfollow()
-        target_x, target_y = entity_view.x + self._offset.x, entity_view.y + self._offset.y
+
+        target_x, target_y = entity_view.x + offset.x, entity_view.y + offset.y
         t = 1 - self._follow.smoothing ** dt
         x, y = _step_position(self._position.x, self._position.y, target_x, target_y, t)
         if self._follow.max_speed is not None:
@@ -266,13 +281,12 @@ class Camera:
                 x = self._position.x + dx * scale
                 y = self._position.y + dy * scale
         self._go(x, y)
-
-    def _go(self, x: float = None, y: float = None) -> None:
-        """Déplacement instantanné optimisé"""
-        if x is not None:
-            self._position.x = x
-        if y is not None:
-            self._position.y = y
+    
+    # ======================================== INTERNALS ========================================
+    def _go(self, x: float, y: float) -> None:
+        """Déplacement instantanné"""
+        self._position.x = x
+        self._position.y = y
 
 # ======================================== HELPERS ========================================
 def _step_position(start_x: float, start_y: float, end_x: float, end_y: float, t: float) -> tuple[float, float]:
