@@ -8,7 +8,7 @@ import pyglet
 from . import typing, abc, math, shape, asset
 
 # ======================================== STATE ========================================
-from ._rendering import Screen, Window, Pipeline
+from ._rendering import LogicalScreen, Window, Pipeline
 
 _window: Window | None = None
 _pipeline: Pipeline | None = None
@@ -99,7 +99,7 @@ def run(update: callable = None):
 
 # ======================================== EXPORTS ========================================
 __all__ = [
-    "Screen",
+    "LogicalScreen",
     "Window",
 
     "time",

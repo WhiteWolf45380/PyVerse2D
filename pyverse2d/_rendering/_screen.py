@@ -6,50 +6,39 @@ from .._internal import expect
 from numbers import Real
 
 # ======================================== OBJET ========================================
-class Screen:
-    """
-    Espace de rendu de référence à résolution fixe
+class LogicalScreen:
+    """Espace de rendu de référence à résolution fixe
 
     Args:
         width: largeur de l'espace virtuel
         height: hauteur de l'espace virtuel
-        pixels_per_unit: rapport de conversion entre les pixels écran et les unités monde
     """
-    __slots__ = (
-        "_width", "_height",
-        "_pixels_per_unit",
-    )
+    __slots__ = ("_width", "_height")
 
-    def __init__(self, width: int = 1920, height: int = 1080, pixels_per_unit: int = 10):
+    def __init__(self, width: int = 1920, height: int = 1080):
         self._width: int = int(expect(width, Real))
         self._height: int = int(expect(height, Real))
-        self._pixels_per_unit: int = expect(pixels_per_unit, int)
 
     # ======================================== CONVERSIONS ========================================
     def __repr__(self) -> str:
-        """Renvoie une représentation de l'écran"""
+        """Renvoie une représentation de l'espace logique"""
         return f"Screen({self._width}x{self._height})"
 
-    # ======================================== GETTERS ========================================
-    @property
-    def width(self) -> int:
-        """Renvoie la largeur de l'écran"""
-        return self._width
-
-    @property
-    def height(self) -> int:
-        """Renvoie la hauteur de l'écran"""
-        return self._height
-
-    @property
-    def ratio(self) -> float:
-        """Ratio largeur/hauteur de l'écran"""
-        return self._width / self._height
-
+    # ======================================== PROPERTIES ========================================
     @property
     def size(self) -> tuple[int, int]:
         """Renvoie la taille de l'écran"""
         return self._width, self._height
+    
+    @property
+    def width(self) -> int:
+        """Largeur de l'espace logique"""
+        return self._width
+
+    @property
+    def height(self) -> int:
+        """Hauteur de l'espace logique"""
+        return self._height    
     
     @property
     def half_width(self) -> float:
@@ -77,11 +66,6 @@ class Screen:
         return self._height * 0.5
     
     @property
-    def pixels_per_unit(self) -> int:
-        """Renvoie le rapport de conversion entre les pixels écran et les unités monde"""
-        return self._pixels_per_unit
-    
-    # ======================================== PUBLIC METHODS ========================================
-    def copy(self) -> Screen:
-        """Renvoie une copie de l'écran"""
-        return Screen(self._width, self._height, self._pixels_per_unit)
+    def ratio(self) -> float:
+        """Ratio largeur/hauteur de l'espace logique"""
+        return self._width / self._height

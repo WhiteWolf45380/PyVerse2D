@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from .._internal import expect
 
-from ._screen import Screen
+from ._screen import LogicalScreen
 
 import pyglet
 from pyglet.math import Mat4
@@ -36,7 +36,7 @@ class Window:
 
     def __init__(
         self,
-        screen: Screen = None,
+        screen: LogicalScreen = None,
         width: int = 1280,
         height: int = 720,
         caption: str = "",
@@ -51,9 +51,9 @@ class Window:
         visible: bool = True,
     ):
         # Espace logique de référence
-        if expect(screen, (Screen, None)) is None:
-            screen = Screen()
-        self._screen: Screen = screen
+        if expect(screen, (LogicalScreen, None)) is None:
+            screen = LogicalScreen()
+        self._screen: LogicalScreen = screen
 
         # Style de la fenêtre
         if transparent:
@@ -109,7 +109,7 @@ class Window:
         return self._pyglet_window
 
     @property
-    def screen(self) -> Screen:
+    def screen(self) -> LogicalScreen:
         """Espace logique de référence"""
         return self._screen
     

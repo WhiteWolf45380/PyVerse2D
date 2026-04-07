@@ -1,5 +1,5 @@
 # ======================================== IMPORTS ========================================
-from ._screen import Screen
+from ._screen import LogicalScreen
 from ._window import Window
 from ._pipeline import Pipeline
 from ._context import RenderContext
@@ -9,7 +9,7 @@ from ._label_rendering import PygletLabelRenderer
 
 # ======================================== EXPORTS ========================================
 __all__ = [
-    "Screen",
+    "LogicalScreen",
     "Window",
     "Pipeline",
     "RenderContext",
