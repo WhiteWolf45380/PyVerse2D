@@ -6,9 +6,7 @@ from .._internal import expect
 from ._screen import LogicalScreen
 
 import pyglet
-from pyglet.math import Mat4
 from pyglet.window import Window as PygletWindow
-
 from numbers import Real
 
 # ======================================== OBJET ========================================
@@ -57,14 +55,14 @@ class Window:
 
         # Style de la fenêtre
         if transparent:
-            style = pyglet.window.Window.WINDOW_STYLE_TRANSPARENT
+            style = PygletWindow.WINDOW_STYLE_TRANSPARENT
         elif borderless:
-            style = pyglet.window.Window.WINDOW_STYLE_BORDERLESS
+            style = PygletWindow.WINDOW_STYLE_BORDERLESS
         else:
-            style = pyglet.window.Window.WINDOW_STYLE_DEFAULT
+            style = PygletWindow.WINDOW_STYLE_DEFAULT
 
         # Fenêtre OS
-        self._pyglet_window: PygletWindow = pyglet.window.Window(
+        self._pyglet_window: PygletWindow = PygletWindow(
             width=width,
             height=height,
             caption=caption,
@@ -91,11 +89,11 @@ class Window:
         self._viewport: tuple[int, int, int, int] = None
         self._framebuffer_scale_x: float = 1.0
         self._framebuffer_scale_y: float = 1.0
-        self._apply_projection(width, height)
+        self._apply_letterboxing(width, height)
 
         @self._pyglet_window.event
         def on_resize(w: int, h: int):
-            self._apply_projection(w, h)
+            self._apply_letterboxing(w, h)
 
     # ======================================== CONVERSIONS ========================================
     def __repr__(self) -> str:
@@ -209,8 +207,8 @@ class Window:
         return (x - vx) * (1 / self._framebuffer_scale_x), (y - vy) * (1 / self.framebuffer_scale_y)
     
     # ======================================== INTERNALS ========================================
-    def _apply_projection(self, win_w: int, win_h: int):
-        """Letterboxing + projection orthogonale vers l'espace virtuel"""
+    def _apply_letterboxing(self, win_w: int, win_h: int):
+        """Calcul du letterboxing"""
         # Calcul des ratios
         screen_ratio = self._screen.ratio
         win_ratio = win_w / win_h
@@ -229,16 +227,8 @@ class Window:
             x = 0
             y = (win_h - h) // 2
 
-        # Matrice de projection
+        # Viewport actif
         self._viewport = (x, y, w, h)
-        self._pyglet_window.projection = Mat4.orthogonal_projection(
-            left=0.0,
-            right=self._screen.width,
-            bottom=0.0,
-            top=self._screen.height,
-            z_near=-1.0,
-            z_far=1.0,
-        )
 
         # Mise en cache des ratios
         self._framebuffer_scale_x = w / self._screen.width

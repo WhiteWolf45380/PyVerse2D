@@ -279,6 +279,26 @@ class Camera:
                 x = self._position.x + dx * scale
                 y = self._position.y + dy * scale
         self._go(x, y)
+
+    # ======================================== RESOLVE ========================================
+    def resolve(self, viewport_width: int, viewport_height: int) -> tuple[float, float, float, float, float, float]:
+        """Renvoie le frustum ``(x, y, width, height, zoom, rotation)``
+
+        Args:
+            viewport_width: largeur du viewport
+            viewport_height: hauteur du viewport
+        """
+        width = self._view_width if self._view_width is not None else viewport_width
+        height = self._view_height if self._view_height is not None else viewport_height
+
+        return (
+            self._position.x,
+            self._position.y,
+            width,
+            height,
+            self._zoom,
+            self._rotation,
+        )
     
     # ======================================== INTERNALS ========================================
     def _go(self, x: float, y: float) -> None:

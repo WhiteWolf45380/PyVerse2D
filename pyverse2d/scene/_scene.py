@@ -160,10 +160,10 @@ class Scene:
     def draw(self, pipeline: Pipeline):
         """Affichage"""
         pipeline.begin(self)
-        for layer in self._layers:
+        for layer, z in zip(self._layers, self._z_orders):
             if not layer.is_visible():
                 continue
-            pipeline.switch_layer(layer)
+            pipeline.switch_layer(layer, z=z)
             layer.draw(pipeline)
             pipeline.flush()
 
