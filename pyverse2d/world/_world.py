@@ -16,10 +16,7 @@ class World:
     Args:
         pixels_per_meter: rapport de conversions entre les screen pixels et les mètres
     """
-    def __init__(self, pixels_per_meter: Real = 20.0):
-        # Paramètres
-        self._pixels_per_meter: float = over(float(expect(pixels_per_meter, Real)), 0, include=False)
-
+    def __init__(self):
         # Composants
         self._all_entities: dict[str, Entity] = {}
         self._all_systems: list[System] = []
@@ -40,28 +37,6 @@ class World:
     def __len__(self) -> int:
         """Renvoie le nombre d'entités dans le monde"""
         return len(self._all_entities)
-    
-    # ======================================== PROPERTIES ========================================
-    @property
-    def pixels_per_meter(self) -> float:
-        """Echelle de conversion
-
-        Défini le rapport entre les pixels de ``Screen`` et les distances du monde en mètres
-        """
-        return self._pixels_per_meter
-    
-    @pixels_per_meter.setter
-    def pixels_per_meter(self, value: Real) -> None:
-        self._pixels_per_meter = over(float(expect(value, Real)), 0, include=False)
-
-    # ======================================== COLLECTIONS ========================================
-    def to_pixels(self, meters: Real) -> float:
-        """Conversion mètres vers pixels"""
-        return meters * self._pixels_per_meter
-    
-    def to_meters(self, pixels: Real) -> float:
-        """Conversion pixels vers mètres"""
-        return pixels / self._pixels_per_meter
 
     # ======================================== ENTITIES ========================================
     def add_entity(self, entity: Entity):

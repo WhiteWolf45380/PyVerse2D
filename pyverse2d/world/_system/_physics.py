@@ -23,8 +23,6 @@ class PhysicsSystem(System):
             world(World): monde à mettre à jour
             dt(float): delta time
         """
-        ppm = world.pixels_per_meter
-
         for entity in world.query(RigidBody, Transform):
             rb: RigidBody = entity.get(RigidBody)
             tr: Transform = entity.get(Transform)
@@ -55,11 +53,11 @@ class PhysicsSystem(System):
             if entity.has(GroundSensor):
                 gs: GroundSensor = entity.get(GroundSensor)
                 if gs.is_grounded() and gs._coyote_elapsed == 0.0:
-                    tr.y -= abs(rb.velocity.x) * dt * ppm * 0.12
+                    tr.y -= abs(rb.velocity.x) * dt * 0.12
                     
             # Intégration de la position
-            tr.x += rb.velocity.x * dt * ppm
-            tr.y += rb.velocity.y * dt * ppm
+            tr.x += rb.velocity.x * dt
+            tr.y += rb.velocity.y * dt
 
             # Reset accélération et vérification du sleep
             rb.reset_acceleration()

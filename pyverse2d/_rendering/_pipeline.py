@@ -43,6 +43,11 @@ class Pipeline:
         return self._window.screen
     
     @property
+    def ppu(self) -> int:
+        """Renvoie le rapport de conversion entre les unités monde et les pixels écran"""
+        return self._window.screen.pixels_per_unit
+    
+    @property
     def scene(self) -> Scene:
         """Renvoie la scene en cours de rendu"""
         return self._scene

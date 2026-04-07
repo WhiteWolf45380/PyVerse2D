@@ -1,21 +1,33 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
+from .._internal import expect
+
+from numbers import Real
+
 # ======================================== OBJET ========================================
 class Screen:
     """
     Espace de rendu de référence à résolution fixe
 
     Args:
-        width (int):  largeur
-        height (int): hauteur
+        width: largeur de l'espace virtuel
+        height: hauteur de l'espace virtuel
+        pixels_per_unit: rapport de conversion entre les pixels écran et les unités monde
     """
-    def __init__(self, width: int = 1920, height: int = 1080):
-        self._width  = int(width)
-        self._height = int(height)
+    __slots__ = (
+        "_width", "_height",
+        "_pixels_per_unit",
+    )
+
+    def __init__(self, width: int = 1920, height: int = 1080, pixels_per_unit: int = 10):
+        self._width: int = int(expect(width, Real))
+        self._height: int = int(expect(height, Real))
+        self._pixels_per_unit: int = expect(pixels_per_unit, int)
 
     # ======================================== CONVERSIONS ========================================
     def __repr__(self) -> str:
+        """Renvoie une représentation de l'écran"""
         return f"Screen({self._width}x{self._height})"
 
     # ======================================== GETTERS ========================================
@@ -64,7 +76,12 @@ class Screen:
         """Renvoie le centrey de l'écran"""
         return self._height * 0.5
     
+    @property
+    def pixels_per_unit(self) -> int:
+        """Renvoie le rapport de conversion entre les pixels écran et les unités monde"""
+        return self._pixels_per_unit
+    
     # ======================================== PUBLIC METHODS ========================================
     def copy(self) -> Screen:
         """Renvoie une copie de l'écran"""
-        return Screen(self._width, self._height)
+        return Screen(self._width, self._height, self._pixels_per_unit)

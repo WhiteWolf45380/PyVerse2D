@@ -17,26 +17,27 @@ class PygletLabelRenderer:
     Renderer pyglet unifié pour un label texte
 
     Args:
-        text(Text): texte à rendre
-        x(float): position horizontale
-        y(float, optional): point verticale
-        anchor_x(float, optional): ancre relative locale
-        anchor_y(float, optional): ancre relative verticale
-        rotation(float, optional): rotation en degrés
-        weight(str, optional): graisse ('bold', 'thin', '100'…'900', ou int pyglet)
-        italic(bool, optional): italique
-        underline(Color, optional): couleur du soulignement
-        color(Color, optional): couleur du texte (Color)
-        opacity(float, optional): opacité globale [0.0 ; 1.0]
-        line_spacing(int, optional): espacement entre les lignes en pixels (None = défaut)
-        width(int, optional): largeur de la boîte en pixels (None = pas de boîte)
-        height(int, optional): hauteur de la boîte en pixels (None = pas de boîte)
-        multiline(bool, optional): autorise les \\n explicites
-        wrap_lines(bool, optional): word-wrap automatique (nécessite width)
-        align(str, optional): 'left' | 'center' | 'right'
-        margin(int, optional): marge intérieure uniforme en pixels
-        z(int, optional): z-order
-        pipeline(Pipeline, optional): pipeline de rendu
+        text: texte à rendre
+        x: position horizontale
+        y: point verticale
+        anchor_x: ancre relative locale
+        anchor_y: ancre relative verticale
+        rotation: rotation en degrés
+        weight: graisse ('bold', 'thin', '100'…'900', ou int pyglet)
+        italic: italique
+        underline: couleur du soulignement
+        color: couleur du texte (Color)
+        opacity: opacité globale [0.0 ; 1.0]
+        line_spacing: espacement entre les lignes en pixels (None = défaut)
+        width: largeur de la boîte en pixels (None = pas de boîte)
+        height: hauteur de la boîte en pixels (None = pas de boîte)
+        multiline: autorise les \\n explicites
+        wrap_lines: word-wrap automatique (nécessite width)
+        align: 'left' | 'center' | 'right'
+        margin: marge intérieure uniforme en pixels
+        z: z-order
+        pipeline: pipeline de rendu
+        ppu: rapport de conversion world to screen
     """
     __slots__ = (
         "_text",
@@ -46,7 +47,7 @@ class PygletLabelRenderer:
         "_color", "_opacity",
         "_width", "_height", "_multiline", "_wrap_lines", "_align",
         "_margin", "_line_spacing",
-        "_z", "_pipeline",
+        "_z", "_pipeline", "apply_ppu",
         "_label",
     )
 
@@ -72,6 +73,7 @@ class PygletLabelRenderer:
         line_spacing: float = None,
         z: int = 0,
         pipeline: Pipeline = None,
+        ppu: int = 1,
     ):
         # Paramètres publics
         self._text: Text = text
@@ -94,6 +96,7 @@ class PygletLabelRenderer:
         self._line_spacing: float = line_spacing
         self._z: int = z
         self._pipeline: Pipeline = pipeline
+        self._ppu: bool = ppu
 
         # Construction
         self._label: pyglet.text.Label = None
@@ -103,20 +106,25 @@ class PygletLabelRenderer:
     def _build(self) -> None:
         """Construit le label pyglet et applique tous les styles"""
         font = self._text.font
+
         r, g, b, a = self._color.rgba8 if self._color is not None else (255, 255, 255, 255)
         a = int(a * self._opacity)
+
+        font_size = int(font.size * self._ppu)
+        width = int(self._width * self._ppu)
+        height = int(self._height * self._ppu)
 
         self._label = pyglet.text.Label(
             text=self._text.text,
             font_name=font.name,
-            font_size=font.size,
+            font_size=font_size,
             weight=self._weight,
             italic=self._italic,
             color=(r, g, b, a),
             anchor_x="left",
             anchor_y="bottom",
-            width=self._width,
-            height=self._height,
+            width=width,
+            height=height,
             multiline=self._multiline,
             rotation=self._rotation,
             batch=self._pipeline.batch if self._pipeline else None,
@@ -127,15 +135,18 @@ class PygletLabelRenderer:
 
     def _apply_styles(self) -> None:
         """Applique les styles set_style en une passe"""
+        margin = int(self._margin * self._ppu)
+        
         s = self._label.set_style
         s("wrap_lines", self._wrap_lines)
         s("align", self._align)
-        s("margin_left", self._margin)
-        s("margin_right", self._margin)
-        s("margin_top", self._margin)
-        s("margin_bottom", self._margin)
+        s("margin_left", margin)
+        s("margin_right", margin)
+        s("margin_top", margin)
+        s("margin_bottom", margin)
         if self._line_spacing is not None:
-            s("line_spacing", self._line_spacing)
+            line_spacing = int(self._margin * self._ppu)
+            s("line_spacing", line_spacing)
         if self._underline is not None:
             s("underline", self._underline.rgba8)
 
@@ -278,26 +289,27 @@ class PygletLabelRenderer:
         Met à jour le renderer label
 
         Args:
-            text(Text): texte à rendre
-            x(float): position horizontale
-            y(float, optional): point verticale
-            anchor_x(float, optional): ancre relative locale
-            anchor_y(float, optional): ancre relative verticale
-            rotation(float, optional): rotation en degrés
-            weight(str, optional): graisse ('bold', 'thin', '100'…'900', ou int pyglet)
-            italic(bool, optional): italique
-            underline(Color, optional): couleur du soulignement
-            color(Color, optional): couleur du texte (Color)
-            opacity(float, optional): opacité globale [0.0 ; 1.0]
-            line_spacing(int, optional): espacement entre les lignes en pixels (None = défaut)
-            width(int, optional): largeur de la boîte en pixels (None = pas de boîte)
-            height(int, optional): hauteur de la boîte en pixels (None = pas de boîte)
-            multiline(bool, optional): autorise les \\n explicites
-            wrap_lines(bool, optional): word-wrap automatique (nécessite width)
-            align(str, optional): 'left' | 'center' | 'right'
-            margin(int, optional): marge intérieure uniforme en pixels
-            z(int, optional): z-order
-            pipeline(Pipeline, optional): pipeline de rendu
+            text: texte à rendre
+            x: position horizontale
+            y: point verticale
+            anchor_x: ancre relative locale
+            anchor_y: ancre relative verticale
+            rotation: rotation en degrés
+            weight: graisse ('bold', 'thin', '100'…'900', ou int pyglet)
+            italic: italique
+            underline: couleur du soulignement
+            color: couleur du texte (Color)
+            opacity: opacité globale [0.0 ; 1.0]
+            line_spacing: espacement entre les lignes en pixels (None = défaut)
+            width: largeur de la boîte en pixels (None = pas de boîte)
+            height: hauteur de la boîte en pixels (None = pas de boîte)
+            multiline: autorise les \\n explicites
+            wrap_lines: word-wrap automatique (nécessite width)
+            align: 'left' | 'center' | 'right'
+            margin: marge intérieure uniforme en pixels
+            z: z-order
+            pipeline: pipeline de rendu
+            ppu: rapport de conversion world to screen
         """
         rebuild: bool = False
         changes: list[str] = set()
@@ -336,7 +348,7 @@ class PygletLabelRenderer:
         font = self._text.font
         self._label.text = self._text.text
         self._label.font_name = font.name
-        self._label.font_size = font.size
+        self._label.font_size = int(font.size * self._ppu)
         self._refresh_position()
 
     def _handle_x(self) -> None:
@@ -384,12 +396,12 @@ class PygletLabelRenderer:
 
     def _handle_width(self) -> None:
         """Actualisation de la largeur"""
-        self._label.width = self._width
+        self._label.width = int(self._width * self._ppu)
         self._refresh_position()
 
     def _handle_height(self) -> None:
         """Actualisation de la hauteur"""
-        self._label.height = self._height
+        self._label.height = int(self._height * self._ppu)
         self._refresh_position()
 
     def _handle_align(self) -> None:
@@ -398,16 +410,18 @@ class PygletLabelRenderer:
 
     def _handle_margin(self) -> None:
         """Actualisation de la marge"""
+        margin = int(self._margin * self._ppu)
         s = self._label.set_style
-        s("margin_left", self._margin)
-        s("margin_right", self._margin)
-        s("margin_top", self._margin)
-        s("margin_bottom", self._margin)
+        s("margin_left", margin)
+        s("margin_right", margin)
+        s("margin_top", margin)
+        s("margin_bottom", margin)
         self._refresh_position()
 
     def _handle_line_spacing(self) -> None:
         """Actualisation de l'espacement"""
-        self._label.set_style("line_spacing", self._line_spacing)
+        line_spacing = int(self._line_spacing * self._ppu) if self._line_spacing is not None else None
+        self._label.set_style("line_spacing", line_spacing)
         self._refresh_position()
 
     def _handle_z(self) -> None:
@@ -424,8 +438,8 @@ class PygletLabelRenderer:
     # ======================================== HELPERS ========================================
     def _refresh_position(self) -> None:
         """Recalcule x/y pyglet à partir de l'ancre et des dimensions réelles"""
-        self._label.x = self._x - self._anchor_x * self._label.content_width
-        self._label.y = self._y - self._anchor_y * self._label.content_height
+        self._label.x = (self._x - self._anchor_x * self._label.content_width) * self._ppu
+        self._label.y = (self._y - self._anchor_y * self._label.content_height) * self._ppu
 
     def _rebuild(self) -> None:
         """Reconstruit le label avec les paramètres courants"""
