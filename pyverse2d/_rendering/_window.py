@@ -6,27 +6,34 @@ from .._internal import expect
 from ._screen import Screen
 
 import pyglet
-import pyglet.gl as gl
 from pyglet.math import Mat4
+from pyglet.window import Window as PygletWindow
+
+from numbers import Real
 
 # ======================================== OBJET ========================================
 class Window:
-    """
-    Fenêtre OS redimensionnable
+    """Fenêtre OS
 
     Args:
-        screen(Screen): space logique de référence
-        width(int): largeur initiale de la fenêtre
-        height(int): hauteur initiale de la fenêtre
-        caption(str): titre de la fenêtre
-        fullscreen(bool): démarre en plein écran
-        resizable(bool): autorise le redimensionnement
-        vsync(bool): synchronisation verticale
-        borderless(bool): fenêtre sans décoration OS
-        min_width(int|None): largeur minimale (si resizable)
-        min_height(int|None): hauteur minimale (si resizable)
-        visible(bool): rend la fenêtre visible immédiatement
+        screen: espace logique de référence
+        width: largeur initiale de la fenêtre
+        height: hauteur initiale de la fenêtre
+        caption: titre de la fenêtre
+        fullscreen: démarre en plein écran
+        resizable: autorise le redimensionnement
+        vsync: synchronisation verticale
+        borderless: fenêtre sans décoration OS
+        transparent: fenêtre transparente
+        min_width: largeur minimale (si resizable)
+        min_height: hauteur minimale (si resizable)
+        visible: rend la fenêtre visible immédiatement
     """
+    __slots__ = (
+        "_screen", "_pyglet_window", "_viewport",
+        "_framebuffer_scale_x", "_framebuffer_scale_y",
+    )
+
     def __init__(
         self,
         screen: Screen = None,
@@ -38,6 +45,7 @@ class Window:
         resizable: bool = True,
         vsync: bool = True,
         borderless: bool = False,
+        transparent: bool = False,
         min_width: int | None = None,
         min_height: int | None = None,
         visible: bool = True,
@@ -45,13 +53,18 @@ class Window:
         # Espace logique de référence
         if expect(screen, (Screen, None)) is None:
             screen = Screen()
-        self._screen = screen
+        self._screen: Screen = screen
 
         # Style de la fenêtre
-        style = pyglet.window.Window.WINDOW_STYLE_BORDERLESS if borderless else pyglet.window.Window.WINDOW_STYLE_DEFAULT
+        if transparent:
+            style = pyglet.window.Window.WINDOW_STYLE_TRANSPARENT
+        elif borderless:
+            style = pyglet.window.Window.WINDOW_STYLE_BORDERLESS
+        else:
+            style = pyglet.window.Window.WINDOW_STYLE_DEFAULT
 
         # Fenêtre OS
-        self._window = pyglet.window.Window(
+        self._pyglet_window: PygletWindow = pyglet.window.Window(
             width=width,
             height=height,
             caption=caption,
@@ -66,134 +79,139 @@ class Window:
         if icon_path is not None:
             try:
                 icon = pyglet.image.load(icon_path)
-                self._window.set_icon(icon)
+                self._pyglet_window.set_icon(icon)
             except Exception:
                 pass
 
         # Dimensions minimales
         if resizable and (min_width is not None or min_height is not None):
-            self._window.set_minimum_size(min_width or 1, min_height or 1,)
+            self._pyglet_window.set_minimum_size(min_width or 1, min_height or 1,)
 
         # Projection
-        self._viewport: tuple[int, int, int, int] = (0, 0, width, height)
+        self._viewport: tuple[int, int, int, int] = None
+        self._framebuffer_scale_x: float = 1.0
+        self._framebuffer_scale_y: float = 1.0
         self._apply_projection(width, height)
 
-        @self._window.event
+        @self._pyglet_window.event
         def on_resize(w: int, h: int):
             self._apply_projection(w, h)
 
-    # ======================================== GETTERS ========================================
+    # ======================================== CONVERSIONS ========================================
     def __repr__(self) -> str:
-        return (f"Window({self._window.width}x{self._window.height}, screen={self._screen})")
+        """Renvoie une représentation de la fenêtre"""
+        return (f"Window({self.width}x{self.height}, screen={self.screen})")
 
-    # ======================================== GETTERS ========================================
+    # ======================================== PROPERTIES ========================================
+    @property
+    def native(self) -> PygletWindow:
+        """Renvoie la fenêtre pyglet"""
+        return self._pyglet_window
+
     @property
     def screen(self) -> Screen:
         """Espace logique de référence"""
         return self._screen
+    
+    @property
+    def size(self) -> tuple[int, int]:
+        """Taille actuelle de la fenpetre OS"""
+        return (self._pyglet_window.width, self._pyglet_window.height)
 
     @property
     def width(self) -> int:
         """Largeur actuelle de la fenêtre OS"""
-        return self._window.width
+        return self._pyglet_window.width
 
     @property
     def height(self) -> int:
         """Hauteur actuelle de la fenêtre OS"""
-        return self._window.height
-
-    @property
-    def size(self) -> tuple[int, int]:
-        return self._window.width, self._window.height
+        return self._pyglet_window.height
 
     @property
     def viewport(self) -> tuple[int, int, int, int]:
         """(x, y, w, h) du viewport actif dans la fenêtre OS"""
         return self._viewport
-
-    @property
-    def native(self) -> pyglet.window.Window: # type: ignore
-        """Renvoie la fenêtre pyglet"""
-        return self._window
     
     @property
     def framebuffer_scale(self) -> tuple[float, float]:
-        """Renvoie le ratio pixels framebuffer / pixels logiques"""
-        vx, vy, vw, vh = self._viewport
-        return vw / self._screen.width, vh / self._screen.height
-
-    # ======================================== CONVERSIONS ========================================
-    def screen_to_window(self, x: float, y: float) -> tuple[float, float]:
-        """
-        Convertit des coordonnées de l'espace logique vers la fenêtre OS.
-
-        Args:
-            x (float): coordonnée horizontale logique
-            y (float): coordonnée verticale logique
-        """
-        vx, vy, vw, vh = self._viewport
-        sx = vw / self._screen.width
-        sy = vh / self._screen.height
-        return x * sx + vx, y * sy + vy
-
-    def window_to_screen(self, x: float, y: float) -> tuple[float, float]:
-        """
-        Convertit des coordonnées de la fenêtre OS vers l'espace logique.
-
-        Args:
-            x (float): coordonnée horizontale dans la fenêtre OS
-            y (float): coordonnée verticale dans la fenêtre OS
-        """
-        vx, vy, vw, vh = self._viewport
-        sx = self._screen.width  / vw
-        sy = self._screen.height / vh
-        return (x - vx) * sx, (y - vy) * sy
+        """Ratio pixels framebuffer / pixels logiques"""
+        return (self._framebuffer_scale_x, self._framebuffer_scale_y)
+    
+    @property
+    def framebuffer_scale_x(self) -> float:
+        """Ratio horizontal pixels framebuffer / pixels logiques"""
+        return self._framebuffer_scale_x
+    
+    @property
+    def framebuffer_scale_y(self) -> float:
+        """Ratio vertical pixels framebuffer / pixels logiques"""
+        return self._framebuffer_scale_y
 
     # ======================================== SETTERS ========================================
     def set_caption(self, caption: str):
         """Fixe le nom de la fenêtre"""
-        self._window.set_caption(caption)
+        self._pyglet_window.set_caption(caption)
 
     def set_fullscreen(self, value: bool):
         """Fixe le plein écran"""
-        self._window.set_fullscreen(value)
+        self._pyglet_window.set_fullscreen(value)
 
     def set_visible(self, value: bool):
         """Fixe la visibilité"""
-        self._window.set_visible(value)
+        self._pyglet_window.set_visible(value)
 
     def set_size(self, width: int, height: int):
-        """Redimensionne la fenêtre (sans effet en fullscreen)"""
-        self._window.set_size(width, height)
+        """Redimensionne la fenêtre"""
+        self._pyglet_window.set_size(width, height)
 
     def set_position(self, x: int, y: int):
         """Déplace la fenêtre sur le bureau"""
-        self._window.set_location(x, y)
+        self._pyglet_window.set_location(x, y)
     
-    # ======================================== PUBLIC METHODS ========================================
-    def clear(self):
-        """Efface le contenu de la fenêtre"""
-        self._window.clear()
-
+    # ======================================== COLLECTIONS ========================================
     def center(self):
         """Centre la fenêtre sur l'écran principal"""
         display = pyglet.display.get_display()
         monitors = display.get_screens()
         monitor = monitors[0]
-        x = (monitor.width  - self._window.width)  // 2
-        y = (monitor.height - self._window.height) // 2
-        self._window.set_location(x, y)
+        x = (monitor.width - self._pyglet_window.width)  // 2
+        y = (monitor.height - self._pyglet_window.height) // 2
+        self._pyglet_window.set_location(x, y)
+    
+    def clear(self):
+        """Efface le contenu de la fenêtre"""
+        self._pyglet_window.clear()
 
     def close(self):
         """Ferme la fenêtre"""
-        self._window.close()
-    
-    # ======================================== PROJECTION ========================================
-    def _apply_projection(self, win_w: int, win_h: int):
-        """Letterboxing + projection orthogonale vers l'espace logique"""
-        if win_w <= 0 or win_h <= 0:
-            return
+        self._pyglet_window.close()
 
+    # ======================================== CONVERSIONS ========================================
+    def screen_to_window(self, x: Real, y: Real) -> tuple[float, float]:
+        """Convertit des coordonnées de l'espace logique vers la fenêtre OS
+
+        Args:
+            x : coordonnée horizontale logique
+            y: coordonnée verticale logique
+        """
+        vx, vy, _, _ = self._viewport
+        return vx + x * self._framebuffer_scale_x, vy + y * self.framebuffer_scale_y
+
+    def window_to_screen(self, x: Real, y: Real) -> tuple[float, float]:
+        """Convertit des coordonnées de la fenêtre OS vers l'espace logique
+
+        Args:
+            x: coordonnée horizontale dans la fenêtre OS
+            y: coordonnée verticale dans la fenêtre OS
+        """
+        vx, vy, _, _ = self._viewport
+        return (x - vx) * (1 / self._framebuffer_scale_x), (y - vy) * (1 / self.framebuffer_scale_y)
+    
+    # ======================================== INTERNALS ========================================
+    def _apply_projection(self, win_w: int, win_h: int):
+        """Letterboxing + projection orthogonale vers l'espace virtuel"""
+        # Calcul des ratios
         screen_ratio = self._screen.ratio
         win_ratio = win_w / win_h
 
@@ -213,11 +231,15 @@ class Window:
 
         # Matrice de projection
         self._viewport = (x, y, w, h)
-        self._window.projection = Mat4.orthogonal_projection(
-            left=-self._screen.half_width,
-            right=self._screen.half_width,
-            bottom=-self._screen.half_height,
-            top=self._screen.half_height,
-            z_near=-1,
-            z_far=1,
+        self._pyglet_window.projection = Mat4.orthogonal_projection(
+            left=0.0,
+            right=self._screen.width,
+            bottom=0.0,
+            top=self._screen.height,
+            z_near=-1.0,
+            z_far=1.0,
         )
+
+        # Mise en cache des ratios
+        self._framebuffer_scale_x = w / self._screen.width
+        self._framebuffer_scale_y = h / self._screen.height
