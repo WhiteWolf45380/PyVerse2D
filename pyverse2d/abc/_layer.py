@@ -2,36 +2,42 @@
 from __future__ import annotations
 
 from .._internal import expect
-from .._flag import CameraMode
 
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .._rendering import Renderer
+    from ..scene import Camera
 
 # ======================================== ABSTRACT CLASS ========================================
 class Layer(ABC):
-    """Classe abstraite des layers"""
-    __slots__ = ("_camera_mode", "_active", "_visible")
+    """Classe abstraite des layers
+    
+    Args:
+        camera: caméra locale
+    """
+    __slots__ = ("_camera", "_active", "_visible")
 
-    def __init__(self, camera_mode: CameraMode = CameraMode.WORLD):
-        self._camera_mode: CameraMode = expect(camera_mode, CameraMode)
+    def __init__(self, camera: Camera = None):
+        from ..scene import Camera
+        self._camera: Camera = expect(camera, (Camera, None))
         self._active: bool = True
         self._visible: bool = True
 
     # ======================================== PROPERTIES ========================================
     @property
-    def camera_mode(self) -> CameraMode:
-        """Mode de caméra
+    def camera(self) -> Camera:
+        """Caméra clocale
 
-        Cette propriété modifie le comportement de la caméra et doit être un ``CameraMode``
+        Si la caméra locale n'est pas définie, celle de la scène est utilisée.
         """
-        return self._camera_mode
+        return self._camera
     
-    @camera_mode.setter
-    def camera_mode(self, value: CameraMode) -> None:
-        self._camera_mode = expect
+    @camera.setter
+    def camera(self, value: Camera) -> None:
+        from ..scene import Camera
+        self._camera = expect(value, (Camera, None))
     
     # ======================================== ACTIVITY ========================================
     def is_active(self) -> bool:
