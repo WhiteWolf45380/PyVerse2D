@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from .._internal import expect
-from .._rendering._pipeline import Pipeline
+from .._rendering._pipeline import Pipeline, Camera
 from ..abc import Layer
 from ..tile import TileMap, TileRenderer
 
@@ -28,8 +28,9 @@ class TileLayer(Layer):
         tile_map: TileMap,
         chunk_size: int = 16,
         clip: bool = False,
+        camera: Camera = None,
     ):
-        super().__init__()
+        super().__init__(camera)
 
         # TileMap
         self._tile_map: TileMap = expect(tile_map, TileMap)

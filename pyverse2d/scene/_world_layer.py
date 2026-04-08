@@ -2,8 +2,7 @@
 from __future__ import annotations
 
 from .._internal import expect
-from .._flag import CameraMode
-from .._rendering._pipeline import Pipeline
+from .._rendering._pipeline import Pipeline, Camera
 
 from ..world import World, RenderSystem, Entity
 from ..abc import Layer
@@ -17,8 +16,8 @@ class WorldLayer(Layer):
         world(World, optional): monde assigné
         camera_mode(CameraMode, optional): camera behavior
     """
-    def __init__(self, world: World = None, camera_mode: CameraMode = CameraMode.WORLD):
-        super().__init__(camera_mode)
+    def __init__(self, world: World = None, camera: Camera = None):
+        super().__init__(camera)
         self._world: World | None = expect(world, (World, None))
     
     # ======================================== PROPERTIES ========================================
