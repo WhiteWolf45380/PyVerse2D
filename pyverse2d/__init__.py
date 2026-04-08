@@ -8,9 +8,8 @@ import pyglet
 from . import typing, abc, math, shape, asset
 
 # ======================================== STATE ========================================
-from ._rendering import LogicalScreen, Window, Pipeline
+from ._rendering import Window, LogicalScreen, Viewport, Camera, Pipeline
 
-_window: Window | None = None
 _pipeline: Pipeline | None = None
 
 # ======================================== MANAGERS ========================================
@@ -53,25 +52,23 @@ def set_window(window: Window):
     Args:
         window (Window): fenêtre à utiliser
     """
-    global _window
     global _pipeline
     if not isinstance(window, Window):
         raise TypeError("Expected a Window instance")
-    _window = window
     _pipeline = Pipeline(window)
 
     for manager in _context_manager:
         manager.bind(window)
 
-    @_window.native.event
+    @_pipeline.window.native.event
     def on_draw():
-        _window.clear()
+        _pipeline.window.clear()
         scene.draw(_pipeline)
 
 # ======================================== LOOP ========================================
 def run(update: callable = None):
     """Démarre la boucle de mise à jour"""
-    if _window is None:
+    if _pipeline is None:
         raise RuntimeError("No window set, try set_window() before run()")
 
     def _update(raw_dt: float):
@@ -99,8 +96,17 @@ def run(update: callable = None):
 
 # ======================================== EXPORTS ========================================
 __all__ = [
-    "LogicalScreen",
     "Window",
+    "LogicalScreen",
+    "Viewport",
+    "Camera",
+
+    "TimeManager",
+    "EventManager",
+    "KeyManager",
+    "MouseManager",
+    "InputsManager",
+    "UiManager"
 
     "time",
     "event",
