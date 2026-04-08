@@ -77,10 +77,6 @@ class Scene:
         L'état doit être un Enum ``SceneState``.
         """
         return self._state
-    
-    @state.setter
-    def state(self, value: SceneState) -> None:
-        self._state = expect(value, SceneState)
 
     # ======================================== LAYERS ========================================
     def add_layer(self, layer: Layer, z: int = 0) -> Scene:
@@ -112,13 +108,7 @@ class Scene:
         for layer in self._layers:
             layer.on_stop()
 
-    def preload(self):
-        """Force le build de tous les layers qui l'implémentent"""
-        for layer in self._layers:
-            if hasattr(layer, "preload"):
-                layer.preload()
-
-    # ======================================== CALLBACKS ========================================
+    # ======================================== HOOKS ========================================
     def on_update(self, fn: Callable[[float], None]) -> Callable[[float], None]:
         """Enregistre un callback appelé à chaque update
 
@@ -148,6 +138,12 @@ class Scene:
             layer.on_stop()
 
     # ======================================== LIFE CYCLE ========================================
+    def preload(self):
+        """Force le build de tous les layers qui l'implémentent"""
+        for layer in self._layers:
+            if hasattr(layer, "preload"):
+                layer.preload()
+
     def update(self, dt: float):
         """Actualisation"""
         for layer in reversed(self._layers):
@@ -170,3 +166,8 @@ class Scene:
         for fn in self._draw_callbacks:
             fn(pipeline)
         pipeline.end()
+
+    # ======================================== INTERNALS ========================================
+    def _set_state(self, value: SceneState) -> None:
+        """Fixe l'état de la scène"""
+        self._state = value

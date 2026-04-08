@@ -244,7 +244,7 @@ class _WindowViewport:
         width: largeur
         height: hauteur
     """
-    __slots__ = ("_x", "_y", "_width", "_height")
+    __slots__ = ("x", "y", "width", "height")
 
     def __init__(self, x: int, y: int, width: int, height: int):
         self.x: int = x

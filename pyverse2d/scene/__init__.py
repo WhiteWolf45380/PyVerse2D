@@ -24,43 +24,43 @@ def load(scene: Scene):
     _stop_all()
     _stack.clear()
     _stack.append(expect(scene, Scene))
-    scene.set_state(SceneState.RUNNING)
+    scene._set_state(SceneState.RUNNING)
     scene.on_start()
 
 def switch(scene: Scene):
     """Remplace la scene active par une autre"""
     if _stack:
         top = _stack[-1]
-        top.set_state(SceneState.SLEEPING)
+        top._set_state(SceneState.SLEEPING)
         top.on_stop()
         _stack.pop()
     _stack.append(expect(scene, Scene))
-    scene.set_state(SceneState.RUNNING)
+    scene._set_state(SceneState.RUNNING)
     scene.on_start()
 
 def push(scene: Scene):
     """Empile une scene par dessus la scene active"""
     if _stack and scene.stack_mode is not StackMode.OVERLAY:
         top = _stack[-1]
-        if scene.stack_mode is StackMode.PAUSE: top.set_state(SceneState.PAUSED)
-        elif scene.stack_mode is StackMode.HIDE: top.set_state(SceneState.HIDDEN)
+        if scene.stack_mode is StackMode.PAUSE: top._set_state(SceneState.PAUSED)
+        elif scene.stack_mode is StackMode.HIDE: top._set_state(SceneState.HIDDEN)
         else:
-            top.set_state(SceneState.SLEEPING)
+            top._set_state(SceneState.SLEEPING)
             top.on_stop()
     _stack.append(expect(scene, Scene))
-    scene.set_state(SceneState.RUNNING)
+    scene._set_state(SceneState.RUNNING)
     scene.on_start()
 
 def pop():
     """Dépile la scene active et reprend la précédente"""
     if _stack:
         top = _stack[-1]
-        top.set_state(SceneState.SLEEPING)
+        top._set_state(SceneState.SLEEPING)
         top.on_stop()
         _stack.pop()
         if _stack:
             new_top = _stack[-1]
-            new_top.set_state(SceneState.RUNNING)
+            new_top._set_state(SceneState.RUNNING)
             new_top.on_start()
         return top
 
@@ -80,7 +80,7 @@ def draw(pipeline: Pipeline):
 # ======================================== INTERNALS ========================================
 def _stop_all():
     for scene in _stack:
-        scene.set_state(SceneState.SLEEPING)
+        scene._set_state(SceneState.SLEEPING)
         scene.on_stop()
 
 # ======================================== EXPORTS ========================================
