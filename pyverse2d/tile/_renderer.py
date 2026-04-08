@@ -136,90 +136,29 @@ class TileArrayTexture:
             self._tex_id = None
 
 
-# ======================================== CHUNK MESH ========================================
-class _ChunkMesh:
-    """VAO/VBO représentant un chunk de tuiles pré-baked"""
-    __slots__ = ("_vao", "_vbo", "_vertex_count")
-
-    def __init__(self):
-        self._vao: int | None = None
-        self._vbo: int | None = None
-        self._vertex_count: int = 0
-
-    # ======================================== BUILD ========================================
-    def build(self, vertices: np.ndarray) -> None:
-        """
-        Construit le mesh depuis un array float32
-
-        Args:
-            vertices(np.ndarray): sommets aplatis, 5 floats par sommet (x, y, u, v, layer)
-        """
-        self.delete()
-
-        self._vertex_count = len(vertices) // 5
-        if self._vertex_count == 0:
-            return
-
-        vao = gl.GLuint()
-        vbo = gl.GLuint()
-        gl.glGenVertexArrays(1, ctypes.byref(vao))
-        gl.glGenBuffers(1, ctypes.byref(vbo))
-        self._vao = vao.value
-        self._vbo = vbo.value
-
-        gl.glBindVertexArray(self._vao)
-        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self._vbo)
-
-        raw = vertices.astype(np.float32).tobytes()
-        gl.glBufferData(gl.GL_ARRAY_BUFFER, len(raw), raw, gl.GL_STATIC_DRAW)
-
-        stride = 5 * 4
-        gl.glEnableVertexAttribArray(0)
-        gl.glVertexAttribPointer(0, 2, gl.GL_FLOAT, gl.GL_FALSE, stride, 0)
-        gl.glEnableVertexAttribArray(1)
-        gl.glVertexAttribPointer(1, 3, gl.GL_FLOAT, gl.GL_FALSE, stride, ctypes.c_void_p(8))
-
-        gl.glBindVertexArray(0)
-        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
-
-    # ======================================== DRAW ========================================
-    def draw(self) -> None:
-        """Dessine le mesh"""
-        if self._vao is None or self._vertex_count == 0:
-            return
-        gl.glBindVertexArray(self._vao)
-        gl.glDrawArrays(gl.GL_TRIANGLES, 0, self._vertex_count)
-
-    # ======================================== LIFE CYCLE ========================================
-    def delete(self) -> None:
-        """Libère les ressources GL"""
-        if self._vao is not None:
-            v = gl.GLuint(self._vao)
-            gl.glDeleteVertexArrays(1, ctypes.byref(v))
-            self._vao = None
-        if self._vbo is not None:
-            v = gl.GLuint(self._vbo)
-            gl.glDeleteBuffers(1, ctypes.byref(v))
-            self._vbo = None
-        self._vertex_count = 0
-
-
 # ======================================== TILE RENDERER ========================================
 class TileRenderer:
-    """
-    Renderer interne pour TileLayer — GL_TEXTURE_2D_ARRAY + VAO par chunk
+    """Renderer interne pour TileLayer
 
     Args:
         tile_map(TileMap): couche source
         chunk_size(int): nombre de tuiles par côté de chunk
     """
-    __slots__ = ("_tile_map", "_chunk_size", "_texture", "_chunks", "_built")
+    __slots__ = (
+        "_tile_map", "_chunk_size",
+        "_texture",
+        "_vao", "_vbo",
+        "_chunk_offsets",
+        "_built",
+    )
 
     def __init__(self, tile_map: TileMap, chunk_size: int):
         self._tile_map: TileMap = tile_map
         self._chunk_size: int = chunk_size
         self._texture: TileArrayTexture | None = None
-        self._chunks: dict[tuple[int, int], _ChunkMesh] = {}
+        self._vao: int | None = None
+        self._vbo: int | None = None
+        self._chunk_offsets: dict[tuple[int, int], tuple[int, int]] = {}
         self._built: bool = False
 
     # ======================================== GETTERS ========================================
@@ -231,11 +170,11 @@ class TileRenderer:
     @property
     def has_chunks(self) -> bool:
         """Vérifie s'il y a des chunks à rendre"""
-        return bool(self._chunks)
+        return bool(self._chunk_offsets)
 
     # ======================================== BUILD ========================================
     def build(self) -> None:
-        """Construit la texture array et les VAO de chunks"""
+        """Construit la texture array et le VAO global"""
         self.delete()
 
         tm = self._tile_map
@@ -254,24 +193,62 @@ class TileRenderer:
         chunk_cols = (tm.cols + self._chunk_size - 1) // self._chunk_size
         chunk_rows = (tm.rows + self._chunk_size - 1) // self._chunk_size
 
+        # Accumulation de tous les sommets dans un seul buffer
+        segments: list[np.ndarray] = []
+        cursor = 0
+
         for cr in range(chunk_rows):
             for cc in range(chunk_cols):
                 verts = self._build_chunk_verts(cc, cr, tw, th)
-                if verts:
-                    mesh = _ChunkMesh()
-                    mesh.build(np.array(verts, dtype=np.float32))
-                    self._chunks[(cc, cr)] = mesh
+                if verts is not None:
+                    count = len(verts)
+                    self._chunk_offsets[(cc, cr)] = (cursor, count)
+                    segments.append(verts)
+                    cursor += count
+
+        if not segments:
+            return
+
+        data = np.concatenate(segments)
+
+        vao = gl.GLuint()
+        vbo = gl.GLuint()
+        gl.glGenVertexArrays(1, ctypes.byref(vao))
+        gl.glGenBuffers(1, ctypes.byref(vbo))
+        self._vao = vao.value
+        self._vbo = vbo.value
+
+        gl.glBindVertexArray(self._vao)
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self._vbo)
+
+        raw = data.tobytes()
+        gl.glBufferData(gl.GL_ARRAY_BUFFER, len(raw), raw, gl.GL_STATIC_DRAW)
+
+        stride = 5 * 4
+        gl.glEnableVertexAttribArray(0)
+        gl.glVertexAttribPointer(0, 2, gl.GL_FLOAT, gl.GL_FALSE, stride, 0)
+        gl.glEnableVertexAttribArray(1)
+        gl.glVertexAttribPointer(1, 3, gl.GL_FLOAT, gl.GL_FALSE, stride, ctypes.c_void_p(8))
+
+        gl.glBindVertexArray(0)
+        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
 
         self._built = True
 
-    def _build_chunk_verts(self, cc: int, cr: int, tw: float, th: float) -> list[float]:
-        """Génère les sommets (x, y, u, v, layer) pour tous les quads d'un chunk"""
+    def _build_chunk_verts(self, cc: int, cr: int, tw: float, th: float) -> np.ndarray | None:
+        """Génère les sommets (x, y, u, v, layer) pour tous les quads d'un chunk
+
+        Pré-alloue le buffer numpy au maximum théorique puis tronque.
+        """
         tm = self._tile_map
         row_start = cr * self._chunk_size
         col_start = cc * self._chunk_size
         row_end = min(row_start + self._chunk_size, tm.rows)
         col_end = min(col_start + self._chunk_size, tm.cols)
-        verts = []
+
+        max_tiles = (row_end - row_start) * (col_end - col_start)
+        buf = np.empty((max_tiles * 6, 5), dtype=np.float32)  # 6 sommets/tile, 5 floats/sommet
+        idx = 0
 
         for row in range(row_start, row_end):
             for col in range(col_start, col_end):
@@ -282,17 +259,17 @@ class TileRenderer:
                 if layer < 0:
                     continue
                 wx, wy = tm.tile_to_world(col, row)
-                flip = tm.flags_at(col, row)
-                bl, br, tr, tl = _flip_uvs(flip)
+                bl, br, tr_, tl = _flip_uvs(tm.flags_at(col, row))
                 l = float(layer)
-                verts += [wx, wy, bl[0], bl[1], l]
-                verts += [wx + tw, wy, br[0], br[1], l]
-                verts += [wx + tw, wy + th, tr[0], tr[1], l]
-                verts += [wx, wy, bl[0], bl[1], l]
-                verts += [wx + tw, wy + th, tr[0], tr[1], l]
-                verts += [wx, wy + th, tl[0], tl[1], l]
+                buf[idx    ] = [wx,      wy,      bl[0],  bl[1],  l]
+                buf[idx + 1] = [wx + tw, wy,      br[0],  br[1],  l]
+                buf[idx + 2] = [wx + tw, wy + th, tr_[0], tr_[1], l]
+                buf[idx + 3] = [wx,      wy,      bl[0],  bl[1],  l]
+                buf[idx + 4] = [wx + tw, wy + th, tr_[0], tr_[1], l]
+                buf[idx + 5] = [wx,      wy + th, tl[0],  tl[1],  l]
+                idx += 6
 
-        return verts
+        return buf[:idx] if idx > 0 else None
 
     # ======================================== DRAW ========================================
     def begin(self) -> None:
@@ -303,17 +280,34 @@ class TileRenderer:
             self._texture.bind(0)
         program['u_tiles'] = 0
 
-    def draw(self, cc: int, cr: int) -> None:
-        """
-        Dessine un chunk
+    def draw_visible(self, cc_min: int, cc_max: int, cr_min: int, cr_max: int) -> None:
+        """Dessine tous les chunks visibles en un seul appel GL
 
         Args:
-            cc(int): colonne du chunk
-            cr(int): ligne du chunk
+            cc_min(int): colonne de chunk minimale (inclusive)
+            cc_max(int): colonne de chunk maximale (exclusive)
+            cr_min(int): ligne de chunk minimale (inclusive)
+            cr_max(int): ligne de chunk maximale (exclusive)
         """
-        mesh = self._chunks.get((cc, cr))
-        if mesh:
-            mesh.draw()
+        firsts: list[int] = []
+        counts: list[int] = []
+
+        for cr in range(cr_min, cr_max):
+            for cc in range(cc_min, cc_max):
+                entry = self._chunk_offsets.get((cc, cr))
+                if entry:
+                    firsts.append(entry[0])
+                    counts.append(entry[1])
+
+        if not firsts:
+            return
+
+        n = len(firsts)
+        c_firsts = (gl.GLint   * n)(*firsts)
+        c_counts = (gl.GLsizei * n)(*counts)
+
+        gl.glBindVertexArray(self._vao)
+        gl.glMultiDrawArrays(gl.GL_TRIANGLES, c_firsts, c_counts, n)
 
     def end(self) -> None:
         """Désactive le shader"""
@@ -322,9 +316,15 @@ class TileRenderer:
     # ======================================== LIFE CYCLE ========================================
     def delete(self) -> None:
         """Libère toutes les ressources GL"""
-        for mesh in self._chunks.values():
-            mesh.delete()
-        self._chunks.clear()
+        if self._vao is not None:
+            v = gl.GLuint(self._vao)
+            gl.glDeleteVertexArrays(1, ctypes.byref(v))
+            self._vao = None
+        if self._vbo is not None:
+            v = gl.GLuint(self._vbo)
+            gl.glDeleteBuffers(1, ctypes.byref(v))
+            self._vbo = None
+        self._chunk_offsets.clear()
         if self._texture:
             self._texture.delete()
             self._texture = None
@@ -333,8 +333,7 @@ class TileRenderer:
 
 # ======================================== UV HELPERS ========================================
 def _flip_uvs(flip: int) -> tuple[tuple, tuple, tuple, tuple]:
-    """
-    Calcule les UV des 4 coins (BL, BR, TR, TL) selon les flags de flip Tiled
+    """Calcule les UV des 4 coins (BL, BR, TR, TL) selon les flags de flip Tiled
 
     Args:
         flip(int): combinaison de FLIP_H, FLIP_V, FLIP_D
