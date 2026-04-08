@@ -2,9 +2,9 @@
 from __future__ import annotations
 
 from .._internal import expect
-from .._rendering._pipeline import Pipeline, Camera
+from .._rendering import Pipeline, Camera
 
-from ..world import World, RenderSystem, Entity
+from ..world import World, RenderSystem
 from ..abc import Layer
 
 # ======================================== LAYER ========================================

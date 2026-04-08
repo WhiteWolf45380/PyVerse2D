@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from .._internal import expect
-from .._rendering._pipeline import Pipeline, Camera
+from .._rendering import Pipeline, Camera
 from ..abc import Layer
 from ..tile import TileMap, TileRenderer
 
