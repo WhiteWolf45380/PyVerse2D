@@ -636,7 +636,7 @@ class _BorderRenderer:
 
     def _refresh_vertices(self, psr: PygletShapeRenderer) -> None:
         """Réactualise les arrêtes"""
-        strip = self._world_strip(psr.cx, psr.cy, psr.scale, psr.rotation, psr.border_width, psr.border_align)
+        strip = self._world_strip(psr.cx, psr.cy, psr.scale, psr.rotation, psr.border_width, psr.border_align, psr.pipeline.ppu_x, psr.pipeline.ppu_y)
         flat = strip.flatten().tolist()
         self._vlist.position[:] = flat
     

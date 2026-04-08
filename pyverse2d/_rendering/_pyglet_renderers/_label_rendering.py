@@ -101,22 +101,32 @@ class PygletLabelRenderer:
     # ======================================== INTERNALS ========================================
     def _build(self) -> None:
         """Construit le label pyglet et applique tous les styles"""
+        # Font
         font = self._text.font
 
+        # Couleur
         r, g, b, a = self._color.rgba8 if self._color is not None else (255, 255, 255, 255)
         a = int(a * self._opacity)
+
+        # Ratios ppu
+        ppu_x = self._pipeline.ppu_x
+        ppu_y = self._pipeline.ppu_y
+
+        # Boîte
+        width = int(self._width * ppu_x) if self._width is not None else None
+        height = int(self._height * ppu_y) if self._height is not None else None
 
         self._label = pyglet.text.Label(
             text=self._text.text,
             font_name=font.name,
-            font_size=font.size,
+            font_size=font.size * ppu_y,
             weight=self._weight,
             italic=self._italic,
             color=(r, g, b, a),
             anchor_x="left",
             anchor_y="bottom",
-            width=self._width,
-            height=self._height,
+            width=width,
+            height=height,
             multiline=self._multiline,
             rotation=self._rotation,
             batch=self._pipeline.batch if self._pipeline else None,
@@ -127,7 +137,7 @@ class PygletLabelRenderer:
 
     def _apply_styles(self) -> None:
         """Applique les styles set_style en une passe"""
-        margin = self.margin
+        margin = self.margin * self._pipeline.ppu
         s = self._label.set_style
         s("wrap_lines", self._wrap_lines)
         s("align", self._align)
@@ -136,7 +146,7 @@ class PygletLabelRenderer:
         s("margin_top", margin)
         s("margin_bottom", margin)
         if self._line_spacing is not None:
-            s("line_spacing", self._line_spacing)
+            s("line_spacing", self._line_spacing * self.pipeline.ppu_y)
         if self._underline is not None:
             s("underline", self._underline.rgba8)
 
@@ -341,7 +351,7 @@ class PygletLabelRenderer:
         font = self._text.font
         self._label.text = self._text.text
         self._label.font_name = font.name
-        self._label.font_size = font.size
+        self._label.font_size = font.size * self._pipeline.ppu_y
         return "refresh"
 
     def _handle_x(self) -> None:
@@ -384,17 +394,17 @@ class PygletLabelRenderer:
 
     def _handle_opacity(self) -> None:
         """Actualisation de l'opacité"""
-        a = self._color.a if self._color is not None else 255
-        self._label.opacity = int(a * self._opacity)
+        a = self._color.a if self._color is not None else 1.0
+        self._label.opacity = int(255 * a * self._opacity)
 
     def _handle_width(self) -> None:
         """Actualisation de la largeur"""
-        self._label.width = self._width
+        self._label.width = self._width * self._pipeline.ppu_x if self._width is not None else None
         return "refresh"
 
     def _handle_height(self) -> None:
         """Actualisation de la hauteur"""
-        self._label.height = self._height
+        self._label.height = self._height * self._pipeline.ppu_y if self._height is not None else None
         return "refresh"
     
     def _handle_multiline(self) -> None:
@@ -411,7 +421,7 @@ class PygletLabelRenderer:
 
     def _handle_margin(self) -> None:
         """Actualisation de la marge"""
-        margin = self._margin
+        margin = self._margin * self._pipeline.ppu
         s = self._label.set_style
         s("margin_left", margin)
         s("margin_right", margin)
@@ -421,7 +431,7 @@ class PygletLabelRenderer:
 
     def _handle_line_spacing(self) -> None:
         """Actualisation de l'espacement"""
-        self._label.set_style("line_spacing", self._line_spacing)
+        self._label.set_style("line_spacing", self._line_spacing * self._pipeline.ppu_y)
         return "refresh"
 
     def _handle_z(self) -> None:
@@ -432,8 +442,8 @@ class PygletLabelRenderer:
     # ======================================== HELPERS ========================================
     def _refresh_position(self) -> None:
         """Recalcule x/y pyglet à partir de l'ancre et des dimensions réelles"""
-        self._label.x = self._x - self._anchor_x * self._label.content_width
-        self._label.y = self._y - self._anchor_y * self._label.content_height
+        self._label.x = self._x * self._pipeline.ppu_x - self._anchor_x * self._label.content_width
+        self._label.y = self._y * self._pipeline.ppu_y - self._anchor_y * self._label.content_height
 
     def _rebuild(self) -> None:
         """Reconstruit le label avec les paramètres courants"""
