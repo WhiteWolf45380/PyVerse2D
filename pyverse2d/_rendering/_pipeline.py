@@ -125,7 +125,7 @@ class Pipeline:
             z (int): z-order du groupe
         """
         if z not in self._z_groups:
-            self._z_groups[z] = Group(order=z)
+            self._z_groups[z] = Group(order=z, parent=self.group)
         return self._z_groups[z]
 
     # ======================================== PIPELINE ========================================
