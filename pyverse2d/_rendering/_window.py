@@ -50,7 +50,7 @@ class Window:
     ):
         # Espace logique de référence
         if expect(screen, (LogicalScreen, None)) is None:
-            screen = LogicalScreen()
+            screen = LogicalScreen(width, height)
         self._screen: LogicalScreen = screen
 
         # Style de la fenêtre
