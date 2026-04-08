@@ -36,7 +36,6 @@ class PygletLabelRenderer:
         margin: marge intérieure uniforme en pixels
         z: z-order
         pipeline: pipeline de rendu
-        ppu: rapport de conversion world to screen
     """
     __slots__ = (
         "_text",
@@ -46,7 +45,7 @@ class PygletLabelRenderer:
         "_color", "_opacity",
         "_width", "_height", "_multiline", "_wrap_lines", "_align",
         "_margin", "_line_spacing",
-        "_z", "_pipeline", "apply_ppu",
+        "_z", "_pipeline"
         "_label",
     )
 
@@ -72,7 +71,6 @@ class PygletLabelRenderer:
         line_spacing: float = None,
         z: int = 0,
         pipeline: Pipeline = None,
-        ppu: int = 1,
     ):
         # Paramètres publics
         self._text: Text = text
@@ -95,7 +93,6 @@ class PygletLabelRenderer:
         self._line_spacing: float = line_spacing
         self._z: int = z
         self._pipeline: Pipeline = pipeline
-        self._ppu: bool = ppu
 
         # Construction
         self._label: pyglet.text.Label = None
@@ -112,14 +109,14 @@ class PygletLabelRenderer:
         self._label = pyglet.text.Label(
             text=self._text.text,
             font_name=font.name,
-            font_size=self.font_size,
+            font_size=font.size,
             weight=self._weight,
             italic=self._italic,
             color=(r, g, b, a),
             anchor_x="left",
             anchor_y="bottom",
-            width=self.width,
-            height=self.height,
+            width=self._width,
+            height=self._height,
             multiline=self._multiline,
             rotation=self._rotation,
             batch=self._pipeline.batch if self._pipeline else None,
@@ -131,7 +128,6 @@ class PygletLabelRenderer:
     def _apply_styles(self) -> None:
         """Applique les styles set_style en une passe"""
         margin = self.margin
-        
         s = self._label.set_style
         s("wrap_lines", self._wrap_lines)
         s("align", self._align)
@@ -139,8 +135,8 @@ class PygletLabelRenderer:
         s("margin_right", margin)
         s("margin_top", margin)
         s("margin_bottom", margin)
-        if self.line_spacing is not None:
-            s("line_spacing", self.line_spacing)
+        if self._line_spacing is not None:
+            s("line_spacing", self._line_spacing)
         if self._underline is not None:
             s("underline", self._underline.rgba8)
 
@@ -153,17 +149,17 @@ class PygletLabelRenderer:
     @property
     def position(self) -> tuple[float, float]:
         """Renvoie la position"""
-        return (self._x * self._ppu, self._y * self._ppu)
+        return (self._x, self._y)
 
     @property
     def x(self) -> float:
         """Renvoie la position horizontale"""
-        return self._x * self._ppu
+        return self._x
 
     @property
     def y(self) -> float:
         """Renvoie la position verticale"""
-        return self._y * self._ppu
+        return self._y
 
     @property
     def anchor_x(self) -> float:
@@ -208,12 +204,12 @@ class PygletLabelRenderer:
     @property
     def width(self) -> int:
         """Renvoie la largeur de la boîte"""
-        return int(self._width * self._ppu)
+        return self._width
 
     @property
     def height(self) -> int:
         """Renvoie la hauteur de la boîte"""
-        return int(self._height * self._ppu)
+        return self._height
 
     @property
     def multiline(self) -> bool:
@@ -233,12 +229,12 @@ class PygletLabelRenderer:
     @property
     def margin(self) -> int:
         """Renvoie la marge intérieure"""
-        return int(self._margin * self._ppu)
+        return self._margin
 
     @property
     def line_spacing(self) -> float:
         """Renvoie l'espacement de ligne"""
-        return int(self._line_spacing * self._ppu)
+        return self._line_spacing
 
     @property
     def z(self) -> int:
@@ -249,10 +245,6 @@ class PygletLabelRenderer:
     def pipeline(self) -> Pipeline:
         """Renvoie la pipeline de rendu"""
         return self._pipeline
-    
-    @property
-    def ppu(self) -> int:
-        """Rapport de conversion world to screen"""
 
     @property
     def content_width(self) -> int:
@@ -307,7 +299,6 @@ class PygletLabelRenderer:
             margin: marge intérieure uniforme en pixels
             z: z-order
             pipeline: pipeline de rendu
-            ppu: rapport de conversion world to screen
         """
         rebuild: bool = False
         changes: list[str] = set()
@@ -347,10 +338,10 @@ class PygletLabelRenderer:
     # ======================================== HANDLERS ========================================
     def _handle_text(self) -> None:
         """Actualisation du text"""
-        font = self.text.font
-        self._label.text = self.text.text
+        font = self._text.font
+        self._label.text = self._text.text
         self._label.font_name = font.name
-        self._label.font_size = self.font_size
+        self._label.font_size = font.size
         return "refresh"
 
     def _handle_x(self) -> None:
@@ -371,15 +362,15 @@ class PygletLabelRenderer:
 
     def _handle_rotation(self) -> None:
         """Actualisation de la rotation"""
-        self._label.rotation = self.rotation
+        self._label.rotation = self._rotation
 
     def _handle_weight(self) -> None:
         """Actualisation de la graisse"""
-        self._label.weight = self.weight
+        self._label.weight = self._weight
 
     def _handle_italic(self) -> None:
         """Actualisation de l'italique"""
-        self._label.italic = self.italic
+        self._label.italic = self._italic
 
     def _handle_underline(self) -> None:
         """Actualisation du soulignement"""
@@ -387,23 +378,23 @@ class PygletLabelRenderer:
 
     def _handle_color(self) -> None:
         """Actualisation de la couleur"""
-        r, g, b, a = self.color.rgba8 if self.color is not None else (255, 255, 255, 255)
-        a = int(a * self.opacity)
+        r, g, b, a = self._color.rgba8 if self._color is not None else (255, 255, 255, 255)
+        a = int(a * self._opacity)
         self._label.color = (r, g, b, a)
 
     def _handle_opacity(self) -> None:
         """Actualisation de l'opacité"""
-        a = self.color.a if self.color is not None else 255
-        self._label.opacity = a * self.opacity
+        a = self._color.a if self._color is not None else 255
+        self._label.opacity = a * self._opacity
 
     def _handle_width(self) -> None:
         """Actualisation de la largeur"""
-        self._label.width = self.width
+        self._label.width = self._width
         return "refresh"
 
     def _handle_height(self) -> None:
         """Actualisation de la hauteur"""
-        self._label.height = self.height
+        self._label.height = self._height
         return "refresh"
     
     def _handle_multiline(self) -> None:
@@ -416,11 +407,11 @@ class PygletLabelRenderer:
 
     def _handle_align(self) -> None:
         """Actualisation de l'alignement"""
-        self._label.set_style("align", self.align)
+        self._label.set_style("align", self._align)
 
     def _handle_margin(self) -> None:
         """Actualisation de la marge"""
-        margin = self.margin
+        margin = self._margin
         s = self._label.set_style
         s("margin_left", margin)
         s("margin_right", margin)
@@ -430,29 +421,25 @@ class PygletLabelRenderer:
 
     def _handle_line_spacing(self) -> None:
         """Actualisation de l'espacement"""
-        self._label.set_style("line_spacing", self.line_spacing)
+        self._label.set_style("line_spacing", self._line_spacing)
         return "refresh"
 
     def _handle_z(self) -> None:
         """Actualisation du z-order"""
         if self._pipeline:
-            self._label.group = self.pipeline.get_group(z=self._z)
+            self._label.group = self._pipeline.get_group(z=self._z)
 
     def _handle_pipeline(self) -> None:
         """Actualisation de la pipeline"""
         if self.pipeline:
-            self._label.batch = self.pipeline.batch
-            self._label.group = self.pipeline.get_group(z=self._z)
-
-    def _handle_ppu(self) -> None:
-        """Actualisation du rapport de conversion"""
-        return "rebuild"
+            self._label.batch = self._pipeline.batch
+            self._label.group = self._pipeline.get_group(z=self._z)
 
     # ======================================== HELPERS ========================================
     def _refresh_position(self) -> None:
         """Recalcule x/y pyglet à partir de l'ancre et des dimensions réelles"""
-        self._label.x = self.x - self.anchor_x * self._label.content_width
-        self._label.y = self.y - self.anchor_y * self._label.content_height
+        self._label.x = self._x - self._anchor_x * self._label.content_width
+        self._label.y = self._y - self._anchor_y * self._label.content_height
 
     def _rebuild(self) -> None:
         """Reconstruit le label avec les paramètres courants"""
