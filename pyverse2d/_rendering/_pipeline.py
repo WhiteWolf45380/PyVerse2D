@@ -38,7 +38,7 @@ class Pipeline:
     """
     __slots__ = (
         "_window", "_scene", "_layer",
-        "_data",
+        "_data", "_context",
         "_batch", "_group", "_z_groups",
     )
 
@@ -50,6 +50,7 @@ class Pipeline:
 
         # Cache
         self._data: dict[Scene, SceneRenderData] = {}
+        self._context: _PipelineContext = _PipelineContext()
 
         # Gpu configuration
         self._batch: Batch = None
@@ -127,18 +128,20 @@ class Pipeline:
 
         # Espace logique
         screen = self._window.screen
-        lx, ly, lw, lh = scene.viewport.resolve(screen.width, screen.height)
+        self._context.viewport_resolve = scene.viewport.resolve(screen.width, screen.height)
+        lx, ly, lw, lh = self._context.viewport_resolve
 
         # FrameBuffer
-        win_vx, win_vy, win_vw, win_vh = self._window.viewport
+        window_viewport = self._window.viewport
         sx = self._window.framebuffer_scale_x
         sy = self._window.framebuffer_scale_y
 
-        # FrameBuffer Viewport
-        px = int(win_vx + lx * sx)
-        py = int(win_vy + ly * sy)
+        # Viewport OpenGl
+        px = int(window_viewport.x + lx * sx)
+        py = int(window_viewport.y + ly * sy)
         pw = int(lw * sx)
         ph = int(lh * sy)
+        self._context.gl_viewport = (px, py, pw, ph)
 
         # Activation du FrameBuffer Viewport
         gl.glViewport(px, py, pw, ph)
@@ -158,27 +161,18 @@ class Pipeline:
         self._z_groups = layer_groups[layer].z_groups
 
         # Frustum
-        cx, cy, vw, vh, zoom, rotation = self.camera.resolve(self.viewport.width, self.viewport.height)
+        _, _, lw, lh = self._context.viewport_resolve
+        self._context.camera_resolve = self.camera.resolve(lw, lh)
 
         # Matrice de projection
-        half_w = vw / 2
-        half_h = vh / 2
-        self._window.native.projection = Mat4.orthogonal_projection(
-            left=-half_w,
-            right=half_w,
-            bottom=-half_h,
-            top=half_h,
-            z_near=-1.0,
-            z_far=1.0,
-        )
+        projection = self.compute_projection()
+        self._window.native.projection = projection
+        self._context.projection_matrix = projection
 
         # Matrice de vue
-        view = Mat4()
-        view = view.translate((-cx, -cy, 0))
-        if rotation != 0.0:
-            view = view.rotate(radians(rotation), (0, 0, 1))
-        view = view.rotate(radians(rotation), (0, 0, 1))
+        view = self.compute_view()
         self._window.native.view = view
+        self._context.view_matrix = view
 
     def flush(self) -> None:
         """Envoie tout le batch au GPU"""
@@ -187,72 +181,108 @@ class Pipeline:
     def end(self) -> None:
         """Met fin à la connexion avec une scene"""
         self._scene = None
+        self._context.clear()
+
+    # ======================================== MATRICES ========================================
+    def compute_projection(self) -> Mat4:
+        """Calcul la matrice de projection"""
+        _, _, vw, vh, zoom, _ = self._context.camera_resolve
+        half_w = (vw / zoom) / 2
+        half_h = (vh / zoom) / 2
+        return Mat4.orthogonal_projection(
+            left=-half_w,
+            right=half_w,
+            bottom=-half_h,
+            top=half_h,
+            z_near=-8192.0,
+            z_far=8192.0,
+        )
+    
+    def compute_view(self) -> Mat4:
+        """Calcul la matrice de vue"""
+        cx, cy, _, _, _, rotation = self._context.camera_resolve
+        view = Mat4()
+        view = view.translate((-cx, -cy, 0))
+        if rotation != 0.0:
+            view = view.rotate(radians(rotation), (0, 0, 1))
+        return view
 
     # ======================================== UTILITAIRES ========================================
     def world_to_framebuffer(self, x: float, y: float) -> tuple[int, int]:
         """Convertit une coordonnée monde en pixels framebuffer
 
         Args:
-            x (float): coordonnée horizontale monde
-            y (float): coordonnée verticale monde
+            x: coordonnée horizontale monde
+            y: coordonnée verticale monde
         """
-        cam = self.camera  # caméra active (layer ou scene)
-        
-        # Taille logique de la scène
-        lx, ly, lw, lh = self.viewport.resolve(self.screen.width, self.screen.height)
+        lx, ly, lw, lh = self._context.viewport_resolve
+        cx, cy, vw, vh, zoom, _ = self._context.camera_resolve
 
-        # Déplacement relatif au centre caméra
-        px_logic = (x - cam.x) * cam.zoom + lw / 2
-        py_logic = (y - cam.y) * cam.zoom + lh / 2
+        half_w = (vw / zoom) / 2
+        half_h = (vh / zoom) / 2
 
-        # Projection viewport → framebuffer
-        win_vx, win_vy, win_vw, win_vh = self._window.viewport
-        sx = win_vw / self.screen.width
-        sy = win_vh / self.screen.height
+        # World → NDC
+        ndc_x = (x - cx) / half_w
+        ndc_y = (y - cy) / half_h
 
-        px_fb = int(win_vx + lx * sx + px_logic * sx)
-        py_fb = int(win_vy + ly * sy + py_logic * sy)
+        # NDC → viewport logique
+        px_logic = (ndc_x + 1) / 2 * lw
+        py_logic = (ndc_y + 1) / 2 * lh
+
+        # Viewport logique → framebuffer
+        sx = self._window.framebuffer_scale_x
+        sy = self._window.framebuffer_scale_y
+
+        px_fb = int(self._window.viewport.x + (lx + px_logic) * sx)
+        py_fb = int(self._window.viewport.y + (ly + py_logic) * sy)
 
         return px_fb, py_fb
-
 
     @contextmanager
     def scissor(self, wx: float, wy: float, ww: float, wh: float):
         """Context manager appliquant un scissor test en coordonnées monde
 
         Args:
-            wx (float): x monde du coin bas-gauche
-            wy (float): y monde du coin bas-gauche
-            ww (float): largeur monde
-            wh (float): hauteur monde
+            wx: x monde du coin bas-gauche
+            wy: y monde du coin bas-gauche
+            ww: largeur monde
+            wh: hauteur monde
         """
-        cam = self.camera
+        _, _, vw, vh, zoom, _ = self._context.camera_resolve
+        half_w = (vw / zoom) / 2
+        half_h = (vh / zoom) / 2
 
-        # Coin bas-gauche en pixels framebuffer
         x0, y0 = self.world_to_framebuffer(wx, wy)
+        w = int(ww / half_w * self._context.gl_viewport[2] / 2)
+        h = int(wh / half_h * self._context.gl_viewport[3] / 2)
 
-        # Taille en pixels framebuffer
-        lx, ly, lw, lh = self.viewport.resolve(self.screen.width, self.screen.height)
-        win_vx, win_vy, win_vw, win_vh = self._window.viewport
-        sx = win_vw / self.screen.width
-        sy = win_vh / self.screen.height
-
-        w = int(ww * cam.zoom * sx)
-        h = int(wh * cam.zoom * sy)
-
-        # Sauvegarde état précédent
         was_enabled = (gl.GLboolean * 1)()
         prev_box = (c_int * 4)()
         gl.glGetBooleanv(gl.GL_SCISSOR_TEST, was_enabled)
         gl.glGetIntegerv(gl.GL_SCISSOR_BOX, prev_box)
 
-        # Activation scissor
         gl.glEnable(gl.GL_SCISSOR_TEST)
         gl.glScissor(x0, y0, w, h)
         try:
             yield
         finally:
-            # Restauration
             gl.glScissor(*prev_box)
             if not was_enabled[0]:
                 gl.glDisable(gl.GL_SCISSOR_TEST)
+
+# ======================================== CONTEXTE ========================================
+@dataclass(slots=True)
+class _PipelineContext:
+    viewport_resolve: tuple[float, float, float, float] = None
+    camera_resolve: tuple[float, float, float, float, float, float] = None
+    gl_viewport: tuple[int, int, int, int] = None
+    projection_matrix: Mat4 = None
+    view_matrix: Mat4 = None
+
+    def clear(self) -> None:
+        """Nettoie le contexte"""
+        self.viewport_resolve = None
+        self.camera_resolve = None
+        self.gl_viewport = None
+        self.projection_matrix = None
+        self.view_matrix = None

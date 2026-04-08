@@ -282,7 +282,7 @@ class Camera:
 
     # ======================================== RESOLVE ========================================
     def resolve(self, viewport_width: int, viewport_height: int) -> tuple[float, float, float, float, float, float]:
-        """Renvoie le frustum ``(x, y, width, height, zoom, rotation)`` dans l'espace monde
+        """Renvoie le frustum ``(x, y, width, height, rotation)`` dans l'espace monde
 
         Args:
             viewport_width: largeur du viewport
