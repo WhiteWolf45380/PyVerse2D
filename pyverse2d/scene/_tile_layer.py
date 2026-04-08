@@ -1,27 +1,21 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from .._internal import expect, positive
-from .._flag import CameraMode
+from .._internal import expect
 from .._rendering._pipeline import Pipeline
 from ..abc import Layer
 from ..tile import TileMap, TileRenderer
 
-from numbers import Real
 from contextlib import nullcontext
 
 # ======================================== LAYER ========================================
 class TileLayer(Layer):
-    """
-    Layer affichant un TileMap via texture array GL et VAO par chunk
+    """Layer affichant un TileMap
 
     Args:
         tile_map(TileMap): couche de tuiles à afficher
         chunk_size(int, optional): nombre de tuiles par côté d'un chunk
-        parallax(tuple[float, float], optional): facteur de parallax (x, y)
         clip(bool, optional): limitation parallax
-        z(int, optional): z_order dans le batch pipeline
-        camera_mode(CameraMode, optional): comportement de la caméra
     """
     __slots__ = (
         "_tile_map", "_chunk_size",
@@ -111,15 +105,14 @@ class TileLayer(Layer):
         if not self._renderer.has_chunks:
             return
 
-        cam = pipeline.camera
-        screen = pipeline.screen
-        px = cam.x * self._parallax[0]
-        py = cam.y * self._parallax[1]
+        cx, cy, vw, vh, zoom, _ = pipeline.camera_resolve
+        half_w = (vw / zoom) / 2
+        half_h = (vh / zoom) / 2
 
-        vx = px - screen.half_width
-        vy = py - screen.half_height
-        vw = screen.width
-        vh = screen.height
+        vx = cx - half_w
+        vy = cy - half_h
+        vw_world = half_w * 2
+        vh_world = half_h * 2
 
         tm = self._tile_map
         tw = tm.tile_width
@@ -132,9 +125,9 @@ class TileLayer(Layer):
         chunk_rows = (tm.rows + self._chunk_size - 1) // self._chunk_size
 
         cc_min = max(0, int((vx - ox) // chunk_w))
-        cc_max = min(chunk_cols, int((vx + vw - ox) // chunk_w) + 1)
+        cc_max = min(chunk_cols, int((vx + vw_world - ox) // chunk_w) + 1)
         cr_min = max(0, int((vy - oy) // chunk_h))
-        cr_max = min(chunk_rows, int((vy + vh - oy) // chunk_h) + 1)
+        cr_max = min(chunk_rows, int((vy + vh_world - oy) // chunk_h) + 1)
 
         # Génération du contexte de rendu
         if self._clip:
@@ -145,7 +138,5 @@ class TileLayer(Layer):
         # Affichage des tiles
         with ctx:
             self._renderer.begin()
-            for cr in range(cr_min, cr_max):
-                for cc in range(cc_min, cc_max):
-                    self._renderer.draw(cc, cr)
+            self._renderer.draw_visible(cc_min, cc_max, cr_min, cr_max)
             self._renderer.end()

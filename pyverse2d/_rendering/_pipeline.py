@@ -64,6 +64,11 @@ class Pipeline:
         return self._window
     
     @property
+    def gl_viewport(self) -> tuple[int, int, int, int]:
+        """Viewport OpenGl"""
+        return self._context.gl_viewport
+    
+    @property
     def screen(self) -> Screen:
         """Espace logique de référence assigné"""
         return self._window.screen
@@ -79,6 +84,11 @@ class Pipeline:
         return self._scene.viewport
     
     @property
+    def viewport_resolve(self) -> tuple[float, float, float, float]:
+        """Résolution du viewport dans l'espace logique"""
+        return self._context.viewport_resolve
+    
+    @property
     def layer(self) -> Layer:
         """Layer en couche de rendu"""
         return self._layer
@@ -87,6 +97,11 @@ class Pipeline:
     def camera(self) -> Camera:
         """Caméra du layer en cours de rendu"""
         return self._layer.camera or self._scene.camera
+    
+    @property
+    def camera_resolve(self) -> tuple[float, float, float, float, float, float]:
+        """Résolution de la caméra (frustum)"""
+        return self._context.camera_resolve
 
     @property
     def batch(self) -> Batch:
