@@ -40,14 +40,13 @@ class PygletSpriteRenderer:
         opacity: opacité [0.0 ; 1.0]
         z: z-order
         pipeline: pipeline de rendu
-        ppu: rapport de conversion world to screen
     """
     __slots__ = (
         "_image",
         "_x", "_y", "_anchor_x", "_anchor_y",
         "_scale_x", "_scale_y", "_flip_x", "_flip_y", "_rotation",
         "_color", "_opacity",
-        "_z", "_pipeline", "_ppu",
+        "_z", "_pipeline"
         "_sprite",
     )
     _cache: dict[str, pyglet.image.AbstractImage] = {}
@@ -68,7 +67,6 @@ class PygletSpriteRenderer:
         opacity: float = 1.0,
         z: int = 0,
         pipeline: Pipeline = None,
-        ppu: int = 1
     ):
         self._image: Image = image
         self._x: float = x
@@ -84,7 +82,6 @@ class PygletSpriteRenderer:
         self._color: Color = color
         self._z: int = z
         self._pipeline: Pipeline = pipeline
-        self._ppu: int = ppu
 
         self._sprite: pyglet.sprite.Sprite = None
         self._build()
@@ -105,29 +102,34 @@ class PygletSpriteRenderer:
 
     def _build(self) -> None:
         """Construit le sprite pyglet"""
+        # Couleur
         r, g, b, a = self._color.rgba8 if self._color is not None else (255, 255, 255, 255)
         a = int(a * self._opacity)
 
-        raw = self._load_image(self.image.path)
+        # Image brute
+        raw = self._load_image(self._image.path)
         if raw is None:
             return
  
+        # Travaille sur une région
         region = raw.get_region(0, 0, raw.width, raw.height)
-        region.anchor_x = int(self.anchor_x * raw.width)
-        region.anchor_y = int(self.anchor_y * raw.height)
+        region.anchor_x = int(self._anchor_x * raw.width)
+        region.anchor_y = int(self._anchor_y * raw.height)
  
+        # Calcul des tailles effectives
         eff_sx, eff_sy = self._effective_scales(raw)
- 
+    
+        # Construction du sprite
         self._sprite = pyglet.sprite.Sprite(
             region,
-            x=self.x,
-            y=self.y,
-            batch=self.pipeline.batch if self._pipeline else None,
-            group=self.pipeline.get_group(z=self.z) if self.pipeline else None,
+            x=self._x,
+            y=self._y,
+            batch=self._pipeline.batch if self._pipeline else None,
+            group=self._pipeline.get_group(z=self._z) if self._pipeline else None,
         )
         self._sprite.scale_x = eff_sx
         self._sprite.scale_y = eff_sy
-        self._sprite.rotation = self.rotation
+        self._sprite.rotation = self._rotation
         self._sprite.color = (r, g, b, a)
 
     def _effective_scales(self, raw: pyglet.image.AbstractImage) -> tuple[float, float]:
@@ -138,8 +140,8 @@ class PygletSpriteRenderer:
           - scale_factor de l'asset Image
           - flip_x / flip_y
         """
-        img_sx: float | None = (self.image.width / raw.width if self.image.width else None)
-        img_sy: float | None = (self.image.height / raw.height if self.image.height else None)
+        img_sx: float | None = (self._image.width / raw.width if self._image.width else None)
+        img_sy: float | None = (self._image.height / raw.height if self._image.height else None)
 
         if img_sx is None and img_sy is None:
             img_sx = img_sy = 1.0
@@ -148,10 +150,10 @@ class PygletSpriteRenderer:
         elif img_sy is None:
             img_sy = img_sx
 
-        f  = self.image.scale_factor
-        fx = -1 if self.flip_x else 1
-        fy = -1 if self.flip_y else 1
-        return self.scale_x * img_sx * f * fx, self._scale_y * img_sy * f * fy
+        f  = self._image.scale_factor
+        fx = -1 if self._flip_x else 1
+        fy = -1 if self._flip_y else 1
+        return self._scale_x * img_sx * f * fx, self._scale_y * img_sy * f * fy
 
     # ======================================== GETTERS ========================================
     @property
@@ -162,17 +164,17 @@ class PygletSpriteRenderer:
     @property
     def position(self) -> tuple[float, float]:
         """Renvoie la position"""
-        return (self._x * self._ppu, self._y * self._ppu)
+        return (self._x, self._y)
 
     @property
     def x(self) -> float:
         """Renvoie la position horizontale"""
-        return self._x * self._ppu
+        return self._x
 
     @property
     def y(self) -> float:
         """Renvoie la position verticale"""
-        return self._y * self._ppu
+        return self._y
 
     @property
     def anchor_x(self) -> float:
@@ -187,12 +189,12 @@ class PygletSpriteRenderer:
     @property
     def scale_x(self) -> float:
         """Renvoie le facteur de redimensionnement horizontal"""
-        return self._scale_x * self._ppu
+        return self._scale_x
 
     @property
     def scale_y(self) -> float:
         """Renvoie le facteur de redimensionnement vertical"""
-        return self._scale_y * self._ppu
+        return self._scale_y
 
     @property
     def flip_x(self) -> bool:
@@ -310,44 +312,44 @@ class PygletSpriteRenderer:
     # ======================================== HANDLERS ========================================
     def _handle_position(self) -> None:
         """Actualisation de la position"""
-        self._sprite.position = self.x, self.y, 0
+        self._sprite.position = self._x, self._y, 0
 
     def _handle_anchor(self) -> None:
         """Actualisation de l'ancre"""
-        self._sprite.image.anchor_x, self._sprite.image.anchor_y = int(self.anchor_x * self.sprite.image.width), int(self.anchor_y * self.sprite.image.height)
+        self._sprite.image.anchor_x, self._sprite.image.anchor_y = int(self._anchor_x * self._sprite.image.width), int(self._anchor_y * self._sprite.image.height)
 
     def _handle_scales(self) -> None:
         """Actualisation du facteur de redimensionnement"""
-        raw = self._load_image(self.image.path)
+        raw = self._load_image(self._image.path)
         if raw:
             self._sprite.scale_x, self._sprite.scale_y = self._effective_scales(raw)
 
     def _handle_rotation(self) -> None:
         """Actualisation de la rotation"""
-        self._sprite.rotation = self.rotation
+        self._sprite.rotation = self._rotation
 
     def _handle_color(self) -> None:
         """Actualisation de la couleur de teinte"""
-        r, g, b, a = self.color.rgba8 if self.color is not None else (255, 255, 255, 255)
-        a = int(a * self.opacity)
+        r, g, b, a = self._color.rgba8 if self._color is not None else (255, 255, 255, 255)
+        a = int(a * self._opacity)
         self._sprite.color = (r, g, b, a)
 
     def _handle_opacity(self) -> None:
         """Actualisation de l'opacité"""
-        r, g, b, a = self.color.rgba8 if self.color is not None else (255, 255, 255, 255)
-        a = int(a * self.opacity)
+        r, g, b, a = self._color.rgba8 if self._color is not None else (255, 255, 255, 255)
+        a = int(a * self._opacity)
         self._sprite.opacity = (r, g, b, a)
 
     def _handle_z(self) -> None:
         """Actualisation du z-order"""
-        if self.pipeline:
-            self._sprite.group = self.pipeline.get_group(z=self.z)
+        if self._pipeline:
+            self._sprite.group = self._pipeline.get_group(z=self._z)
 
     def _handle_pipeline(self) -> None:
         """Actualisation de la pipeline de rendu"""
-        if self.pipeline:
-            self._sprite.batch = self.pipeline.batch
-            self._sprite.group = self.pipeline.get_group(z=self.z)
+        if self._pipeline:
+            self._sprite.batch = self._pipeline.batch
+            self._sprite.group = self._pipeline.get_group(z=self._z)
 
     # ======================================== HELPERS ========================================
     def _rebuild(self) -> None:
