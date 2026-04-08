@@ -1,8 +1,6 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from ..._internal import expect
-
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
@@ -12,11 +10,7 @@ if TYPE_CHECKING:
 
 # ======================================== IMPORTS ========================================
 class Behavior(ABC):
-    """Class abstraite des comportements UI
-
-    Args:
-        id_: identifiant du comportement
-    """
+    """Class abstraite des comportements UI"""
     __slots__ = ("_owner", "_enabled")
     _ID: str = "default"
 

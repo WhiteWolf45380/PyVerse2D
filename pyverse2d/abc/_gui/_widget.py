@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from ..._internal import expect, clamped
 from ..._flag import Super
-from ..._rendering import Pipeline, RenderContext
+from ..._rendering import Pipeline
 from ...math import Point
 from ...abc import Shape
 
@@ -17,6 +17,7 @@ from typing import Callable, Type, TYPE_CHECKING
 if TYPE_CHECKING:
     from ...scene import GuiLayer
     from ...gui import (
+        RenderContext,
         ClickBehavior,
         HoverBehavior,
         SelectBehavior,

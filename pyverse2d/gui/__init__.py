@@ -1,4 +1,6 @@
 # ======================================== IMPORTS ========================================
+from ._context import RenderContext
+
 from ._widget import (
     Surface,
     Border,
@@ -17,6 +19,8 @@ from ._selection_group import SelectionGroup
 
 # ======================================== EXPORTS ========================================
 __all__ = [
+    "RenderContext",
+
     "Surface",
     "Border",
     "Label",

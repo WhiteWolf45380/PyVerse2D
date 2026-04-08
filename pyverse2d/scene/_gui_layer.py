@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 from .._internal import expect, clamped
-from .._flag import CameraMode
-from .._rendering import Pipeline, RenderContext
+from .._rendering import Pipeline
+from ..gui import RenderContext
 from ..abc import Widget, Layer
 from ..math import Point
 
@@ -21,8 +21,8 @@ class GuiLayer(Layer):
     """
     __slots__ = ("_wrappers", "_opacity")
 
-    def __init__(self, opacity: Real = 1.0, camera_mode: CameraMode = CameraMode.SCREEN):
-        super().__init__(camera_mode)
+    def __init__(self, opacity: Real = 1.0,):
+        super().__init__()
         self._wrappers: list[WidgetWrapper] = []
         self._opacity: float = clamped(float(expect(opacity, Real)))
     
