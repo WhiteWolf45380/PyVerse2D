@@ -42,8 +42,6 @@ class RenderSystem(System):
             world(World): monde à rendre
             pipeline(Pipeline): pipeline active
         """
-        ppm: float = world.pixels_per_meter
-
         active_sprites = set()
         active_shapes = set()
         active_labels = set()
@@ -54,15 +52,15 @@ class RenderSystem(System):
 
             if entity.has(ShapeRenderer):
                 active_shapes.add(eid)
-                self._sync_shape(entity, tr, pipeline, ppm=ppm)
+                self._sync_shape(entity, tr, pipeline)
 
             if entity.has(SpriteRenderer):
                 active_sprites.add(eid)
-                self._sync_sprite(entity, tr, pipeline, ppm=ppm)
+                self._sync_sprite(entity, tr, pipeline)
 
             if entity.has(TextRenderer):
                 active_labels.add(eid)
-                self._sync_text(entity, tr, pipeline, ppm=ppm)
+                self._sync_text(entity, tr, pipeline)
 
         # Nettoyage des entités inactives
         for eid in list(self._sprites):
@@ -78,7 +76,7 @@ class RenderSystem(System):
                 self._labels.pop(eid).delete()
 
     # ======================================== SYNC SHAPE ========================================
-    def _sync_shape(self, entity: Entity, tr: Transform, pipeline: Pipeline, ppm: float = 1.0):
+    def _sync_shape(self, entity: Entity, tr: Transform, pipeline: Pipeline):
         """Crée ou met à jour le renderer de shape de l'entité"""
         sr: ShapeRenderer = entity.get(ShapeRenderer)
         eid = entity.id
@@ -93,11 +91,11 @@ class RenderSystem(System):
         if eid not in self._shapes:
             self._shapes[eid] = PygletShapeRenderer(
                 shape = sr.shape,
-                x = (tr.x + sr.offset_x * tr.scale) * ppm,
-                y = (tr.y + sr.offset_y * tr.scale) * ppm,
+                x = (tr.x + sr.offset_x * tr.scale),
+                y = (tr.y + sr.offset_y * tr.scale),
                 anchor_x = tr.anchor_x,
                 anchor_y = tr.anchor_y,
-                scale = tr.scale * ppm,
+                scale = tr.scale,
                 rotation = tr.rotation,
                 filling = sr.filling,
                 color = sr.filling_color,
@@ -110,11 +108,11 @@ class RenderSystem(System):
             )
         else:
             self._shapes[eid].update(
-                x = (tr.x + sr.offset_x * tr.scale) * ppm,
-                y = (tr.y + sr.offset_y * tr.scale) * ppm,
+                x = (tr.x + sr.offset_x * tr.scale),
+                y = (tr.y + sr.offset_y * tr.scale),
                 anchor_x = tr.anchor_x,
                 anchor_y = tr.anchor_y,
-                scale = tr.scale * ppm,
+                scale = tr.scale,
                 rotation = tr.rotation,
                 filling = sr.filling,
                 color = sr.filling_color,
@@ -127,7 +125,7 @@ class RenderSystem(System):
             self._shapes[eid].visible = True
 
     # ======================================== SYNC SPRITE ========================================
-    def _sync_sprite(self, entity: Entity, tr: Transform, pipeline: Pipeline, ppm: float = 1.0):
+    def _sync_sprite(self, entity: Entity, tr: Transform, pipeline: Pipeline):
         """Crée ou met à jour le renderer de sprite de l'entité"""
         sr: SpriteRenderer = entity.get(SpriteRenderer)
         eid = entity.id
@@ -142,8 +140,8 @@ class RenderSystem(System):
         if eid not in self._sprites:
             self._sprites[eid] = PygletSpriteRenderer(
                 image = sr.image,
-                x = (tr.x + sr.offset[0] * tr.scale) * ppm,
-                y = (tr.y + sr.offset[1] * tr.scale) * ppm,
+                x = (tr.x + sr.offset[0] * tr.scale),
+                y = (tr.y + sr.offset[1] * tr.scale),
                 anchor_x = tr.anchor.x,
                 anchor_y = tr.anchor.y,
                 scale_x = tr.scale,
@@ -159,8 +157,8 @@ class RenderSystem(System):
         else:
             self._sprites[eid].update(
                 image = sr.image,
-                x = (tr.x + sr.offset[0] * tr.scale) * ppm,
-                y = (tr.y + sr.offset[1] * tr.scale) * ppm,
+                x = (tr.x + sr.offset[0] * tr.scale),
+                y = (tr.y + sr.offset[1] * tr.scale),
                 anchor_x = tr.anchor.x,
                 anchor_y = tr.anchor.y,
                 scale_x = tr.scale,
@@ -175,7 +173,7 @@ class RenderSystem(System):
             self._sprites[eid].visible = True
 
     # ======================================== SYNC TEXT ========================================
-    def _sync_text(self, entity: Entity, tr: Transform, pipeline: Pipeline, ppm: float = 1.0):
+    def _sync_text(self, entity: Entity, tr: Transform, pipeline: Pipeline):
         """Crée ou met à jour le renderer de label de l'entité"""
         tc: TextRenderer = entity.get(TextRenderer)
         eid = entity.id
@@ -190,8 +188,8 @@ class RenderSystem(System):
         if eid not in self._labels:
             self._labels[eid] = PygletLabelRenderer(
                 text = tc.text,
-                x = (tr.x + tc.offset[0] * tr.scale) * ppm,
-                y = (tr.y + tc.offset[1] * tr.scale) * ppm,
+                x = (tr.x + tc.offset[0] * tr.scale),
+                y = (tr.y + tc.offset[1] * tr.scale),
                 anchor_x = tr.anchor[0],
                 anchor_y = tr.anchor[1],
                 rotation = tr.rotation,
@@ -208,8 +206,8 @@ class RenderSystem(System):
         else:
             self._labels[eid].update(
                 text = tc.text,
-                x = (tr.x + tc.offset[0] * tr.scale) * ppm,
-                y = (tr.y + tc.offset[1] * tr.scale) * ppm,
+                x = (tr.x + tc.offset[0] * tr.scale),
+                y = (tr.y + tc.offset[1] * tr.scale),
                 anchor_x = tr.anchor[0],
                 anchor_y = tr.anchor[1],
                 rotation = tr.rotation,
