@@ -167,6 +167,7 @@ __all__ = [
     "scene",
 
     "set_window",
+    "preload",
     "run",
     "stop",
 ]
