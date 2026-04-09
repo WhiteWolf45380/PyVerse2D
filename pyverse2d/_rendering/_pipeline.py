@@ -38,7 +38,8 @@ class Pipeline:
     """
     __slots__ = (
         "_window", "_scene", "_layer",
-        "_data", "_projection_cache", "_default_view", "_context",
+        "_data", "_projection_cache", "_view_cache", '_view_buffer', "_default_view",
+        "_context",
         "_batch", "_group", "_z_groups",
     )
 
@@ -51,6 +52,8 @@ class Pipeline:
         # Cache
         self._data: dict[Scene, SceneRenderData] = {}
         self._projection_cache: dict[tuple[float, float, float], Mat4] = {}
+        self._view_cache: dict[tuple[float, float, float], Mat4] = {}
+        self._view_buffer: dict[tuple[float, float, float], Mat4] = {}
         self._default_view: Mat4 = Mat4()
         self._context: _PipelineContext = _PipelineContext()
 
@@ -218,6 +221,8 @@ class Pipeline:
         """Met fin à la connexion avec une scene"""
         self._scene = None
         self._context.clear()
+        self._view_cache, self._view_buffer = self._view_buffer, self._view_cache
+        self._view_buffer.clear()
 
     # ======================================== MATRICES ========================================
     def compute_ppu(self, lw: float, lh: float, vw: float, vh: float, zoom: float) -> tuple[float, float]:
@@ -244,10 +249,18 @@ class Pipeline:
     
     def compute_view(self, cx: float, cy: float, rotation: float) -> Mat4:
         """Calcul la matrice de vue"""
+        view_key = (cx, cy, rotation)
+        if view_key in self._view_buffer:
+            return self._view_buffer[view_key]
+        if view_key in self._view_cache:
+            view = self._view_cache[view_key]
+            self._view_buffer[view_key] = view
+            return view
         view = self._default_view
         view = view.translate((-cx, -cy, 0))
         if rotation != 0.0:
             view = view.rotate(radians(rotation), (0, 0, 1))
+        self._view_buffer[view_key] = view
         return view
 
     # ======================================== UTILITAIRES ========================================
