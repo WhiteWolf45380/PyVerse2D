@@ -39,8 +39,8 @@ class CameraGroup(Group):
     
     def set_state(self):
         """Applique les matrices du groupe"""
-        self._window.native.projection = self.projection
-        self._window.native.view = self.view
+        self._window.projection = self.projection
+        self._window.view = self.view
     
     def unset_state(self):
         """Retire les matrices du groupe"""
