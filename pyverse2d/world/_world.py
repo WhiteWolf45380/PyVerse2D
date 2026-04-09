@@ -10,11 +10,7 @@ from typing import Type
 
 # ======================================== OBJECT ========================================
 class World:
-    """Gère le monde virtuel et l'organisation des entités
-
-    Args:
-        pixels_per_meter: rapport de conversions entre les screen pixels et les mètres
-    """
+    """Gère le monde virtuel et l'organisation des entités"""
     def __init__(self):
         # Composants
         self._all_entities: dict[str, Entity] = {}

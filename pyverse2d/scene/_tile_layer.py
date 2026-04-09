@@ -116,8 +116,8 @@ class TileLayer(Layer):
         vh_world = half_h * 2
 
         tm = self._tile_map
-        tw = tm.tile_width
-        th = tm.tile_height
+        tw = tm.tile_width * pipeline.ppu_x
+        th = tm.tile_height * pipeline.ppu_y
         ox, oy = tm.origin
         chunk_w = self._chunk_size * tw
         chunk_h = self._chunk_size * th
