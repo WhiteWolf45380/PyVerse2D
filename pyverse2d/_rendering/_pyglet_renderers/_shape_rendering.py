@@ -403,39 +403,22 @@ class _FillRenderer:
         r, g, b, a = color.rgba8
         a = int(a * opacity)
 
-        # Dimensionnement
-        ppu, ppu_x, ppu_y = pipeline.ppu, pipeline.ppu_x, pipeline.ppu_y
-
         if isinstance(shape, VertexShape):
             world_vertices = shape.world_vertices(cx, cy, scale, rotation)
-            world_vertices[:, 0] *= ppu_x
-            world_vertices[:, 1] *= ppu_y
             pts = [tuple(v) for v in world_vertices]
             self._gl_shape = pyglet.shapes.Polygon(*pts, color=(r, g, b, a), batch=pipeline.batch, group=pipeline.get_group(z=z))
 
         elif isinstance(shape, Circle):
             cx_, cy_, r_ = shape.world_transform(cx, cy, scale, 0)
-            cx_ *= ppu_x
-            cy_ *= ppu_y
-            r_ *= ppu
             self._gl_shape = pyglet.shapes.Circle(cx_, cy_, r_, color=(r, g, b, a), batch=pipeline.batch, group=pipeline.get_group(z=z))
 
         elif isinstance(shape, Ellipse):
             cx_, cy_, rx, ry, _ = shape.world_transform(cx, cy, scale, 0)
-            cx_ *= ppu_x
-            cy_ *= ppu_y
-            rx *= ppu_x
-            ry *= ppu_y
             self._gl_shape = pyglet.shapes.Ellipse(cx_, cy_, rx, ry, color=(r, g, b, a), batch=pipeline.batch, group=pipeline.get_group(z=z))
             self._gl_shape.rotation = rotation
 
         elif isinstance(shape, Capsule):
             ax, ay, bx, by, r_ = shape.world_transform(cx, cy, scale, 0)
-            ax *= ppu_x
-            ay *= ppu_y
-            bx *= ppu_x
-            by *= ppu_y
-            r_ *= ppu_x
             spine = math.dist((ax, ay), (bx, by))
             screen_cx = (ax + bx) / 2
             screen_cy = (ay + by) / 2
@@ -444,11 +427,10 @@ class _FillRenderer:
         elif isinstance(shape, RoundedRect):
             _, _, _, _, r_, _, corners = shape.world_transform(cx, cy, scale, 0)
             tl, tr, br, bl = corners
-            mid_x = (tl[0] + br[0]) * 0.5 * ppu_x
-            mid_y = (tl[1] + br[1]) * 0.5 * ppu_y
-            w = shape.width  * scale * ppu_x
-            h = shape.height * scale * ppu_y
-            r_ *= ppu
+            mid_x = (tl[0] + br[0]) * 0.5
+            mid_y = (tl[1] + br[1]) * 0.5
+            w = shape.width  * scale
+            h = shape.height * scale
             self._gl_shape = _RoundedRectRenderer(mid_x, mid_y, w, h, r_, rotation=rotation, color=(r, g, b, a), batch=pipeline.batch, group=pipeline.get_group(z=z))
     
     # ======================================== GETTERS ========================================
@@ -490,10 +472,10 @@ class _FillRenderer:
     def handle_scale(self, psr: PygletShapeRenderer) -> None:
         """Actualisation du facteur de redimensionnement"""
         if isinstance(psr.shape, Circle):
-            self._gl_shape.radius = psr.shape.radius * psr.scale * psr.pipeline.ppu
+            self._gl_shape.radius = psr.shape.radius * psr.scale
         elif isinstance(psr.shape, Ellipse):
-            self._gl_shape.a = psr.shape.rx * psr.scale * psr.pipeline.ppu_x
-            self._gl_shape.b = psr.shape.ry * psr.scale * psr.pipeline.ppu_y
+            self._gl_shape.a = psr.shape.rx * psr.scale
+            self._gl_shape.b = psr.shape.ry * psr.scale
         else:
             return True
 
@@ -611,7 +593,7 @@ class _BorderRenderer:
         self._width = width
 
         # Meshes
-        strip = self._world_strip(cx, cy, scale, rotation, width, align, pipeline.ppu_x, pipeline.ppu_y)
+        strip = self._world_strip(cx, cy, scale, rotation, width, align)
         self._n = len(strip)
         flat = strip.flatten().tolist()
 
@@ -629,14 +611,14 @@ class _BorderRenderer:
             colors=('Bn', (r, g, b, a) * self._n),
         )
 
-    def _world_strip(self, cx: float, cy: float, scale: float, rotation: float, width: float, align: BorderAlign, ppu_x: float, ppu_y: float) -> np.ndarray:
+    def _world_strip(self, cx: float, cy: float, scale: float, rotation: float, width: float, align: BorderAlign) -> np.ndarray:
         """Génère le contour monde + strip"""
-        world = _apply_transform(self._local_contour, cx, cy, scale, rotation, ppu_x, ppu_y)
-        return _build_strip(world, width * (ppu_x + ppu_y) / 2, align)
+        world = _apply_transform(self._local_contour, cx, cy, scale, rotation)
+        return _build_strip(world, width, align)
 
     def _refresh_vertices(self, psr: PygletShapeRenderer) -> None:
         """Réactualise les arrêtes"""
-        strip = self._world_strip(psr.cx, psr.cy, psr.scale, psr.rotation, psr.border_width, psr.border_align, psr.pipeline.ppu_x, psr.pipeline.ppu_y)
+        strip = self._world_strip(psr.cx, psr.cy, psr.scale, psr.rotation, psr.border_width, psr.border_align)
         flat = strip.flatten().tolist()
         self._vlist.position[:] = flat
     
@@ -846,14 +828,12 @@ def _build_strip(contour: np.ndarray, width: float, align: str = "center") -> np
     return strip
  
  
-def _apply_transform(pts: np.ndarray, cx: float, cy: float, scale: float, rotation: float, ppu_x: float, ppu_y: float) -> np.ndarray:
+def _apply_transform(pts: np.ndarray, cx: float, cy: float, scale: float, rotation: float) -> np.ndarray:
     """Applique translation + scale + rotation à un contour local"""
     rad = math.radians(-rotation)
     cos_r, sin_r = math.cos(rad), math.sin(rad)
     rot = np.array([[cos_r, -sin_r], [sin_r, cos_r]], dtype=np.float32)
     result = (pts * scale) @ rot.T + np.array([cx, cy], dtype=np.float32)
-    result[:, 0] *= ppu_x
-    result[:, 1] *= ppu_y
     return result
 
 # ======================================== CAPSULE RENDERER ========================================

@@ -123,8 +123,8 @@ class PygletSpriteRenderer:
         # Construction du sprite
         self._sprite = pyglet.sprite.Sprite(
             region,
-            x=self._x * self._pipeline.ppu_x,
-            y=self._y * self._pipeline.ppu_y,
+            x=self._x,
+            y=self._y,
             batch=self._pipeline.batch if self._pipeline else None,
             group=self._pipeline.get_group(z=self._z) if self._pipeline else None,
         )
@@ -135,8 +135,8 @@ class PygletSpriteRenderer:
 
     def _effective_scales(self, raw: pyglet.image.AbstractImage) -> tuple[float, float]:
         """Calcule les tailles effectifs"""
-        img_sx: float | None = (self._image.width * self._pipeline.ppu_x / raw.width if self._image.width else None)
-        img_sy: float | None = (self._image.height * self._pipeline.ppu_y / raw.height if self._image.height else None)
+        img_sx: float | None = (self._image.width / raw.width if self._image.width else None)
+        img_sy: float | None = (self._image.height / raw.height if self._image.height else None)
 
         if img_sx is None and img_sy is None:
             img_sx = img_sy = 1.0
@@ -227,10 +227,6 @@ class PygletSpriteRenderer:
         return self._pipeline
     
     @property
-    def ppu(self) -> int:
-        """Renvoie le rapport de conversion world to screen"""
-    
-    @property
     def width(self) -> int:
         """Renvoie la largeur de la texture"""
         return self._sprite.width
@@ -277,7 +273,6 @@ class PygletSpriteRenderer:
             color: teinte multiplicative
             z: z-order
             pipeline: pipeline de rendu
-            ppu: rapport de conversion world to screen
         """
         changes: list[str] = set()
         for key, value in kwargs.items():
@@ -307,7 +302,7 @@ class PygletSpriteRenderer:
     # ======================================== HANDLERS ========================================
     def _handle_position(self) -> None:
         """Actualisation de la position"""
-        self._sprite.position = (self._x * self._pipeline.ppu_x, self._y * self._pipeline.ppu_y, 0)
+        self._sprite.position = (self._x, self._y, 0)
 
     def _handle_anchor(self) -> None:
         """Actualisation de l'ancre"""
