@@ -333,7 +333,7 @@ class Pipeline:
             dx: direction horizontale du viewport (logical space)
             dy: direction verticale du viewport (logical space)
         """
-        view = view.translate(-ox / self.ppu_x, -oy / self.ppu_y)
+        view = view.translate((-ox / self.ppu_x, -oy / self.ppu_y, 0))
         if dx != 1.0 or dy != 1.0:
             view = view.scale((dx, dy, 1.0))
         return view
