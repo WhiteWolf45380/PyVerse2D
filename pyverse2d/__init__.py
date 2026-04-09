@@ -76,7 +76,8 @@ def preload(loadable: scene.Scene = None) -> None:
         raise RuntimeError("Not window set. Please try set_window() before loading") 
     if loadable is None:
         scene._preload(_pipeline)
-    loadable._preload(_pipeline)
+    else:
+        loadable._preload(_pipeline)
 
 def run(on_update: Callable[[float], None] = None, on_draw: Callable[[], None] = None):
     """Démarre le moteur
