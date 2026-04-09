@@ -162,7 +162,7 @@ class Scene:
                 continue
             pipeline.bind_layer(layer, z=z)
             layer.draw(pipeline)
-            pipeline.flush()
+        pipeline.flush()
 
         for fn in self._draw_callbacks:
             fn(pipeline)
