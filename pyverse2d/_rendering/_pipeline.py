@@ -4,6 +4,7 @@ from __future__ import annotations
 import pyglet.gl as gl
 from pyglet.graphics import Batch, Group
 from pyglet.math import Mat4
+from pyglet.window import Window as PygletWindow
 
 from typing import TYPE_CHECKING
 from dataclasses import dataclass
@@ -25,8 +26,25 @@ class SceneRenderData:
 
 @dataclass(slots=True, frozen=True)
 class LayerGroups:
-    group: Group
-    z_groups: dict[int, Group]    
+    group: CameraGroup
+    z_groups: dict[int, Group]
+
+# ======================================== CAMERA GROUP ========================================
+class CameraGroup(Group):
+    def __init__(self, window: PygletWindow, order: int= 0, parent: Group = None):
+        super().__init__(order=order, parent=parent)
+        self._window = window
+        self.projection: Mat4 = None
+        self.view: Mat4 = None
+    
+    def set_state(self):
+        """Applique les matrices du groupe"""
+        self._window.native.projection = self.projection
+        self._window.native.view = self.view
+    
+    def unset_state(self):
+        """Retire les matrices du groupe"""
+        pass
 
 # ======================================== PIPELINE ========================================
 class Pipeline:
@@ -191,7 +209,7 @@ class Pipeline:
         self._layer = layer
         layer_groups = self._data[self._scene].layers
         if layer not in layer_groups:
-            layer_groups[layer] = LayerGroups(Group(order=z), {})
+            layer_groups[layer] = LayerGroups(CameraGroup(window=self._window.native, order=z), {})
         self._group = layer_groups[layer].group
         self._z_groups = layer_groups[layer].z_groups
 
@@ -205,13 +223,13 @@ class Pipeline:
 
         # Matrice de projection
         projection = self.compute_projection(vw, vh, zoom)
-        self._window.native.projection = projection
+        self._group.projection = projection
         self._context.projection_matrix = projection
 
         # Matrice de vue
         view = self.compute_view(cx, cy, rotation)
         self._window.native.view = view
-        self._context.view_matrix = view
+        self._group.view = view
 
     def flush(self) -> None:
         """Envoie tout le batch au GPU"""
