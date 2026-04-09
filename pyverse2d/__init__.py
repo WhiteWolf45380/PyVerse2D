@@ -3,6 +3,7 @@ from __future__ import annotations
 from ._version import __version__
 
 import pyglet
+from typing import Callable
 
 # ======================================== PRIMITIVES ========================================
 from . import typing, abc, math, shape, asset
@@ -46,11 +47,10 @@ from . import world, tile, gui, scene
 
 # ======================================== SETTERS ========================================
 def set_window(window: Window):
-    """
-    Définit la fenêtre du moteur
+    """Définit la fenêtre du moteur
 
     Args:
-        window (Window): fenêtre à utiliser
+        window: fenêtre à utiliser
     """
     global _pipeline
     if not isinstance(window, Window):
@@ -65,9 +65,14 @@ def set_window(window: Window):
         _pipeline.window.clear()
         scene.draw(_pipeline)
 
-# ======================================== LOOP ========================================
-def run(update: callable = None):
-    """Démarre la boucle de mise à jour"""
+# ======================================== ACTIVATION ========================================
+def run(on_update: Callable[[float], None] = None, on_draw: Callable[[Pipeline], None] = None):
+    """Démarre le moteur
+
+    Args:
+        on_update: hook d'actualisation
+        on_draw: hook d'affichage
+    """
     if _pipeline is None:
         raise RuntimeError("No window set, try set_window() before run()")
 
@@ -83,16 +88,40 @@ def run(update: callable = None):
         scene.update(dt)
 
         # Appel de la fonction externe
-        if update is not None:
-            update(dt)
+        if on_update is not None:
+            on_update(dt)
 
         # Nettoyage
         for manager in _context_manager:
             manager.flush()
 
+    # Draw handler
+    if on_draw is not None:
+        _pipeline.window.native.push_handlers(on_draw=lambda: on_draw(_pipeline))
+
     # Lancement
     time.schedule(_update)
     pyglet.app.run()
+
+def stop():
+    """Arrête proprement le moteur"""
+    global _pipeline
+    if _pipeline is None:
+        return
+
+    window = _pipeline.window.native
+
+    # Désenregistre les handlers
+    window.pop_handlers()
+
+    # Ferme la fenêtre
+    window.close()
+
+    # Stop la loop pyglet
+    pyglet.app.exit()
+
+    # Reset pipeline
+    _pipeline = None
 
 # ======================================== EXPORTS ========================================
 __all__ = [
@@ -106,7 +135,7 @@ __all__ = [
     "KeyManager",
     "MouseManager",
     "InputsManager",
-    "UiManager"
+    "UiManager",
 
     "time",
     "event",
@@ -127,4 +156,5 @@ __all__ = [
 
     "set_window",
     "run",
+    "stop",
 ]

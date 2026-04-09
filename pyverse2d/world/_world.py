@@ -1,13 +1,12 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from .._internal import expect, over
+from .._internal import expect
 from ..abc import Component, System
 
 from ._entity import Entity
 
 from typing import Type
-from numbers import Real
 
 # ======================================== OBJECT ========================================
 class World:
