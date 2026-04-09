@@ -115,7 +115,7 @@ class PygletLabelRenderer:
         self._label = pyglet.text.Label(
             text=self._text.text,
             font_name=font.name,
-            font_size=font.size
+            font_size=font.size,
             weight=self._weight,
             italic=self._italic,
             color=(r, g, b, a),
