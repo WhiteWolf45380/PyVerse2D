@@ -194,18 +194,15 @@ def _apply_flip(shape: Shape, flip: int, tw: float, th: float) -> Shape:
     """
     if flip == 0:
         return shape
-
     if isinstance(shape, Rect):
         return shape
-
     if isinstance(shape, Polygon):
         verts = [(float(v[0]), float(v[1])) for v in shape.vertices]
+        if flip & FLIP_D:
+            verts = [(y * (tw / th), x * (th / tw)) for x, y in verts]
         if flip & FLIP_H:
             verts = [(tw - x, y) for x, y in verts]
         if flip & FLIP_V:
             verts = [(x, th - y) for x, y in verts]
-        if flip & FLIP_D:
-            verts = [(y * (tw / th), x * (th / tw)) for x, y in verts]
         return Polygon(*verts)
-
     return shape
