@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 from .._internal import expect, positive, not_null
-from ..abc import VertexShape
+from ..abc import Shape
+from ..math import Point
 
 from numbers import Real, Integral
 import numpy as np
@@ -10,13 +11,12 @@ from numpy.typing import NDArray
 import math
 
 # ======================================== SHAPE ========================================
-class RegularPolygon(VertexShape):
-    """
-    Polygone régulier à N côtés égaux
+class RegularPolygon(Shape):
+    """Forme géométrique 2D : Polygone régulier
 
     Args:
-        sides(Integral): nombre de côtés (minimum 3)
-        radius(Real): rayon du cercle circonscrit
+        sides: nombre de côtés (minimum 3)
+        radius: rayon du cercle circonscrit
     """
     __slots__ = ("_sides", "_radius")
 
@@ -34,35 +34,88 @@ class RegularPolygon(VertexShape):
 
     def __str__(self) -> str:
         """Renvoie une description lisible du polygone régulier"""
-        return f"RegularPolygon[{self._sides} sides | r={self._radius} | area={self.area:.4g}]"
+        return f"RegularPolygon[{self._sides} sides | r={self._radius} | area={self.get_area():.4g}]"
 
-    # ======================================== GETTERS ========================================
+    def __iter__(self):
+        yield self._sides
+        yield self._radius
+
+    def __hash__(self) -> int:
+        """Renvoie le hash du polygone régulier"""
+        return hash((self._sides, self._radius))
+
+    # ======================================== PROPERTIES ========================================
+    @property
+    def radius(self) -> float:
+        """Rayon du cercle circonscrit
+
+        Le rayon doit être un *réel positif non nul*.
+        """
+        return self._radius
+    
+    @radius.setter
+    def radius(self, value: Real) -> None:
+        self._radius = float(positive(not_null(expect(value, Real))))
+        self._invalidate_geometry()
+
     @property
     def sides(self) -> int:
-        """Renvoie le nombre de côtés"""
+        """Nombre de côtés"""
         return self._sides
 
     @property
-    def radius(self) -> float:
-        """Renvoie le rayon du cercle circonscrit"""
-        return self._radius
-
-    @property
     def side_length(self) -> float:
-        """Renvoie la longueur d'un côté"""
-        return 2 * self._radius * math.sin(math.pi / self._sides)
+        """Longueur d'un côté"""
+        return 2.0 * self._radius * math.sin(math.pi / self._sides)
+
+    # ======================================== GEOMETRY ========================================
+    def get_perimeter(self) -> float:
+        """Renvoie le périmètre du polygone régulier"""
+        return self._sides * self.side_length
+
+    def get_area(self) -> float:
+        """Renvoie l'aire du polygone régulier"""
+        return 0.5 * self._sides * self._radius ** 2 * math.sin(2.0 * math.pi / self._sides)
+
+    def get_bounding_box(self) -> tuple[float, float, float, float]:
+        """Renvoie ``(x_min, y_min, x_max, y_max)`` en espace local"""
+        v = self.get_vertices()
+        return (float(v[:, 0].min()), float(v[:, 1].min()),
+                float(v[:, 0].max()), float(v[:, 1].max()))
+
+    def get_vertices(self) -> NDArray[np.float32]:
+        """Renvoie les N sommets du polygone régulier"""
+        angles = np.linspace(0.0, 2.0 * math.pi, self._sides, endpoint=False, dtype=np.float32)
+        return np.stack([np.cos(angles) * self._radius,
+                         np.sin(angles) * self._radius], axis=1)
 
     # ======================================== COMPARATORS ========================================
     def __eq__(self, other: object) -> bool:
-        """
-        Vérifie l'égalité de deux polygones réguliers
-
-        Args:
-            other(object): objet à comparer
-        """
+        """Vérifie la correspondance de deux polygones réguliers"""
         if isinstance(other, RegularPolygon):
             return self._sides == other._sides and math.isclose(self._radius, other._radius)
-        return False
+        return NotImplemented
+
+    # ======================================== PREDICATES ========================================
+    def contains(self, point: Point) -> bool:
+        """Teste si un point est dans le polygone régulier
+
+        Args:
+            point: point à tester
+        """
+        if self._vertices is None:
+            self._vertices = self.get_vertices()
+        px, py = float(point[0]), float(point[1])
+        n = len(self._vertices)
+        inside = False
+        j = n - 1
+        for i in range(n):
+            xi, yi = float(self._vertices[i][0]), float(self._vertices[i][1])
+            xj, yj = float(self._vertices[j][0]), float(self._vertices[j][1])
+            if ((yi > py) != (yj > py)) and (px < (xj - xi) * (py - yi) / (yj - yi) + xi):
+                inside = not inside
+            j = i
+        return inside
 
     # ======================================== PUBLIC METHODS ========================================
     def copy(self) -> RegularPolygon:
@@ -70,107 +123,67 @@ class RegularPolygon(VertexShape):
         return RegularPolygon(self._sides, self._radius)
 
     def scale(self, factor: Real) -> None:
-        """
-        Redimensionne le polygone régulier
+        """Redimensionne le polygone régulier
 
         Args:
-            factor(Real): facteur de redimensionnement
+            factor: facteur de redimensionnement
         """
-        factor = float(positive(not_null(expect(factor, Real))))
-        self._radius *= factor
-        self._vertices = self._compute_vertices()
-        self._cache_sr = None
-
-    # ======================================== INTERNALS ========================================
-    def _compute_vertices(self) -> NDArray[np.float32]:
-        """Génère les sommets du polygone régulier"""
-        angles = np.linspace(0, 2 * math.pi, self._sides, endpoint=False)
-        return np.stack([
-            np.cos(angles) * self._radius,
-            np.sin(angles) * self._radius
-        ], axis=1).astype(np.float32)
+        self._radius *= float(positive(not_null(expect(factor, Real))))
+        self._invalidate_geometry()
 
 
 # ======================================== FAÇADES ========================================
 class RegularTriangle(RegularPolygon):
-    """
-    Triangle équilatéral
-
-    Args:
-        radius(Real): rayon du cercle circonscrit
-    """
+    """Forme géométrique 2D : Triangle équilatéral"""
     __slots__ = ()
 
     def __init__(self, radius: Real):
         super().__init__(3, radius)
 
     def __repr__(self) -> str:
-        """Renvoie une représentation du triangle"""
         return f"Triangle(radius={self._radius})"
 
     def copy(self) -> RegularTriangle:
-        """Renvoie une copie du triangle"""
         return RegularTriangle(self._radius)
 
 
 class RegularPentagon(RegularPolygon):
-    """
-    Pentagone régulier
-
-    Args:
-        radius(Real): rayon du cercle circonscrit
-    """
+    """Forme géométrique 2D : Pentagone régulier"""
     __slots__ = ()
 
     def __init__(self, radius: Real):
         super().__init__(5, radius)
 
     def __repr__(self) -> str:
-        """Renvoie une représentation du pentagone"""
         return f"Pentagon(radius={self._radius})"
 
     def copy(self) -> RegularPentagon:
-        """Renvoie une copie du pentagone"""
         return RegularPentagon(self._radius)
 
 
 class RegularHexagon(RegularPolygon):
-    """
-    Hexagone régulier
-
-    Args:
-        radius(Real): rayon du cercle circonscrit
-    """
+    """Forme géométrique 2D : Hexagone régulier"""
     __slots__ = ()
 
     def __init__(self, radius: Real):
         super().__init__(6, radius)
 
     def __repr__(self) -> str:
-        """Renvoie une représentation de l'hexagone"""
         return f"Hexagon(radius={self._radius})"
 
     def copy(self) -> RegularHexagon:
-        """Renvoie une copie de l'hexagone"""
         return RegularHexagon(self._radius)
 
 
 class RegularOctagon(RegularPolygon):
-    """
-    Octogone régulier
-
-    Args:
-        radius(Real): rayon du cercle circonscrit
-    """
+    """Forme géométrique 2D : Octogone régulier"""
     __slots__ = ()
 
     def __init__(self, radius: Real):
         super().__init__(8, radius)
 
     def __repr__(self) -> str:
-        """Renvoie une représentation de l'octogone"""
         return f"Octagon(radius={self._radius})"
 
     def copy(self) -> RegularOctagon:
-        """Renvoie une copie de l'octogone"""
         return RegularOctagon(self._radius)

@@ -2,21 +2,25 @@
 from __future__ import annotations
 
 from .._internal import expect, not_null, positive
-from ..abc import PrimitiveShape
+from ..abc import Shape
+from ..math import Point
 
 from numbers import Real
 from typing import Iterator
 import math
+import numpy as np
+from numpy.typing import NDArray
 
 # ======================================== SHAPE ========================================
-class Circle(PrimitiveShape):
-    """
-    Forme géométrique 2D : Cercle
+class Circle(Shape):
+    """Forme géométrique 2D : Cercle
 
     Args:
-        radius(Real): rayon du cercle
+        radius: rayon du cercle
     """
     __slots__ = ("_radius",)
+
+    CIRCLE_SEGMENTS: int = 64
 
     def __init__(self, radius: Real):
         self._radius: float = float(positive(not_null(expect(radius, Real))))
@@ -29,7 +33,7 @@ class Circle(PrimitiveShape):
 
     def __str__(self) -> str:
         """Renvoie une description lisible du cercle"""
-        return f"Circle[r={self._radius} | area={self.area:.4g}]"
+        return f"Circle[r={self._radius} | area={self.get_area():.4g}]"
 
     def __iter__(self) -> Iterator[float]:
         """Renvoie les composants dans un itérateur"""
@@ -37,95 +41,72 @@ class Circle(PrimitiveShape):
 
     def __hash__(self) -> int:
         """Renvoie le hash du cercle"""
-        return hash(self.to_tuple())
+        return hash(self._radius)
 
-    # ======================================== GETTERS ========================================
+    # ======================================== PROPERTIES ========================================
     @property
     def radius(self) -> float:
-        """Renvoie le rayon du cercle"""
+        """Rayon du cercle
+        
+        Le rayon doit être un *réel positif non nul*.
+        """
         return self._radius
+    
+    @radius.setter
+    def radius(self, value: Real) -> None:
+        self._radius = float(positive(not_null(expect(value, Real))))
+        self._invalidate_geometry()
 
     @property
     def diameter(self) -> float:
-        """Renvoie le diamètre du cercle"""
-        return 2 * self._radius
-
-    @property
-    def width(self) -> float:
-        """Renvoie la largeur du cercle"""
-        return self.diameter
-
-    @property
-    def height(self) -> float:
-        """Renvoie la hauteur du cercle"""
-        return self.diameter
-
-    @property
-    def perimeter(self) -> float:
+        """Diamètre du cercle"""
+        return 2.0 * self._radius
+    
+    # ======================================== GEOMETRY ========================================
+    def get_perimeter(self) -> float:
         """Renvoie le périmètre du cercle"""
-        return 2 * math.pi * self._radius
+        return 2.0 * math.pi * self._radius
 
-    @property
-    def area(self) -> float:
+    def get_area(self) -> float:
         """Renvoie l'aire du cercle"""
         return math.pi * self._radius ** 2
 
-    # ======================================== SETTERS ========================================
-    @radius.setter
-    def radius(self, value: Real):
-        """
-        Fixe le rayon du cercle
+    def get_bounding_box(self) -> tuple[float, float, float, float]:
+        """Renvoie (x_min, y_min, x_max, y_max) en espace local"""
+        r = self._radius
+        return (-r, -r, r, r)
 
-        Args:
-            value(Real): nouveau rayon
-        """
-        self._radius = float(positive(not_null(expect(value, Real))))
-        self._invalidate_cache()
+    def get_vertices(self) -> NDArray[np.float32]:
+        """Approximation polygonale du cercle"""
+        angles = np.linspace(0.0, 2.0 * math.pi, self.CIRCLE_SEGMENTS, endpoint=False, dtype=np.float32)
+        return np.stack([np.cos(angles) * self._radius, np.sin(angles) * self._radius], axis=1)
 
     # ======================================== COMPARATORS ========================================
     def __eq__(self, other: object) -> bool:
-        """
-        Vérifie l'égalité de deux cercles
-
-        Args:
-            other(object): objet à comparer
-        """
+        """Vérifie la correspondance de deux cercles"""
         if isinstance(other, Circle):
             return self._radius == other._radius
-        return False
+        return NotImplemented
 
     # ======================================== PREDICATES ========================================
-    def contains(self, point) -> bool:
-        """
-        Teste si un point est dans le cercle
+    def contains(self, point: Point) -> bool:
+        """Teste si un point est dans le cercle
 
         Args:
             point: point à tester
         """
         return float(point[0]) ** 2 + float(point[1]) ** 2 <= self._radius ** 2
 
-    # ======================================== PUBLIC METHODS ========================================
+    # ======================================== COLLECTIONS ========================================
     def copy(self) -> Circle:
         """Renvoie une copie du cercle"""
         return Circle(self._radius)
 
     def scale(self, factor: Real) -> None:
-        """
-        Redimensionne le cercle
+        """Redimensionne le cercle
 
         Args:
-            factor(Real): facteur de redimensionnement
+            factor: facteur de redimensionnement
         """
-        factor = float(positive(not_null(expect(factor, Real))))
-        self._radius *= factor
-        self._invalidate_cache()
-
-    def world_bounding_box(self, x: float = 0.0, y: float = 0.0, scale: float = 1.0, rotation: float = 0.0) -> tuple[float, float, float, float]:
-        """Renvoie (x_min, y_min, x_max, y_max) en coordonnées monde"""
-        cx, cy, r = self.world_transform(x, y, scale, rotation)
-        return cx - r, cy - r, cx + r, cy + r
-
-    # ======================================== INTERNALS ========================================
-    def _compute_world(self, x: float, y: float, scale: float, rotation: float) -> tuple[float, float, float]:
-        """Calcule les paramètres monde"""
-        return (x, y, self._radius * scale)
+        self._radius *= float(positive(not_null(expect(factor, Real))))
+        self._invalidate_geometry()

@@ -27,6 +27,9 @@ class Shape(ABC):
     def __repr__(self) -> str: ...
 
     @abstractmethod
+    def __str__(self) -> str: ...
+
+    @abstractmethod
     def __hash__(self) -> int: ...
 
     @abstractmethod
@@ -40,17 +43,17 @@ class Shape(ABC):
 
     @abstractmethod
     def get_vertices(self) -> NDArray[np.float32]:
-        """Vertices locaux (N, 2), float32, origine = centre géométrique"""
+        """Renvoie lertices locaux ``(N, 2)``"""
         ...
 
     @abstractmethod
     def get_bounding_box(self) -> tuple[float, float, float, float]:
-        """``(x_min, y_min, x_max, y_max)`` en espace local."""
+        """Renvoie ``(x_min, y_min, x_max, y_max)`` en espace local"""
         ...
 
     @abstractmethod
     def contains(self, point: Point) -> bool:
-        """Teste si *point* est à l'intérieur de la forme en espace local."""
+        """Teste si *point* est à l'intérieur de la forme en espace local"""
         ...
 
     @abstractmethod
@@ -58,6 +61,14 @@ class Shape(ABC):
 
     @abstractmethod
     def scale(self, factor: float) -> None: ...
+
+    # ======================================== PROPERTIES ========================================
+    @property
+    def vertices(self) -> NDArray[np.float32]:
+        """Vertices locaux en lecture seule ``(N, 2)``"""
+        if self._vertices is None:
+            self._vertices = self.get_vertices()
+        return self._vertices.view()
 
     # ======================================== WORLD TRANSFORM ========================================
     def world_vertices(
@@ -155,14 +166,12 @@ class Shape(ABC):
 
     # ======================================== CACHE ========================================
     def _invalidate_geometry(self) -> None:
-        """Invalide la géométrie locale"""
+        """Invalide la géométrie locale et tous les caches dépendants"""
         self._vertices = None
-        self._cache_key = None
-        self._cache_rotscale = None
-        self._cache_world = None
+        self._invalidate_transform()
 
     def _invalidate_transform(self) -> None:
-        """Invalide le cache monde"""
+        """Invalide uniquement le cache monde"""
         self._cache_key = None
         self._cache_rotscale = None
         self._cache_world = None
@@ -170,7 +179,7 @@ class Shape(ABC):
     # ======================================== INTERNALS ========================================
     def _anchor_offset(self, anchor_x: float, anchor_y: float) -> NDArray[np.float32]:
         """Offset local correspondant au point d'ancrage dans la bounding box"""
-        xmin, ymin, xmax, ymax = self.bounding_box
+        xmin, ymin, xmax, ymax = self.get_bounding_box()
         return np.array(
             [xmin + anchor_x * (xmax - xmin),
              ymin + anchor_y * (ymax - ymin)],

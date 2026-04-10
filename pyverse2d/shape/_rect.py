@@ -2,24 +2,26 @@
 from __future__ import annotations
 
 from .._internal import expect, not_null, positive
-from ..abc import VertexShape
+from ..abc import Shape
+from ..math import Point
+
 from numbers import Real
+from typing import Iterator
 import numpy as np
 from numpy.typing import NDArray
 
 # ======================================== SHAPE ========================================
-class Rect(VertexShape):
-    """
-    Forme géométrique 2D avec sommets : Rectangle
+class Rect(Shape):
+    """Forme géométrique 2D : Rectangle
 
     Args:
-        width(Real): largeur du rectangle
-        height(Real): hauteur du rectangle
+        width:  largeur du rectangle
+        height: hauteur du rectangle
     """
     __slots__ = ("_width", "_height")
 
     def __init__(self, width: Real, height: Real):
-        self._width: float = float(positive(not_null(expect(width, Real))))
+        self._width:  float = float(positive(not_null(expect(width,  Real))))
         self._height: float = float(positive(not_null(expect(height, Real))))
         super().__init__()
 
@@ -30,27 +32,52 @@ class Rect(VertexShape):
 
     def __str__(self) -> str:
         """Renvoie une description lisible du rectangle"""
-        return f"Rect[{self._width}x{self._height} | area={self.area:.4g} | perimeter={self.perimeter:.4g}]"
+        return f"Rect[{self._width}x{self._height} | area={self.get_area():.4g} | perimeter={self.get_perimeter():.4g}]"
+
+    def __iter__(self) -> Iterator[float]:
+        """Renvoie les composants dans un itérateur"""
+        yield self._width
+        yield self._height
+
+    def __hash__(self) -> int:
+        """Renvoie le hash du rectangle"""
+        return hash((self._width, self._height))
 
     # ======================================== GETTERS ========================================
     @property
     def width(self) -> float:
-        """Renvoie la largeur du rectangle"""
+        """Largeur du rectangle
+
+        La largeur doit être un *réel positif non nul*.
+        """
         return self._width
+    
+    @width.setter
+    def width(self, value: Real) -> None:
+        self._width = float(positive(not_null(expect(value, Real))))
+        self._invalidate_geometry()
 
     @property
     def height(self) -> float:
-        """Renvoie la hauteur du rectangle"""
+        """Hauteur du rectangle
+        
+        La hauteur doit être un *réel positif non nul*.
+        """
         return self._height
+
+    @height.setter
+    def height(self, value: Real) -> None:
+        self._height = float(positive(not_null(expect(value, Real))))
+        self._invalidate_geometry()
 
     @property
     def half_width(self) -> float:
-        """Renvoie la demi-largeur du rectangle"""
+        """Demi-largeur du rectangle"""
         return 0.5 * self._width
 
     @property
     def half_height(self) -> float:
-        """Renvoie la demi-hauteur du rectangle"""
+        """Demi-hauteur du rectangle"""
         return 0.5 * self._height
 
     @property
@@ -58,64 +85,22 @@ class Rect(VertexShape):
         """Renvoie la longueur de la diagonale"""
         return (self._width ** 2 + self._height ** 2) ** 0.5
 
-    # ======================================== SETTERS ========================================
-    @width.setter
-    def width(self, value: Real):
-        """
-        Fixe la largeur du rectangle
+    # ======================================== GEOMETRY ========================================
+    def get_perimeter(self) -> float:
+        """Renvoie le périmètre du rectangle"""
+        return 2.0 * (self._width + self._height)
 
-        Args:
-            value(Real): nouvelle largeur
-        """
-        self._width = float(positive(not_null(expect(value, Real))))
-        self._vertices = self._compute_vertices()
-        self._cache_sr = None
+    def get_area(self) -> float:
+        """Renvoie l'aire du rectangle"""
+        return self._width * self._height
 
-    @height.setter
-    def height(self, value: Real):
-        """
-        Fixe la hauteur du rectangle
+    def get_bounding_box(self) -> tuple[float, float, float, float]:
+        """Renvoie  ``(x_min, y_min, x_max, y_max)`` en espace local"""
+        hw, hh = 0.5 * self._width, 0.5 * self._height
+        return (-hw, -hh, hw, hh)
 
-        Args:
-            value(Real): nouvelle hauteur
-        """
-        self._height = float(positive(not_null(expect(value, Real))))
-        self._vertices = self._compute_vertices()
-        self._cache_sr = None
-
-    # ======================================== COMPARATORS ========================================
-    def __eq__(self, other: object) -> bool:
-        """
-        Vérifie l'égalité de deux rectangles
-
-        Args:
-            other(object): objet à comparer
-        """
-        if isinstance(other, Rect):
-            return self._width == other._width and self._height == other._height
-        return False
-
-    # ======================================== PUBLIC METHODS ========================================
-    def copy(self) -> Rect:
-        """Renvoie une copie du rectangle"""
-        return Rect(self._width, self._height)
-
-    def scale(self, factor: Real) -> None:
-        """
-        Redimensionne le rectangle
-
-        Args:
-            factor(Real): facteur de redimensionnement
-        """
-        factor = float(positive(not_null(expect(factor, Real))))
-        self._width *= factor
-        self._height *= factor
-        self._vertices = self._compute_vertices()
-        self._cache_sr = None
-
-    # ======================================== INTERNALS ========================================
-    def _compute_vertices(self) -> NDArray[np.float32]:
-        """Génère les sommets du rectangle centré à l'origine"""
+    def get_vertices(self) -> NDArray[np.float32]:
+        """Renvoie les 4 sommets du rectangle centré à l'origine"""
         hw = 0.5 * self._width
         hh = 0.5 * self._height
         return np.array([
@@ -124,3 +109,39 @@ class Rect(VertexShape):
             ( hw,  hh),
             (-hw,  hh),
         ], dtype=np.float32)
+
+    # ======================================== COMPARATORS ========================================
+    def __eq__(self, other: object) -> bool:
+        """Vérifie l'égalité de deux rectangles
+
+        Args:
+            other(object): objet à comparer
+        """
+        if isinstance(other, Rect):
+            return self._width == other._width and self._height == other._height
+        return NotImplemented
+
+    # ======================================== PREDICATES ========================================
+    def contains(self, point: Point) -> bool:
+        """Teste si un point est dans le rectangle
+
+        Args:
+            point: point à tester
+        """
+        return abs(float(point[0])) <= 0.5 * self._width and abs(float(point[1])) <= 0.5 * self._height
+
+    # ======================================== PUBLIC METHODS ========================================
+    def copy(self) -> Rect:
+        """Renvoie une copie du rectangle"""
+        return Rect(self._width, self._height)
+
+    def scale(self, factor: Real) -> None:
+        """Redimensionne le rectangle
+
+        Args:
+            factor: facteur de redimensionnement
+        """
+        f = float(positive(not_null(expect(factor, Real))))
+        self._width  *= f
+        self._height *= f
+        self._invalidate_geometry()
