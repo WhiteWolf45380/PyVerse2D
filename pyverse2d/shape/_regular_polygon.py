@@ -21,7 +21,7 @@ class RegularPolygon(Shape):
     __slots__ = ("_sides", "_radius")
 
     def __init__(self, sides: Integral, radius: Real):
-        if int(sides) < 3:
+        if __debug__ and int(sides) < 3:
             raise ValueError("RegularPolygon must have at least 3 sides")
         self._sides: int = int(sides)
         self._radius: float = float(positive(not_null(expect(radius, Real))))
