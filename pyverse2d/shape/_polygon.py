@@ -2,9 +2,9 @@
 from __future__ import annotations
 
 from .._internal import expect
-from .._rendering import is_convex, order_ccw, center_vertices
 from ..abc import Shape
 from ..math import Point
+from ..math.vertices import is_convex, order_ccw, center_vertices
 
 from numbers import Real
 import numpy as np

@@ -3,7 +3,10 @@ from ._vector import Vector
 from ._point import Point
 from ._line import Line
 
-from . import easing
+from . import (
+    easing,
+    vertices,
+)
 
 # ======================================== EXPORTS ========================================
 __all__ = [
@@ -12,4 +15,5 @@ __all__ = [
     "Line",
 
     "easing",
+    "vertices",
 ]

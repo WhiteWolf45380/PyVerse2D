@@ -6,15 +6,15 @@ import math
 import numpy as np
 from numpy.typing import NDArray
 
-from .._rendering import Mesh, triangulate_ear_clipping, triangulate_triangle_fan
 from ..math import Point
+from ..math.vertices import triangulate_ear_clipping, triangulate_triangle_fan
 
 # ======================================== ABSTRACT CLASS ========================================
 class Shape(ABC):
     """Classe abstraite de base pour toutes les formes géométriques"""
     __slots__ = (
         "_cache_key", "_cache_rotscale", "_cache_world",
-        "_vertices", "_indexes", "_mesh",
+        "_vertices", "_indexes",
     )
 
     def __init__(self) -> None:
@@ -26,7 +26,6 @@ class Shape(ABC):
         # Representations
         self._vertices: NDArray[np.float32] | None = None
         self._indexes: NDArray[np.float32] | None = None
-        self._mesh: Mesh | None = None
 
     # ======================================== CONTRACT ========================================
     @abstractmethod
@@ -77,12 +76,6 @@ class Shape(ABC):
         if self._indexes is None:
             self._indexes = triangulate_triangle_fan(self.get_vertices()) if self.is_convex() else triangulate_ear_clipping(self.get_vertices())
         return self._indexes
-
-    def get_mesh(self) -> Mesh:
-        """Renvoie le mesh de la forme"""
-        if self._mesh is None:
-            self._mesh = Mesh(self.get_vertices(), self.get_indexes())
-        return self._mesh
 
     # ======================================== WORLD TRANSFORM ========================================
     def world_vertices(
@@ -182,7 +175,6 @@ class Shape(ABC):
     def _invalidate_geometry(self) -> None:
         """Invalide la géométrie locale et tous les caches dépendants"""
         self._vertices = None
-        self._mesh = None
         self._invalidate_transform()
 
     def _invalidate_transform(self) -> None:
