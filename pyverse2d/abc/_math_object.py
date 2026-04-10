@@ -4,9 +4,11 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Iterator, Any
 
-# ======================================== CLASSE ABSTRAITE ========================================
+# ======================================== ABSTRACT CLASS ========================================
 class MathObject(ABC):
-    """Classe abstraite des formes"""
+    """Classe abstraite des objets mathématiques"""
+    __slots__ = tuple()
+
     def __init__(self):
         ...
 

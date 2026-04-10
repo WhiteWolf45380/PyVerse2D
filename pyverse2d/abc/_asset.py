@@ -5,7 +5,9 @@ from abc import ABC, abstractmethod
 
 # ======================================== OBJET ========================================
 class Asset(ABC):
-    """Objet lien entre les assets et l'engine"""
+    """Classe abstraite des assets"""
+    __slots__ = tuple()
+
     @abstractmethod
     def __init__(self):
         ...

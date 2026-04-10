@@ -1,15 +1,9 @@
 # ======================================== IMPORTS ========================================
-from ._math import (
-    Vertex,
-)
-
-from ._rendering import (
-    BorderAlign,
-)
+from ._triangulation import triangulate
+from ._mesh import Mesh
 
 # ======================================== EXPORTS ========================================
 __all__ = [
-    "Vertex",
-
-    "BorderAlign",
+    "triangulate",
+    "Mesh",
 ]

@@ -87,7 +87,7 @@ class Ellipse(Shape):
         """Renvoie ``(x_min, y_min, x_max, y_max)`` en espace local"""
         return (-self._rx, -self._ry, self._rx, self._ry)
 
-    def get_vertices(self) -> NDArray[np.float32]:
+    def compute_vertices(self) -> NDArray[np.float32]:
         """Approximation polygonale de l'ellipse"""
         angles = np.linspace(0.0, 2.0 * math.pi, self.CIRCLE_SEGMENTS, endpoint=False, dtype=np.float32)
         return np.stack([np.cos(angles) * self._rx, np.sin(angles) * self._ry], axis=1)

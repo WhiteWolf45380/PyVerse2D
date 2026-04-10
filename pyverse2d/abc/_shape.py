@@ -6,21 +6,23 @@ import math
 import numpy as np
 from numpy.typing import NDArray
 
+from .._rendering import Mesh, triangulate
 from ..math import Point
 
-
+# ======================================== ABSTRACT CLASS ========================================
 class Shape(ABC):
     """Classe abstraite de base pour toutes les formes géométriques"""
     __slots__ = (
-        "_vertices",
         "_cache_key", "_cache_rotscale", "_cache_world",
+        "_vertices", "_mesh",
     )
 
     def __init__(self) -> None:
-        self._vertices: NDArray[np.float32] | None = None
         self._cache_key: tuple | None = None
         self._cache_rotscale: NDArray[np.float32] | None = None
         self._cache_world: NDArray[np.float32] | None = None
+        self._vertices: NDArray[np.float32] | None = None
+        self._mesh: Mesh | None = None
 
     # ======================================== CONTRACT ========================================
     @abstractmethod
@@ -42,19 +44,10 @@ class Shape(ABC):
     def get_area(self) -> float: ...
 
     @abstractmethod
-    def get_vertices(self) -> NDArray[np.float32]:
-        """Renvoie lertices locaux ``(N, 2)``"""
-        ...
+    def get_bounding_box(self) -> tuple[float, float, float, float]: ...
 
     @abstractmethod
-    def get_bounding_box(self) -> tuple[float, float, float, float]:
-        """Renvoie ``(x_min, y_min, x_max, y_max)`` en espace local"""
-        ...
-
-    @abstractmethod
-    def contains(self, point: Point) -> bool:
-        """Teste si *point* est à l'intérieur de la forme en espace local"""
-        ...
+    def contains(self, point: Point) -> bool: ...
 
     @abstractmethod
     def copy(self) -> Self: ...
@@ -62,13 +55,18 @@ class Shape(ABC):
     @abstractmethod
     def scale(self, factor: float) -> None: ...
 
-    # ======================================== PROPERTIES ========================================
-    @property
-    def vertices(self) -> NDArray[np.float32]:
-        """Vertices locaux en lecture seule ``(N, 2)``"""
+    # ======================================== GPU SIDE ========================================
+    def get_vertices(self) -> NDArray[np.float32]:
+        """Renvoie les vertices locaux de la forme"""
         if self._vertices is None:
-            self._vertices = self.get_vertices()
-        return self._vertices.view()
+            self._vertices = order_ccw(center_vertices(self.compute_vertices()))
+        return self._vertices
+
+    def get_mesh(self) -> Mesh:
+        """Renvoie le mesh local de la forme"""
+        if self._mesh is None:
+            self._mesh = Mesh(self._vertices, triangulate(self._vertices))
+        return self._mesh
 
     # ======================================== WORLD TRANSFORM ========================================
     def world_vertices(
@@ -168,6 +166,7 @@ class Shape(ABC):
     def _invalidate_geometry(self) -> None:
         """Invalide la géométrie locale et tous les caches dépendants"""
         self._vertices = None
+        self._mesh = None
         self._invalidate_transform()
 
     def _invalidate_transform(self) -> None:
@@ -195,3 +194,37 @@ class Shape(ABC):
     ) -> NDArray[np.float32]:
         """Translation nette"""
         return np.array([x, y], dtype=np.float32) - self._anchor_offset(anchor_x, anchor_y)
+
+# ======================================== HELPERS ========================================
+def center_vertices(vertices: NDArray[np.float32]) -> NDArray[np.float32]:
+    """Recentre des vertices autour de (0,0)
+
+    Args:
+        vertices: ``(N, 2)`` points du polygone
+    """
+    v = np.asarray(vertices, dtype=np.float32)
+    if len(v) == 0:
+        return v
+
+    center = v.mean(axis=0)
+    return v - center
+
+def order_ccw(vertices: NDArray[np.float32]) -> NDArray[np.float32]:
+    """Ordonne des vertices en sens anti-horaire (CCW)
+
+    Args:
+        vertices: ``(N, 2)`` points du polygone
+    """
+
+    v = np.asarray(vertices, dtype=np.float32)
+    if len(v) < 3:
+        return v
+
+    # centre du polygone
+    center = v.mean(axis=0)
+
+    # angle polaire autour du centre
+    angles = np.arctan2(v[:, 1] - center[1], v[:, 0] - center[0])
+
+    order = np.argsort(angles)
+    return v[order]

@@ -5,6 +5,11 @@ from ._viewport import Viewport
 from ._camera import Camera
 from ._pipeline import Pipeline
 
+from ._core import (
+    Mesh,
+    triangulate,
+)
+
 from ._pyglet_renderers import (
     PygletShapeRenderer,
     PygletSpriteRenderer,
@@ -18,6 +23,8 @@ __all__ = [
     "Viewport",
     "Camera",
     "Pipeline",
+
+    "Mesh",
 
     "PygletShapeRenderer",
     "PygletSpriteRenderer",

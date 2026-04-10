@@ -98,7 +98,7 @@ class Capsule(Shape):
         r, hh = self._radius, self._height * 0.5
         return (-r, -hh, r, hh)
 
-    def get_vertices(self) -> NDArray[np.float32]:
+    def compute_vertices(self) -> NDArray[np.float32]:
         """Contour polygonal de la capsule orientée verticalement"""
         half = self.CIRCLE_SEGMENTS // 2
         half_spine = self.spine * 0.5

@@ -83,7 +83,7 @@ class RegularPolygon(Shape):
         return (float(v[:, 0].min()), float(v[:, 1].min()),
                 float(v[:, 0].max()), float(v[:, 1].max()))
 
-    def get_vertices(self) -> NDArray[np.float32]:
+    def compute_vertices(self) -> NDArray[np.float32]:
         """Renvoie les N sommets du polygone régulier"""
         angles = np.linspace(0.0, 2.0 * math.pi, self._sides, endpoint=False, dtype=np.float32)
         return np.stack([np.cos(angles) * self._radius,

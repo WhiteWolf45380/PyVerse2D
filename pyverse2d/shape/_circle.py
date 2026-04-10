@@ -76,7 +76,7 @@ class Circle(Shape):
         r = self._radius
         return (-r, -r, r, r)
 
-    def get_vertices(self) -> NDArray[np.float32]:
+    def compute_vertices(self) -> NDArray[np.float32]:
         """Approximation polygonale du cercle"""
         angles = np.linspace(0.0, 2.0 * math.pi, self.CIRCLE_SEGMENTS, endpoint=False, dtype=np.float32)
         return np.stack([np.cos(angles) * self._radius, np.sin(angles) * self._radius], axis=1)

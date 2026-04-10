@@ -99,7 +99,7 @@ class Rect(Shape):
         hw, hh = 0.5 * self._width, 0.5 * self._height
         return (-hw, -hh, hw, hh)
 
-    def get_vertices(self) -> NDArray[np.float32]:
+    def compute_vertices(self) -> NDArray[np.float32]:
         """Renvoie les 4 sommets du rectangle centré à l'origine"""
         hw = 0.5 * self._width
         hh = 0.5 * self._height

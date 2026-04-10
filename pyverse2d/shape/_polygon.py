@@ -61,7 +61,7 @@ class Polygon(Shape):
         return (float(v[:, 0].min()), float(v[:, 1].min()),
                 float(v[:, 0].max()), float(v[:, 1].max()))
 
-    def get_vertices(self) -> NDArray[np.float32]:
+    def compute_vertices(self) -> NDArray[np.float32]:
         """Renvoie les sommets du polygone (copie des sources)"""
         return self._source_vertices.copy()
 

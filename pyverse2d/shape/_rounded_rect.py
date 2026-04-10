@@ -114,7 +114,7 @@ class RoundedRect(Shape):
         hw, hh = self._width * 0.5, self._height * 0.5
         return (-hw, -hh, hw, hh)
 
-    def get_vertices(self) -> NDArray[np.float32]:
+    def compute_vertices(self) -> NDArray[np.float32]:
         """Contour polygonal du rectangle arrondi"""
         quarter = self.CIRCLE_SEGMENTS // 4
         r   = self._radius
