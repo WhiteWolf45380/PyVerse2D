@@ -410,10 +410,13 @@ class _FillRenderer:
 
         elif isinstance(shape, Circle):
             cx_, cy_, r_ = shape.world_transform(cx, cy, scale, 0)
+            r_ *= pipeline.ppu
             self._gl_shape = pyglet.shapes.Circle(cx_, cy_, r_, color=(r, g, b, a), batch=pipeline.batch, group=pipeline.get_group(z=z))
 
         elif isinstance(shape, Ellipse):
             cx_, cy_, rx, ry, _ = shape.world_transform(cx, cy, scale, 0)
+            rx *= pipeline.ppu_x
+            ry *= pipeline.ppu_y
             self._gl_shape = pyglet.shapes.Ellipse(cx_, cy_, rx, ry, color=(r, g, b, a), batch=pipeline.batch, group=pipeline.get_group(z=z))
             self._gl_shape.rotation = rotation
 
@@ -422,6 +425,7 @@ class _FillRenderer:
             spine = math.dist((ax, ay), (bx, by))
             screen_cx = (ax + bx) / 2
             screen_cy = (ay + by) / 2
+            r_ *= pipeline.ppu
             self._gl_shape = _CapsuleRenderer(screen_cx, screen_cy, r_, spine, rotation=rotation, color=(r, g, b, a), batch=pipeline.batch, group=pipeline.get_group(z=z))
 
         elif isinstance(shape, RoundedRect):

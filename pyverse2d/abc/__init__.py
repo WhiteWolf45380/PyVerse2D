@@ -2,7 +2,7 @@
 from ._math_object import MathObject
 from ._vertex import Vertex
 
-from ._shape import Shape, VertexShape, PrimitiveShape, CompositeShape
+from ._shape import Shape
 
 from ._asset import Asset
 
@@ -24,9 +24,6 @@ __all__ = [
     "Vertex",
 
     "Shape",
-    "PrimitiveShape",
-    "VertexShape",
-    "CompositeShape",
 
     "Asset",
 
