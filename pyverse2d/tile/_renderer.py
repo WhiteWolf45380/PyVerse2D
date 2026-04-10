@@ -276,6 +276,8 @@ class TileRenderer:
         """Active le shader et bind la texture array"""
         program = _get_program()
         program.use()
+        idx = gl.glGetUniformBlockIndex(program.id, b"WindowBlock")
+        gl.glUniformBlockBinding(program.id, idx, 0)
         if self._texture:
             self._texture.bind(0)
         program['u_tiles'] = 0
