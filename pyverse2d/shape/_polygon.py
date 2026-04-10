@@ -22,9 +22,11 @@ class Polygon(Shape):
     def __init__(self, *points: Point):
         if len(points) < 3:
             raise ValueError("Polygon must have at least 3 points")
-        if len(set(points)) != len(points):
+        
+        self._source_vertices: NDArray[np.float32] = np.asarray(points, dtype=np.float32)
+        if np.unique(self._source_vertices, axis=0).shape[0] != len(self._source_vertices):
             raise ValueError("Polygon must not have duplicate points")
-        self._source_vertices: NDArray[np.float32] = np.array([(float(p[0]), float(p[1])) for p in points], dtype=np.float32)
+        
         self._source_vertices = center_vertices(order_ccw(self._source_vertices))
         self._convex: bool = is_convex(self._source_vertices)
         super().__init__()
