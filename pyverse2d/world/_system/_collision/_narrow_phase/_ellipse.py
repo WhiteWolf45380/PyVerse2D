@@ -6,7 +6,7 @@ from .....shape import Ellipse, Capsule
 
 from .._registry import Contact, register
 
-from ._prim_transform import _ellipse_params, _capsule_params
+from ._prim_transform import ellipse_params, capsule_params
 from ._helper import closest_pt_on_seg, closest_pt_on_ellipse
 
 from math import sqrt, cos, sin, atan2, pi as _PI
@@ -14,8 +14,8 @@ from math import sqrt, cos, sin, atan2, pi as _PI
 # ======================================== Ellipse × Ellipse ========================================
 @register(Ellipse, Ellipse)
 def ellipse_ellipse(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b):
-    ex_a, ey_a, rx_a, ry_a, rot_a_rad = _ellipse_params(sa, ax, ay, scale_a, rot_a)
-    ex_b, ey_b, rx_b, ry_b, rot_b_rad = _ellipse_params(sb, bx, by, scale_b, rot_b)
+    ex_a, ey_a, rx_a, ry_a, rot_a_rad = ellipse_params(sa, ax, ay, scale_a, rot_a)
+    ex_b, ey_b, rx_b, ry_b, rot_b_rad = ellipse_params(sb, bx, by, scale_b, rot_b)
 
     # Centre de B dans le repère local de A
     cos_r, sin_r = cos(-rot_a_rad), sin(-rot_a_rad)
@@ -119,8 +119,8 @@ def ellipse_ellipse(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b):
 @register(Ellipse, Capsule)
 def ellipse_capsule(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b):
     """Vérifie la collision entre ``Ellipse`` et ``Capsule``"""
-    ex, ey, rx, ry, rot_rad = _ellipse_params(sa, ax, ay, scale_a, rot_a)
-    cap_ax, cap_ay, cap_bx, cap_by, cap_r = _capsule_params(sb, bx, by, scale_b, rot_b)
+    ex, ey, rx, ry, rot_rad = ellipse_params(sa, ax, ay, scale_a, rot_a)
+    cap_ax, cap_ay, cap_bx, cap_by, cap_r = capsule_params(sb, bx, by, scale_b, rot_b)
     spine_dx, spine_dy = cap_bx - cap_ax, cap_by - cap_ay
     qx, qy = closest_pt_on_seg(cap_ax, cap_ay, spine_dx, spine_dy, ex, ey)
     cos_r, sin_r = cos(-rot_rad), sin(-rot_rad)
