@@ -201,7 +201,7 @@ def _apply_flip(shape: Shape, flip: int, tw: float, th: float) -> Shape:
     x = verts[:, 0]
     y = verts[:, 1]
 
-    # Flip diagonal (swap + scale ratio)
+    # Flip diagonal
     if flip & FLIP_D:
         x, y = y * (tw / th), x * (th / tw)
 
@@ -214,5 +214,4 @@ def _apply_flip(shape: Shape, flip: int, tw: float, th: float) -> Shape:
         y = th - y
 
     verts = np.column_stack((x, y))
-
     return Polygon(*verts)
