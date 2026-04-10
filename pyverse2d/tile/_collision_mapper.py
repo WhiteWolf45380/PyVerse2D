@@ -13,16 +13,15 @@ from numbers import Real
 
 # ======================================== COLLISION MAPPER ========================================
 class CollisionMapper:
-    """
-    Convertit les tuiles solides d'un TileMap en bodies statiques dans le World
+    """Convertit les tuiles solides d'un TileMap en bodies statiques dans le World
 
     Args:
-        tile_map(TileMap): couche source
-        solid_tag(str, optional): tag identifiant les tuiles solides
-        friction(Real, optional): friction par défaut
-        restitution(Real, optional): restitution par défaut
-        category(int, optional): catégorie binaire par défaut
-        mask(int, optional): masque binaire par défaut
+        tile_map: couche source
+        solid_tag: tag identifiant les tuiles solides
+        friction: friction par défaut
+        restitution: restitution par défaut
+        category: catégorie binaire par défaut
+        mask: masque binaire par défaut
     """
     __slots__ = ("_tile_map", "_solid_tag", "_friction", "_restitution", "_category", "_mask", "_entities")
 
@@ -45,13 +44,10 @@ class CollisionMapper:
 
     # ======================================== PUBLIC METHODS ========================================
     def inject(self, world: World) -> None:
-        """
-        Parcourt la grille, fusionne les tuiles solides adjacentes et les injecte dans le World.
-        Les tuiles avec une collision_shape custom sont injectées individuellement sans fusion.
-        Les entités créées sont mémorisées pour pouvoir être supprimées via remove()
+        """Parcourt la grille injecte les hitboxes dans le World
 
         Args:
-            world(World): monde cible
+            world: monde cible
         """
         for col, row, shape, friction, restitution, category, mask in self._custom_shapes():
             wx, wy = self._tile_map.tile_to_world(col, row)
@@ -76,11 +72,10 @@ class CollisionMapper:
             self._entities.append(entity)
 
     def remove(self, world: World) -> None:
-        """
-        Supprime toutes les entités précédemment injectées dans le World
+        """Supprime toutes les entités précédemment injectées dans le World
 
         Args:
-            world(World): monde cible
+            world: monde cible
         """
         for entity in self._entities:
             world.remove_entity(entity)
@@ -88,7 +83,7 @@ class CollisionMapper:
 
     # ======================================== INTERNALS ========================================
     def _has_custom_shape(self, col: int, row: int) -> bool:
-        """Vérifie si la tuile à (col, row) a une collision_shape custom"""
+        """Vérifie si la tuile à ``(col, row)`` a une collision_shape custom"""
         tile_id = self._tile_map.tile_at(col, row)
         if tile_id == 0:
             return False
@@ -96,7 +91,7 @@ class CollisionMapper:
         return meta is not None and meta.collision_shape is not None
 
     def _is_solid(self, col: int, row: int) -> bool:
-        """Vérifie si la tuile à (col, row) est solide et sans shape custom"""
+        """Vérifie si la tuile à ``(col, row)`` est solide et sans shape custom"""
         tile_id = self._tile_map.tile_at(col, row)
         if tile_id == 0:
             return False
@@ -110,14 +105,14 @@ class CollisionMapper:
     def _resolve_props(self, tile_id: int) -> tuple[float, float, int, int]:
         """Résout friction, restitution, category, mask pour un tile_id — meta > global"""
         meta: TileMeta | None = self._tile_map.tile.get_meta(tile_id)
-        friction    = meta.friction    if (meta and meta.friction    is not None) else self._friction
+        friction = meta.friction if (meta and meta.friction is not None) else self._friction
         restitution = meta.restitution if (meta and meta.restitution is not None) else self._restitution
-        category    = meta.category    if (meta and meta.category    is not None) else self._category
-        mask        = meta.mask        if (meta and meta.mask        is not None) else self._mask
+        category = meta.category if (meta and meta.category is not None) else self._category
+        mask = meta.mask if (meta and meta.mask is not None) else self._mask
         return friction, restitution, category, mask
 
     def _custom_shapes(self) -> list[tuple]:
-        """Renvoie les tuiles avec collision_shape custom sous forme (col, row, shape, friction, restitution, category, mask)"""
+        """Renvoie les tuiles avec collision_shape custom sous forme ``(col, row, shape, friction, restitution, category, mask)``"""
         tm = self._tile_map
         tw = tm.tile_width
         th = tm.tile_height
@@ -127,9 +122,9 @@ class CollisionMapper:
                 if not self._has_custom_shape(col, row):
                     continue
                 tile_id = tm.tile_at(col, row)
-                meta    = tm.tile.get_meta(tile_id)
+                meta = tm.tile.get_meta(tile_id)
                 friction, restitution, category, mask = self._resolve_props(tile_id)
-                flip  = tm.flags_at(col, row)
+                flip = tm.flags_at(col, row)
                 shape = _apply_flip(meta.collision_shape, flip, tw, th)
                 result.append((col, row, shape, friction, restitution, category, mask))
         return result
@@ -148,7 +143,7 @@ class CollisionMapper:
                     continue
 
                 tile_id = tm.tile_at(col, row)
-                props   = self._resolve_props(tile_id)
+                props = self._resolve_props(tile_id)
 
                 w = 1
                 while (
@@ -182,27 +177,42 @@ class CollisionMapper:
 
 
 # ======================================== FLIP HELPER ========================================
-def _apply_flip(shape: Shape, flip: int, tw: float, th: float) -> Shape:
-    """
-    Applique les transformations de flip à une collision shape
+import numpy as np
 
+def _apply_flip(shape: Shape, flip: int, tw: float, th: float) -> Shape:
+    """Applique les transformations de flip à une collision shape
+    
     Args:
-        shape(Shape): shape source
-        flip(int): flags FLIP_H, FLIP_V, FLIP_D
-        tw(float): largeur monde de la tuile
-        th(float): hauteur monde de la tuile
+        shape: shape source
+        flip: flags FLIP_H, FLIP_V, FLIP_D
+        tw: largeur monde de la tuile
+        th: hauteur monde de la tuile
     """
     if flip == 0:
         return shape
     if isinstance(shape, Rect):
         return shape
-    if isinstance(shape, Polygon):
-        verts = [(float(v[0]), float(v[1])) for v in shape.vertices]
-        if flip & FLIP_D:
-            verts = [(y * (tw / th), x * (th / tw)) for x, y in verts]
-        if flip & FLIP_H:
-            verts = [(tw - x, y) for x, y in verts]
-        if flip & FLIP_V:
-            verts = [(x, th - y) for x, y in verts]
-        return Polygon(*verts)
-    return shape
+    if not isinstance(shape, Polygon):
+        return shape
+
+    verts = np.asarray(shape.get_vertices(), dtype=np.float32)
+
+    # Décomposition
+    x = verts[:, 0]
+    y = verts[:, 1]
+
+    # Flip diagonal (swap + scale ratio)
+    if flip & FLIP_D:
+        x, y = y * (tw / th), x * (th / tw)
+
+    # Flip horizontal
+    if flip & FLIP_H:
+        x = tw - x
+
+    # Flip vertical
+    if flip & FLIP_V:
+        y = th - y
+
+    verts = np.column_stack((x, y))
+
+    return Polygon(*verts)
