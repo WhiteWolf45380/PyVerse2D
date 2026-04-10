@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 # ======================================== ABSTRACT CLASS ========================================
 class System(ABC):
     """Classe abstraite des systèmes"""
-    __slots__ = ()
+    __slots__ = tuple()
     order: int = 0
     exclusive: bool = False
     requires: tuple[type, ...] = ()

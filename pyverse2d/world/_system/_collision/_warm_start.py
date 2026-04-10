@@ -5,17 +5,23 @@ from dataclasses import dataclass
 
 from ...._internal import Processor
 from ....math import Vector
+from ....abc import Shape
+
 from ..._component import RigidBody
-from ._constants import _WARM_BIAS
+
+from ._constants import ConstantsDataset
+from ._registry import Contact
+from ._resolve import CachedContact
 
 # ======================================== CONTEXTE ========================================
 @dataclass(slots=True)
 class WarmStartContext:
     """Contexte partagé entre les étapes du warm start"""
-    a: object
-    b: object
-    contact: object
-    cached: object
+    a: Shape
+    b: Shape
+    contact: Contact
+    cached: CachedContact
+    C: ConstantsDataset
     rb_a: RigidBody | None = None
     rb_b: RigidBody | None = None
     static_a: bool = False
@@ -31,7 +37,7 @@ class WarmStartContext:
     _jt: float = 0.0
 
     @staticmethod
-    def build(a, b, contact, cached) -> WarmStartContext | None:
+    def build(a: Shape, b: Shape, contact: Contact, cached: CachedContact, C: ConstantsDataset) -> WarmStartContext | None:
         """Construit le contexte — retourne None si la paire est non résoluble"""
         if not a.has(RigidBody) or not b.has(RigidBody):
             return None
@@ -47,7 +53,7 @@ class WarmStartContext:
         rel_vx = rb_a.velocity.x - rb_b.velocity.x
         rel_vy = rb_a.velocity.y - rb_b.velocity.y
         return WarmStartContext(
-            a=a, b=b, contact=contact, cached=cached,
+            a=a, b=b, contact=contact, cached=cached, C=C,
             rb_a=rb_a, rb_b=rb_b,
             static_a=static_a, static_b=static_b,
             inv_a=inv_a, inv_b=inv_b,
@@ -61,8 +67,8 @@ warm_start_processor = Processor("warm_start")
 @warm_start_processor.step
 def _check_impulses(ctx: WarmStartContext):
     """Skip si impulsions négligeables pour ne pas perturber les objets au repos"""
-    jn = ctx.cached.jn * _WARM_BIAS
-    jt = ctx.cached.jt * _WARM_BIAS
+    jn = ctx.cached.jn * ctx.C._WARM_BIAS
+    jt = ctx.cached.jt * ctx.C._WARM_BIAS
     if abs(jn) < 1e-2 and abs(jt) < 1e-2:
         return False
     ctx._jn = jn
@@ -87,9 +93,9 @@ def _apply(ctx: WarmStartContext):
         ctx.rb_b.velocity = Vector._make(ctx.rb_b.velocity.x - ix * ctx.inv_b, ctx.rb_b.velocity.y - iy * ctx.inv_b)
 
 # ======================================== FACADE ========================================
-def warm_start(a, b, contact, cached):
+def warm_start(a: Shape, b: Shape, contact: Contact, cached: CachedContact, C: ConstantsDataset):
     """Ré-applique les impulsions précédentes pour accélérer la convergence"""
-    ctx = WarmStartContext.build(a, b, contact, cached)
+    ctx = WarmStartContext.build(a, b, contact, cached, C)
     if ctx is None:
         return
     warm_start_processor(ctx)

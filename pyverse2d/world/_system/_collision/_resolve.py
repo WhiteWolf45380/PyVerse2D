@@ -3,11 +3,12 @@ from __future__ import annotations
 
 from ...._internal import Processor
 from ....math import Vector
+from ....abc import Shape
+
 from ..._component import Transform, RigidBody
-from ._constants import (
-    _SLOP, _BAUMGARTE, _MAX_CORRECTION,
-    _RESTITUTION_THRESHOLD, _RESTITUTION_MAX_VEL,
-)
+
+from ._registry import Contact
+from ._constants import ConstantsDataset
 
 from dataclasses import dataclass
 
@@ -32,10 +33,11 @@ class CachedContact:
 @dataclass(slots=True)
 class ResolveContext:
     """Contexte partagé entre les étapes du solver"""
-    a: object
-    b: object
-    contact: object
+    a: Shape
+    b: Shape
+    contact: Contact
     cached: CachedContact
+    C: ConstantsDataset
     dt: float
     has_rb_a: bool = False
     has_rb_b: bool = False
@@ -60,7 +62,7 @@ class ResolveContext:
     j_delta_t: float = 0.0
 
     @staticmethod
-    def build(a, b, contact, cached: CachedContact, dt: float) -> ResolveContext | None:
+    def build(a, b, contact, cached: CachedContact, C: ConstantsDataset, dt: float) -> ResolveContext | None:
         """Construit le contexte — retourne None si la paire est non résoluble"""
         has_rb_a = a.has(RigidBody)
         has_rb_b = b.has(RigidBody)
@@ -86,7 +88,7 @@ class ResolveContext:
             rel_vy = vay - vby
             vel_along = rel_vx * nx + rel_vy * ny
         return ResolveContext(
-            a=a, b=b, contact=contact, cached=cached, dt=dt,
+            a=a, b=b, contact=contact, cached=cached, C=C, dt=dt,
             has_rb_a=has_rb_a, has_rb_b=has_rb_b,
             rb_a=rb_a, rb_b=rb_b,
             static_a=static_a, static_b=static_b,
@@ -114,7 +116,7 @@ def _position_only(ctx: ResolveContext):
     """Cas sans RigidBody des deux côtés : correction de position uniquement"""
     if ctx.has_rb_a and ctx.has_rb_b:
         return
-    correction = min(max(ctx.depth - _SLOP, 0.0) * _BAUMGARTE, _MAX_CORRECTION)
+    correction = min(max(ctx.depth - ctx.C._SLOP, 0.0) * ctx.C._BAUMGARTE, ctx.C._MAX_CORRECTION)
     if correction > 0:
         if ctx.static_a:
             ctx.tr_b.x -= ctx.nx * correction
@@ -135,7 +137,7 @@ def _baumgarte(ctx: ResolveContext):
     """Correction de position Baumgarte si les objets se rapprochent"""
     if ctx.vel_along >= 0:
         return
-    correction = min(max(ctx.depth - _SLOP, 0.0) * _BAUMGARTE, _MAX_CORRECTION)
+    correction = min(max(ctx.depth - ctx.C._SLOP, 0.0) * ctx.C._BAUMGARTE, ctx.C._MAX_CORRECTION)
     if correction <= 0:
         return
     if ctx.static_a:
@@ -162,13 +164,13 @@ def _normal_impulse(ctx: ResolveContext):
         restitution = ctx.rb_b.restitution
     else:
         restitution = ctx.rb_a.restitution
-    if ctx.vel_along < -_RESTITUTION_THRESHOLD:
+    if ctx.vel_along < -ctx.C._RESTITUTION_THRESHOLD:
         # Impact significatif : restitution scalée selon la vitesse
-        t = min((-ctx.vel_along - _RESTITUTION_THRESHOLD) / (_RESTITUTION_MAX_VEL - _RESTITUTION_THRESHOLD), 1.0)
+        t = min((-ctx.vel_along - ctx.C._RESTITUTION_THRESHOLD) / (ctx.C._RESTITUTION_MAX_VEL - ctx.C._RESTITUTION_THRESHOLD), 1.0)
         j_delta_n = -(1.0 + restitution * t) * ctx.vel_along / ctx.inv_sum
     elif ctx.vel_along < 0:
         # Approche lente : correction de pénétration sans restitution
-        bias = _BAUMGARTE * max(ctx.depth - _SLOP, 0.0)
+        bias = ctx.C._BAUMGARTE * max(ctx.depth - ctx.C._SLOP, 0.0)
         j_delta_n = -(ctx.vel_along + bias) / ctx.inv_sum
     else:
         # Objet qui s'éloigne : pas d'impulsion
@@ -225,9 +227,9 @@ def _apply(ctx: ResolveContext):
         ctx.rb_b.velocity = Vector._make(ctx.rb_b.velocity.x - ix * ctx.inv_b, ctx.rb_b.velocity.y - iy * ctx.inv_b)
 
 # ======================================== FACADE ========================================
-def resolve(a, b, contact, cached: CachedContact, dt: float):
+def resolve(a: Shape, b: Shape, contact: Contact, cached: CachedContact, C: ConstantsDataset, dt: float):
     """Sequential Impulse Solver avec vitesse prédictive"""
-    ctx = ResolveContext.build(a, b, contact, cached, dt)
+    ctx = ResolveContext.build(a, b, contact, cached, C, dt)
     if ctx is None:
         return
     resolve_processor(ctx)

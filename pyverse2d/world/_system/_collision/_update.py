@@ -1,18 +1,21 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from math import sqrt
-
 from ...._internal import Processor
 from ....math import Vector
+
 from ..._world import World
 from ..._component import Transform, Collider, GroundSensor, RigidBody
+
 from ._registry import dispatch, Contact, world_center
 from ._spatial_hash import SpatialHash
 from ._resolve import CachedContact, resolve
 from ._warm_start import warm_start
-from ._constants import _EXTRA_ITER_THRESHOLD, _EXTRA_ITER
+from ._constants import ConstantsDataset
+
+from dataclasses import dataclass, field
+from math import sqrt
+
 
 # ======================================== CONTEXTE ========================================
 @dataclass(slots=True)
@@ -22,7 +25,7 @@ class UpdateContext:
     dt: float
     hash: SpatialHash | None
     cache: dict
-    iterations: int
+    C: ConstantsDataset
     entities: list = field(default_factory=list)
     pairs: list = field(default_factory=list)
     active_contacts: list = field(default_factory=list)
@@ -30,9 +33,9 @@ class UpdateContext:
     max_depth: float = 0.0
 
     @staticmethod
-    def build(world: World, dt: float, hash: SpatialHash | None, cache: dict, iterations: int) -> UpdateContext:
+    def build(world: World, dt: float, hash: SpatialHash | None, cache: dict, C: ConstantsDataset) -> UpdateContext:
         """Construit le contexte update"""
-        return UpdateContext(world=world, dt=dt, hash=hash, cache=cache, iterations=iterations)
+        return UpdateContext(world=world, dt=dt, hash=hash, cache=cache, C=C)
 
 # ======================================== processor ========================================
 update_processor = Processor("update")
@@ -127,7 +130,7 @@ def _narrowphase(ctx: UpdateContext):
             continue
 
         # Application du warm start
-        warm_start(a, b, contact, cached)
+        warm_start(a, b, contact, cached, ctx.C)
 
 @update_processor.step
 def _cleanup_cache(ctx: UpdateContext):
@@ -157,11 +160,11 @@ def _wake_lost_supports(ctx: UpdateContext):
 def _solve(ctx: UpdateContext):
     """Résolution itérative des contacts"""
     iterations = ctx.iterations
-    if ctx.max_depth > _EXTRA_ITER_THRESHOLD:
-        iterations += _EXTRA_ITER
+    if ctx.max_depth > ctx.C._EXTRA_ITER_THRESHOLD:
+        iterations += ctx.C._EXTRA_ITER
     for _ in range(iterations):
         for a, b, contact, cached in ctx.active_contacts:
-            resolve(a, b, contact, cached, ctx.dt)
+            resolve(a, b, contact, cached, ctx.C, ctx.dt)
 
 # ======================================== HELPERS ========================================
 def _detect(col_a: Collider, tr_a: Transform, col_b: Collider, tr_b: Transform) -> Contact | None:

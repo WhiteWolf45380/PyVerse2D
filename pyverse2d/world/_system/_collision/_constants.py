@@ -1,16 +1,26 @@
-# ======================================== CORRECTION DE POSITION ========================================
-_SLOP: float = 0.5              # penetration minimale ignorée en mètres
-_BAUMGARTE: float = 0.2         # facteur de correction de position par frame
-_MAX_CORRECTION: float = 8.0    # correction de position maximale par frame en pixels
-_MAX_MASS_RATIO: float = 0.95   # ratio masse max pour éviter la correction asymétrique
+# ======================================== IMPORTS ========================================
+from dataclasses import dataclass
 
-# ======================================== WARM START ========================================
+# ======================================== ABSOLUTE CONSTANTS ========================================
+_BAUMGARTE: float = 0.2         # facteur de correction de position par frame
+_MAX_MASS_RATIO: float = 0.95   # ratio masse max pour éviter la correction asymétrique
 _WARM_BIAS: float = 0.7         # fraction des impulsions précédentes réappliquées
 
-# ======================================== ITERATIONS ========================================
-_EXTRA_ITER_THRESHOLD: float = 4.0      # profondeur de pénétration déclenchant les itérations supplémentaires
-_EXTRA_ITER: int = 4                    # nombre d'itérations supplémentaires ajoutées
+# ======================================== DATA SET ========================================
+@dataclass(slots=True, frozen=True)
+class ConstantsDataset:
+    SLOP: float
+    MAX_CORRECTION: float
+    ITER: float
+    EXTRA_ITER_THRESHOLD: float
+    EXTRA_ITER: float
+    RESTITUTION_THRESHOLD: float
+    RESTITUION_MAX_VEL: float
+    BAUMGARTE: float = _BAUMGARTE
+    MAX_MASS_RATIO: float = _MAX_MASS_RATIO
+    WARM_BIAS: float = _WARM_BIAS
 
-# ======================================== RESTITUTION ========================================
-_RESTITUTION_THRESHOLD: float = 1.0     # vitesse minimale en m/s pour appliquer la restitution
-_RESTITUTION_MAX_VEL: float = 10.0      # vitesse en m/s à partir de laquelle la restitution est pleine
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "ConstantsDataset",
+]

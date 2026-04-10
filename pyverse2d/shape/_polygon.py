@@ -20,12 +20,13 @@ class Polygon(Shape):
     __slots__ = ("_source_vertices", "_convex")
 
     def __init__(self, *points: Point):
-        if __debug__ and len(points) < 3:
-            raise ValueError("Polygon must have at least 3 points")
-        
         self._source_vertices: NDArray[np.float32] = np.asarray(points, dtype=np.float32)
-        if __debug__ and np.unique(self._source_vertices, axis=0).shape[0] != len(self._source_vertices):
-            raise ValueError("Polygon must not have duplicate points")
+
+        if __debug__:
+            if len(points) < 3:
+                raise ValueError("Polygon must have at least 3 points")
+            if np.unique(self._source_vertices, axis=0).shape[0] != len(self._source_vertices):
+                raise ValueError("Polygon must not have duplicate points")
         
         self._source_vertices = center_vertices(order_ccw(self._source_vertices))
         self._convex: bool = is_convex(self._source_vertices)

@@ -1,45 +1,82 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
+from .....math import Vector
 from .....shape import Circle, Ellipse, Capsule, RoundedRect
 
-from .._registry import Contact, register, rounded_rect_contour
-from ._vertex import sat, circle_vs_pts, ellipse_vs_pts, capsule_vs_pts, rounded_rect_vs_pts
+from .._registry import Contact, register
+
+from ._prim_transform import circle_params, ellipse_params, capsule_params, rounded_rect_params
+from ._helper import closest_pt_on_seg, closest_pt_on_ellipse, depth_and_normal_rr, closest_pt_on_rr
+
+from math import sqrt, cos, sin
 
 # ======================================== RoundedRect × RoundedRect ========================================
 @register(RoundedRect, RoundedRect)
-def rounded_rect_rounded_rect(sa: RoundedRect, ax, ay, scale_a, rot_a, sb: RoundedRect, bx, by, scale_b, rot_b) -> Contact | None:
-    """RoundedRect vs RoundedRect"""
-    pts_a = rounded_rect_contour(*sa.world_transform(ax, ay, scale_a, rot_a))
-    pts_b = rounded_rect_contour(*sb.world_transform(bx, by, scale_b, rot_b))
-    return sat(pts_a, pts_b)
+def rr_rr(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b):
+    """Vérifie la collision entre ``RoundedRect`` et ``RoundedRect``"""
+    cx_a, cy_a, hx_a, hy_a, r_a, rot_a, _ = rounded_rect_params(sa, ax, ay, scale_a, rot_a)
+    cx_b, cy_b, hx_b, hy_b, r_b, rot_b, _ = rounded_rect_params(sb, bx, by, scale_b, rot_b)
+    result_a = depth_and_normal_rr(cx_a, cy_a, cx_b, cy_b, hx_b, hy_b, r_b + r_a, rot_b)
+    result_b = depth_and_normal_rr(cx_b, cy_b, cx_a, cy_a, hx_a, hy_a, r_a + r_b, rot_a)
+    if result_a is None and result_b is None:
+        return None
+    if result_a is None:
+        nx, ny, depth = result_b
+        return Contact(Vector._make(-nx, -ny), depth)
+    if result_b is None:
+        nx, ny, depth = result_a
+        return Contact(Vector._make(nx, ny), depth)
+    if result_a[2] <= result_b[2]:
+        nx, ny, depth = result_a
+        return Contact(Vector._make(nx, ny), depth)
+    nx, ny, depth = result_b
+    return Contact(Vector._make(-nx, -ny), depth)
 
 # ======================================== RoundedRect × Circle ========================================
 @register(RoundedRect, Circle)
-def rounded_rect_circle(sa: RoundedRect, ax, ay, scale_a, rot_a, sb: Circle, bx, by, scale_b, rot_b) -> Contact | None:
-    """RoundedRect vs Circle)"""
-    cx_, cy_, r = sb.world_transform(bx, by, scale_b, rot_b)
-    c = circle_vs_pts(cx_, cy_, r, rounded_rect_contour(*sa.world_transform(ax, ay, scale_a, rot_a)))
-    if c is None:
+def rr_circle(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b):
+    """Vérifie la collision entre ``RoundedRect`` et ``Circle``"""
+    cx, cy, hx, hy, r, rot, _ = rounded_rect_params(sa, ax, ay, scale_a, rot_a)
+    _, _, rb = circle_params(sb, bx, by, scale_b)
+    result = depth_and_normal_rr(bx, by, cx, cy, hx, hy, r + rb, rot)
+    if result is None:
         return None
-    return Contact(c.normal.__class__(-c.normal.x, -c.normal.y), c.depth)
+    nx, ny, depth = result
+    return Contact(Vector._make(-nx, -ny), depth)
 
 # ======================================== RoundedRect × Ellipse ========================================
 @register(RoundedRect, Ellipse)
-def rounded_rect_ellipse(sa: RoundedRect, ax, ay, scale_a, rot_a, sb: Ellipse, bx, by, scale_b, rot_b) -> Contact | None:
-    """RoundedRect vs Ellipse"""
-    ex, ey, rx, ry, _ = sb.world_transform(bx, by, scale_b, rot_b)
-    c = ellipse_vs_pts(ex, ey, rx, ry, rounded_rect_contour(*sa.world_transform(ax, ay, scale_a, rot_a)))
-    if c is None:
+def rr_ellipse(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b):
+    """Vérifie la collision entre ``RoundedRect`` et ``Ellipse``"""
+    cx, cy, hx, hy, r, rot, _ = rounded_rect_params(sa, ax, ay, scale_a, rot_a)
+    ex, ey, rx, ry, rot_rad = ellipse_params(sb, bx, by, scale_b, rot_b)
+    qx, qy = closest_pt_on_rr(ex, ey, cx, cy, hx, hy, r, rot)
+    cos_r, sin_r = cos(-rot_rad), sin(-rot_rad)
+    dx, dy = qx - ex, qy - ey
+    qlx = dx * cos_r - dy * sin_r
+    qly = dx * sin_r + dy * cos_r
+    inside = (qlx / rx) ** 2 + (qly / ry) ** 2 <= 1.0
+    cpx_l, cpy_l = closest_pt_on_ellipse(0.0, 0.0, rx, ry, qlx, qly)
+    ddx, ddy = qlx - cpx_l, qly - cpy_l
+    dist = sqrt(ddx * ddx + ddy * ddy) or 1e-8
+    if not inside and dist >= 1e-6:
         return None
-    return Contact(c.normal.__class__(-c.normal.x, -c.normal.y), c.depth)
+    cos_w, sin_w = cos(rot_rad), sin(rot_rad)
+    nx = (ddx / dist) * cos_w - (ddy / dist) * sin_w
+    ny = (ddx / dist) * sin_w + (ddy / dist) * cos_w
+    return Contact(Vector._make(-nx, -ny), dist)
 
 # ======================================== RoundedRect × Capsule ========================================
 @register(RoundedRect, Capsule)
-def rounded_rect_capsule(sa: RoundedRect, ax, ay, scale_a, rot_a, sb: Capsule, bx, by, scale_b, rot_b) -> Contact | None:
-    """RoundedRect vs Capsule"""
-    cap_ax, cap_ay, cap_bx, cap_by, cap_r = sb.world_transform(bx, by, scale_b, rot_b)
-    c = capsule_vs_pts(cap_ax, cap_ay, cap_bx, cap_by, cap_r, rounded_rect_contour(*sa.world_transform(ax, ay, scale_a, rot_a)))
-    if c is None:
+def rr_capsule(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b):
+    """Vérifie la collision entre ``RoundedRect`` et ``Capsule``"""
+    cx, cy, hx, hy, r, rot, _ = rounded_rect_params(sa, ax, ay, scale_a, rot_a)
+    cap_ax, cap_ay, cap_bx, cap_by, cap_r = capsule_params(sb, bx, by, scale_b, rot_b)
+    spine_dx, spine_dy = cap_bx - cap_ax, cap_by - cap_ay
+    qx, qy = closest_pt_on_seg(cap_ax, cap_ay, spine_dx, spine_dy, cx, cy)
+    result = depth_and_normal_rr(qx, qy, cx, cy, hx, hy, r + cap_r, rot)
+    if result is None:
         return None
-    return Contact(c.normal.__class__(-c.normal.x, -c.normal.y), c.depth)
+    nx, ny, depth = result
+    return Contact(Vector._make(-nx, -ny), depth)

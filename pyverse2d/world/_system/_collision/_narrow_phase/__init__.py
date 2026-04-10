@@ -1,70 +1,73 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from . import _circle, _ellipse, _capsule, _rounded_rect  # noqa: F401 (enregistrement des handlers via @register)
+from .....shape import Circle, Ellipse, Capsule
 
-from .....abc import VertexShape
-from .....shape import Circle, Ellipse, Capsule, RoundedRect
+from .._registry import Contact
+from .._registry import _handlers
 
-from .._registry import Contact, _handlers
-from ._vertex import (
-    vertex_world_pts, sat,
-    circle_vs_pts, ellipse_vs_pts, capsule_vs_pts, rounded_rect_vs_pts,
-)
+from ._vertex import sat, circle_vs_pts, ellipse_vs_pts, capsule_vs_pts
+
+from . import _circle, _ellipse, _capsule     # noqa: F401 (enregistrement des handlers via @register)
+from ._prim_transform import _circle_params, _ellipse_params, _capsule_params
+
+# ======================================== CONSTANTS ========================================
+_PRIMITIVE_TYPES = (Circle, Ellipse, Capsule)
 
 # ======================================== DISPATCH ========================================
 def dispatch(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b) -> Contact | None:
-    """Dispatche vers le bon handler de narrowphase"""
-    a_is_vertex = isinstance(sa, VertexShape)
-    b_is_vertex = isinstance(sb, VertexShape)
+    """Fait correspondre les shapes à leur test de collision"""
+    a_is_prim = isinstance(sa, _PRIMITIVE_TYPES)
+    b_is_prim = isinstance(sb, _PRIMITIVE_TYPES)
 
-    if a_is_vertex and b_is_vertex:
-        pts_a = vertex_world_pts(sa, ax, ay, scale_a, rot_a)
-        pts_b = vertex_world_pts(sb, bx, by, scale_b, rot_b)
-        return sat(pts_a, pts_b)
+    # Primitive vs Primitive
+    if a_is_prim and b_is_prim:
+        key = (type(sa), type(sb))
+        fn = _handlers.get(key)
+        if fn:
+            return fn(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b)
+        key_flip = (type(sb), type(sa))
+        fn = _handlers.get(key_flip)
+        if fn:
+            c = fn(sb, bx, by, scale_b, rot_b, sa, ax, ay, scale_a, rot_a)
+            return _flip(c)
+        return None
 
-    if a_is_vertex:
-        c = _dispatch_vertex_primitive(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b)
-        if c is None:
-            return None
-        return Contact(c.normal.__class__(-c.normal.x, -c.normal.y), c.depth)
+    # Primitive vs Vertex
+    if a_is_prim and not b_is_prim:
+        pts_b = sb.world_vertices(bx, by, scale_b, rot_b)
+        c = _primitive_vs_pts(sa, ax, ay, scale_a, rot_a, pts_b)
+        return _flip(c)  # normale pointe de B vers A
 
-    if b_is_vertex:
-        return _dispatch_vertex_primitive(sb, bx, by, scale_b, rot_b, sa, ax, ay, scale_a, rot_a)
+    # Vertex vs Primitive
+    if not a_is_prim and b_is_prim:
+        pts_a = sa.world_vertices(ax, ay, scale_a, rot_a)
+        return _primitive_vs_pts(sb, bx, by, scale_b, rot_b, pts_a)
 
-    # Primitives vs primitives
-    key = (type(sa), type(sb))
-    fn = _handlers.get(key)
-    if fn is not None:
-        return fn(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b)
+    # Vertex vs Vertex
+    pts_a = sa.world_vertices(ax, ay, scale_a, rot_a)
+    pts_b = sb.world_vertices(bx, by, scale_b, rot_b)
+    return sat(pts_a, pts_b)
 
-    key_flip = (type(sb), type(sa))
-    fn = _handlers.get(key_flip)
-    if fn is not None:
-        c = fn(sb, bx, by, scale_b, rot_b, sa, ax, ay, scale_a, rot_a)
-        if c is None:
-            return None
-        return Contact(c.normal.__class__(-c.normal.x, -c.normal.y), c.depth)
-
-    return None
-
-def _dispatch_vertex_primitive(sv, vx, vy, scale_v, rot_v, sp, px, py, scale_p, rot_p) -> Contact | None:
-    """Dispatch VertexShape vs primitive"""
-    pts = vertex_world_pts(sv, vx, vy, scale_v, rot_v)
-
+# ======================================== HELPERS ========================================
+def _primitive_vs_pts(sp, px, py, scale_p, rot_p, pts):
+    """Dispatch une primitive contre un contour polygonal"""
     if isinstance(sp, Circle):
-        cx_, cy_, r = sp.world_transform(px, py, scale_p, rot_p)
-        return circle_vs_pts(cx_, cy_, r, pts)
+        cx, cy, r = _circle_params(sp, px, py, scale_p)
+        return circle_vs_pts(cx, cy, r, pts)
 
     if isinstance(sp, Ellipse):
-        cx_, cy_, rx, ry, angle = sp.world_transform(px, py, scale_p, rot_p)
-        return ellipse_vs_pts(cx_, cy_, rx, ry, pts)
+        cx, cy, rx, ry, r = _ellipse_params(sp, px, py, scale_p, rot_p)
+        return ellipse_vs_pts(cx, cy, rx, ry, r, pts)
 
     if isinstance(sp, Capsule):
-        ax_, ay_, bx_, by_, r = sp.world_transform(px, py, scale_p, rot_p)
+        ax_, ay_, bx_, by_, r = _capsule_params(sp, px, py, scale_p, rot_p)
         return capsule_vs_pts(ax_, ay_, bx_, by_, r, pts)
-    
-    if isinstance(sp, RoundedRect):
-        return rounded_rect_vs_pts(*sp.world_transform(px, py, scale_p, rot_p), pts)
 
     return None
+
+
+def _flip(c: Contact | None) -> Contact | None:
+    if c is None:
+        return None
+    return Contact(c.normal.__class__(-c.normal.x, -c.normal.y), c.depth)
