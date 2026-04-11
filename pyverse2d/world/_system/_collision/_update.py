@@ -129,6 +129,10 @@ def _narrowphase(ctx: UpdateContext):
         if _try_step(a, b, nx, ny, contact.depth):
             continue
 
+        # Reset jt sur les contacts quasi-verticaux avant warm start
+        if abs(ny) < 0.3:
+            cached.jt = 0.0
+
         # Application du warm start
         warm_start(a, b, contact, cached, ctx.C)
 
