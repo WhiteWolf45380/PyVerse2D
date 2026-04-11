@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from ..._component import Transform, RigidBody, Collider
-from ._narrow_phase._helper import world_center
+from ._registry import world_center
 
 # ======================================== SPATIAL HASH ========================================
 class SpatialHash:

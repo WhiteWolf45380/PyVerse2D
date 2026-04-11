@@ -3,26 +3,6 @@ from __future__ import annotations
 
 from math import cos, sin, atan2, radians, sqrt
 
-# ======================================== GLOBAL ========================================
-def world_center(shape, tr, offset) -> tuple[float, float]:
-    """Calcule le centre géométrique monde depuis transform, bounding_box et offset"""
-    x_min, y_min, x_max, y_max = shape.bounding_box
-
-    # Anchor en espace local
-    local_ax = x_min + tr.anchor.x * (x_max - x_min)
-    local_ay = y_min + tr.anchor.y * (y_max - y_min)
-
-    # Scale + rotation de l'anchor
-    rad = radians(-tr.rotation)
-    cos_r, sin_r = cos(rad), sin(rad)
-    scaled_ax = local_ax * tr.scale
-    scaled_ay = local_ay * tr.scale
-    rotated_ax = scaled_ax * cos_r - scaled_ay * sin_r
-    rotated_ay = scaled_ax * sin_r + scaled_ay * cos_r
-
-    # Centre monde
-    return (tr.x - rotated_ax + offset[0] * tr.scale, tr.y - rotated_ay + offset[1] * tr.scale,)
-
 # ======================================== CAPSULE ========================================
 def closest_pt_on_seg(sx, sy, sdx, sdy, px, py) -> tuple[float, float]:
     """Point le plus proche de (px,py) sur le segment (sx,sy) -> (sx+sdx,sy+sdy)"""
