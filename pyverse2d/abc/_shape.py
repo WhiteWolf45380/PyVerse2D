@@ -101,16 +101,16 @@ class Shape(ABC):
         if self._cache_key == key:
             return self._cache_world
 
-        if self._cache_key is None or self._cache_key[:2] != (scale, rotation):
-            vertices = self.get_vertices()
+        vertices = self.get_vertices()
+        ax, ay = anchor_offset(self.get_bounding_box(), anchor_x, anchor_y)
+
+        if self._cache_key is None or self._cache_key[:4] != (scale, rotation, anchor_x, anchor_y):
             rad = math.radians(rotation)
             cos_r, sin_r = math.cos(rad), math.sin(rad)
             R = np.array([[cos_r, -sin_r], [sin_r, cos_r]], dtype=np.float32)
-            self._cache_rotscale = vertices * scale @ R
+            self._cache_rotscale = (vertices - np.array([ax, ay], dtype=np.float32)) * scale @ R
 
-        ax, ay = anchor_offset(self.get_bounding_box(), anchor_x, anchor_y)
-        rx, ry = world_point(ax, ay, scale, rotation)
-        self._cache_world = self._cache_rotscale + np.array([x - rx, y - ry], dtype=np.float32)
+        self._cache_world = self._cache_rotscale + np.array([x, y], dtype=np.float32)
         self._cache_key = key
         return self._cache_world
 
@@ -154,9 +154,8 @@ class Shape(ABC):
             anchor_y: ancre relative verticale [0, 1]
         """
         ax, ay = anchor_offset(self.get_bounding_box(), anchor_x, anchor_y)
-        rx, ry = world_point(ax, ay, scale, rotation)
-        px = float(point[0]) - (x - rx)
-        py = float(point[1]) - (y - ry)
+        px = float(point[0]) - x
+        py = float(point[1]) - y
         if rotation:
             rad = math.radians(rotation)
             cos_r, sin_r = math.cos(rad), math.sin(rad)
@@ -164,7 +163,7 @@ class Shape(ABC):
         if scale != 1.0:
             px /= scale
             py /= scale
-        return self.contains((px, py))
+        return self.contains((px + ax, py + ay))
 
     # ======================================== CACHE ========================================
     def _invalidate_geometry(self) -> None:
