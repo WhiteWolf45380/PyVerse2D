@@ -164,22 +164,6 @@ def _normal_impulse(ctx: ResolveContext):
     else:
         restitution = ctx.rb_a.restitution
 
-    # Annule la restitution si A est supporté dans la direction de l'impulsion
-    if not ctx.static_a:
-        col_a = ctx.a.collider
-        for normal in col_a._contacts.values():
-            if normal[0] * ctx.nx + normal[1] * ctx.ny > 0.7:
-                restitution = 0.0
-                break
-
-    # Annule la restitution si B est supporté dans la direction opposée
-    if not ctx.static_b and restitution > 0.0:
-        col_b = ctx.b.collider
-        for normal in col_b._contacts.values():
-            if normal[0] * ctx.nx + normal[1] * ctx.ny < -0.7:
-                restitution = 0.0
-                break
-
     if ctx.vel_along < -ctx.C.RESTITUTION_THRESHOLD:
         t = min((-ctx.vel_along - ctx.C.RESTITUTION_THRESHOLD) / (ctx.C.RESTITUTION_MAX_VEL - ctx.C.RESTITUTION_THRESHOLD), 1.0)
         j_delta_n = -(1.0 + restitution * t) * ctx.vel_along / ctx.inv_sum
