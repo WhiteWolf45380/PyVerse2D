@@ -35,7 +35,7 @@ class PygletSpriteRenderer:
         scale_y: facteur de redimensionnement vertical (transform)
         flip_x: miroir horizontal
         flip_y: miroir vertical
-        rotation: rotation en degrés
+        rotation: rotation en degrés (CCW)
         color teinte multiplicative
         opacity: opacité [0.0 ; 1.0]
         z: z-order
@@ -130,7 +130,7 @@ class PygletSpriteRenderer:
         )
         self._sprite.scale_x = eff_sx
         self._sprite.scale_y = eff_sy
-        self._sprite.rotation = self._rotation
+        self._sprite.rotation = -self._rotation
         self._sprite.color = (r, g, b, a)
 
     def _effective_scales(self, raw: pyglet.image.AbstractImage) -> tuple[float, float]:
@@ -268,7 +268,7 @@ class PygletSpriteRenderer:
             scale_y: facteur de redimensionnement vertical
             flip_x: miroir horizontal
             flip_y: miroir vertical
-            rotation: rotation en degrés
+            rotation: rotation en degrés (CCW)
             opacity: opacité
             color: teinte multiplicative
             z: z-order
@@ -316,7 +316,7 @@ class PygletSpriteRenderer:
 
     def _handle_rotation(self) -> None:
         """Actualisation de la rotation"""
-        self._sprite.rotation = self._rotation
+        self._sprite.rotation = -self._rotation
 
     def _handle_color(self) -> None:
         """Actualisation de la couleur de teinte"""

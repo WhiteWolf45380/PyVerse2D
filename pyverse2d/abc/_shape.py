@@ -107,7 +107,7 @@ class Shape(ABC):
         if self._cache_key is None or self._cache_key[:4] != (scale, rotation, anchor_x, anchor_y):
             rad = math.radians(rotation)
             cos_r, sin_r = math.cos(rad), math.sin(rad)
-            R = np.array([[cos_r, -sin_r], [sin_r, cos_r]], dtype=np.float32)
+            R = np.array([[cos_r, sin_r], [-sin_r, cos_r]], dtype=np.float32)
             self._cache_rotscale = (vertices - np.array([ax, ay], dtype=np.float32)) * scale @ R
 
         self._cache_world = self._cache_rotscale + np.array([x, y], dtype=np.float32)

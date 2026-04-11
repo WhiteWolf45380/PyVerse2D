@@ -21,7 +21,7 @@ class PygletLabelRenderer:
         y: point verticale
         anchor_x: ancre relative locale
         anchor_y: ancre relative verticale
-        rotation: rotation en degrés
+        rotation: rotation en degrés (CCW)
         weight: graisse ('bold', 'thin', '100'…'900', ou int pyglet)
         italic: italique
         underline: couleur du soulignement
@@ -124,7 +124,7 @@ class PygletLabelRenderer:
             width=width,
             height=height,
             multiline=self._multiline,
-            rotation=self._rotation,
+            rotation=-self._rotation,
             batch=self._pipeline.batch if self._pipeline else None,
             group=self._pipeline.get_group(z=self._z) if self._pipeline else None,
         )
@@ -290,7 +290,7 @@ class PygletLabelRenderer:
             y: point verticale
             anchor_x: ancre relative locale
             anchor_y: ancre relative verticale
-            rotation: rotation en degrés
+            rotation: rotation en degrés (CCW)
             weight: graisse ('bold', 'thin', '100'…'900', ou int pyglet)
             italic: italique
             underline: couleur du soulignement
@@ -368,7 +368,7 @@ class PygletLabelRenderer:
 
     def _handle_rotation(self) -> None:
         """Actualisation de la rotation"""
-        self._label.rotation = self._rotation
+        self._label.rotation = -self._rotation
 
     def _handle_weight(self) -> None:
         """Actualisation de la graisse"""
