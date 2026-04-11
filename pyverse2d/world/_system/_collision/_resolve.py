@@ -103,7 +103,7 @@ resolve_processor = Processor("resolve")
 @resolve_processor.step
 def _wake(ctx: ResolveContext):
     """Réveil des corps endormis uniquement si l'impact est significatif"""
-    if ctx.vel_along >= -0.1:
+    if ctx.vel_along >= -ctx.C.VEL_ALONG_WAKE_TRESHOLD:
         return
     if ctx.has_rb_a and ctx.rb_a.is_sleeping():
         ctx.rb_a.wake()

@@ -467,8 +467,6 @@ class Pipeline:
         width = abs(x0 - x1)
         height = abs(y0 - y1)
 
-        print(left, top, width, height)
-
         was_enabled = (gl.GLboolean * 1)()
         prev_box = (c_int * 4)()
         gl.glGetBooleanv(gl.GL_SCISSOR_TEST, was_enabled)
