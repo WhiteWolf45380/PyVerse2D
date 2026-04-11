@@ -24,7 +24,7 @@ class Follow(Component):
         force: force d'attraction (en N)
         radius: rayon de tolérance
     """
-    __slots__ = ("_entity", "_offset", "_smoothing", "_max_speed", "_radius")
+    __slots__ = ("_entity", "_offset", "_smoothing", "_force", "_radius")
     requires = ("Transform",)
 
     def __init__(
