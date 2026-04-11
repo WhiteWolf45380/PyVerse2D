@@ -41,21 +41,22 @@ class SteeringSystem(System):
 
                 dist = dist_sq ** 0.5
 
-                # Vélocité désirée
                 speed = follow.max_speed if follow.max_speed is not None else (
                     (rb.velocity.x ** 2 + rb.velocity.y ** 2) ** 0.5
                 )
                 desired_vx = (dx / dist) * speed
                 desired_vy = (dy / dist) * speed
 
-                # Lissage sur la vélocité
-                s = follow.smoothing
-                desired_vx = rb.velocity.x + (desired_vx - rb.velocity.x) * (1.0 - s)
-                desired_vy = rb.velocity.y + (desired_vy - rb.velocity.y) * (1.0 - s)
-
-                # Force de steering
+                # Force de steering vers la vélocité désirée
                 steer_x = (desired_vx - rb.velocity.x) * rb.mass
                 steer_y = (desired_vy - rb.velocity.y) * rb.mass
+
+                # Lissage sur la force
+                if follow.smoothing > 0.0:
+                    s = 1.0 - follow.smoothing
+                    steer_x *= s
+                    steer_y *= s
+
                 rb.apply_force(Vector(steer_x, steer_y))
 
             # Cas cinématique

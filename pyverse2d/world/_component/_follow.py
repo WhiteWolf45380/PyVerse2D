@@ -125,4 +125,4 @@ class Follow(Component):
     
     @radius.setter
     def radius(self, value: Real) -> None:
-        abs(float(expect(value, Real)))
+        self._radius = abs(float(expect(value, Real)))
