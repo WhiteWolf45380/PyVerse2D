@@ -15,6 +15,53 @@ from pyglet.window import Window as PygletWindow
 from typing import TypeAlias, ClassVar, Type
 from numbers import Real
 
+# ======================================== CURSORS ========================================
+class SystemMouseCursor(MouseCursor):
+    """Curseur de souris système
+
+    Args:
+        cursor: constante ``SystemCursor``
+    """
+    __slots__ = ("_cursor",)
+
+    def __init__(self, cursor: str = PygletWindow.CURSOR_DEFAULT):
+        self._cursor: str = cursor
+
+    def to_pyglet(self, window: PygletWindow) -> pyglet.window.MouseCursor:
+        """Renvoie le curseur pyglet"""
+        return window.get_system_mouse_cursor(self._cursor)
+
+
+class ImageMouseCursor(MouseCursor):
+    """Curseur de souris basé sur une image
+
+    Args:
+        image: image du curseur
+        anchor_x: point chaud horizontal [0, 1]
+        anchor_y: point chaud vertical [0, 1]
+        acceleration: rendu natif OS (sinon OpenGL)
+    """
+    __slots__ = ("_image", "_anchor_x", "_anchor_y", "_acceleration")
+
+    def __init__(
+        self,
+        image: Image,
+        anchor_x: Real = 0.0,
+        anchor_y: Real = 0.0,
+        acceleration: bool = False,
+    ):
+        self._image: Image = expect(image, Image)
+        self._anchor_x: float = float(clamped(expect(anchor_x, Real)))
+        self._anchor_y: float = float(clamped(expect(anchor_y, Real)))
+        self._acceleration: bool = expect(acceleration, bool)
+
+    def to_pyglet(self, window: PygletWindow) -> pyglet.window.ImageMouseCursor:
+        """Renvoie le curseur pyglet"""
+        raw = pyglet.image.load(self._image.path)
+        hot_x = int(self._anchor_x * raw.width)
+        hot_y = int((1.0 - self._anchor_y) * raw.height)
+        return pyglet.window.ImageMouseCursor(raw, hot_x, hot_y, self._acceleration)
+
 # ======================================== STR ========================================
 _NAMES: dict[MouseManager.Button] = {
     _mouse.LEFT:   "Left Click",
@@ -297,50 +344,3 @@ class MouseManager(Manager):
         """Vérifie que la souris soit en dehors du viewport de la fenêtre"""
         hw, hh = self._window.screen.half_width, self._window.screen.half_height
         self._mouse_out = not (-hw <= self._mouse_x <= hw and -hh <= self._mouse_y <= hh)
-
-# ======================================== CURSORS ========================================
-class SystemMouseCursor(MouseCursor):
-    """Curseur de souris système
-
-    Args:
-        cursor: constante ``SystemCursor``
-    """
-    __slots__ = ("_cursor",)
-
-    def __init__(self, cursor: str = PygletWindow.CURSOR_DEFAULT):
-        self._cursor: str = cursor
-
-    def to_pyglet(self, window: PygletWindow) -> pyglet.window.MouseCursor:
-        """Renvoie le curseur pyglet"""
-        return window.get_system_mouse_cursor(self._cursor)
-
-
-class ImageMouseCursor(MouseCursor):
-    """Curseur de souris basé sur une image
-
-    Args:
-        image: image du curseur
-        anchor_x: point chaud horizontal [0, 1]
-        anchor_y: point chaud vertical [0, 1]
-        acceleration: rendu natif OS (sinon OpenGL)
-    """
-    __slots__ = ("_image", "_anchor_x", "_anchor_y", "_acceleration")
-
-    def __init__(
-        self,
-        image: Image,
-        anchor_x: Real = 0.0,
-        anchor_y: Real = 0.0,
-        acceleration: bool = False,
-    ):
-        self._image: Image = expect(image, Image)
-        self._anchor_x: float = float(clamped(expect(anchor_x, Real)))
-        self._anchor_y: float = float(clamped(expect(anchor_y, Real)))
-        self._acceleration: bool = expect(acceleration, bool)
-
-    def to_pyglet(self, window: PygletWindow) -> pyglet.window.ImageMouseCursor:
-        """Renvoie le curseur pyglet"""
-        raw = pyglet.image.load(self._image.path)
-        hot_x = int(self._anchor_x * raw.width)
-        hot_y = int((1.0 - self._anchor_y) * raw.height)
-        return pyglet.window.ImageMouseCursor(raw, hot_x, hot_y, self._acceleration)
