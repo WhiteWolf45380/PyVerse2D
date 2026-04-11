@@ -37,27 +37,19 @@ class GroundSensor(Component):
     # ======================================== CONVERSIONS ========================================
     def __repr__(self) -> str:
         """Renvoie une représentation du composant"""
-        return f"GroundSensor(grounded={self._grounded}, threshold={self._threshold}, stability_angle={self._stability_angle}, ground_damping={self._ground_damping}, max_step_height={self._max_step_height}, coyote_time={self._coyote_time})"
+        return f"GroundSensor(grounded={self._grounded}, threshold={self._threshold}, stability_angle={self._stability_angle})"
 
     def __iter__(self) -> Iterator:
         """Renvoie le composant dans un itérateur"""
-        return iter((self._grounded, self._threshold, self._stability_angle, self._ground_damping, self.max_step_height, self._coyote_time))
+        return iter(self.get_attributes())
 
     def __hash__(self) -> int:
         """Renvoie l'entier hashé du composant"""
-        return hash((self._threshold, self._stability_angle, self._ground_damping, self.max_step_height, self._coyote_time))
-
-    def __eq__(self, other: GroundSensor) -> bool:
-        """Vérifie la correspondance des deux composants"""
-        if isinstance(other, GroundSensor):
-            return (
-                self._threshold == other._threshold
-                and self._stability_angle == other._stability_angle
-                and self._ground_damping == other._ground_damping
-                and self.max_step_height == other.max_step_height
-                and self._coyote_time == other._coyote_time
-            )
-        return False
+        return hash(self.get_attributes())
+    
+    def get_attributes(self) -> tuple:
+        """Renvoie les attributs du composant"""
+        return (self._threshold, self._stability_angle, self._ground_damping, self.max_step_height, self._coyote_time)
     
     # ======================================== GETTERS ========================================
     @property

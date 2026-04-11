@@ -44,23 +44,19 @@ class Collider(Component):
     # ======================================== CONVERSIONS ========================================
     def __repr__(self) -> str:
         """Renvoie une représentation du composant"""
-        return f"Collider(shape={self._shape}, offset={self._offset}, category={self._category}, mask={self._mask}, trigger={self._trigger}, active={self._active})"
+        return f"Collider(category={self._category}, mask={self._mask}, trigger={self._trigger}, active={self._active})"
     
     def __iter__(self) -> Iterator:
         """Renvoie le composant dans un itérateur"""
-        return iter(self.to_tuple())
+        return iter(self.get_attributes())
     
     def __hash__(self) -> int:
         """Renvoie l'entier hashé du composant"""
-        return hash(self.to_tuple())
+        return hash(self.get_attributes())
     
-    def to_tuple(self) -> tuple[Shape, Point, int, int, bool]:
-        """Renvoie le composant sous forme de tuple"""
+    def get_attributes(self) -> tuple:
+        """Renvoie les attributs du composant"""
         return (self._shape, self._offset, self._category, self._mask, self._trigger)
-    
-    def to_list(self) -> list:
-        """Renvoie le composant sous forme de liste"""
-        return [self._shape, self._offset, self._category, self._mask, self._trigger]
     
     # ======================================== GETTERS ========================================
     @property

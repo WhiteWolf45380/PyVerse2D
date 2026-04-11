@@ -63,19 +63,15 @@ class TextRenderer(Component):
 
     def __iter__(self) -> Iterator:
         """Renvoie le composant dans un itérateur"""
-        return iter(self.to_tuple())
+        return iter(self.get_attributes())
 
     def __hash__(self) -> int:
         """Renvoie l'entier hashé du composant"""
-        return hash(self.to_tuple())
+        return hash(self.get_attributes())
 
-    def to_tuple(self) -> tuple[Text, Vector, Color, float, str, bool, bool, str, int, int]:
-        """Renvoie le composant sous forme de tuple"""
+    def get_attributes(self) -> tuple:
+        """Renvoie les attributs du composant"""
         return (self._text, self._offset, self._color, self._opacity, self._weight, self._italic, self._multiline, self._align, self._width, self._z)
-
-    def to_list(self) -> list:
-        """Renvoie le composant sous forme de liste"""
-        return [self._text, self._offset, self._color, self._opacity, self._weight, self._italic, self._multiline, self._align, self._width, self._z]
 
     # ======================================== GETTERS ========================================
     @property

@@ -58,19 +58,15 @@ class ShapeRenderer(Component):
     
     def __iter__(self) -> Iterator:
         """Renvoie le composant dans un itérateur"""
-        return iter(self.to_tuple())
+        return iter(self.get_attributes())
     
     def __hash__(self) -> int:
         """Renvoie l'entier hashé du composant"""
-        return hash(self.to_tuple())
+        return hash(self.get_attributes())
     
-    def to_tuple(self) -> tuple[Shape, Vector, bool, Color, int, Color, float, int]:
-        """Renvoie le composant sous forme de tuple"""
+    def get_attributes(self) -> tuple:
+        """Renvoie les attributs du composant"""
         return (self._shape, self._offset, self._filling, self._filling_color, self._border_width, self._border_align, self._border_color, self._opacity, self._z)
-    
-    def to_list(self) -> list:
-        """Renvoie le composant sous forme de liste"""
-        return [self._shape, self._offset, self._filling, self._filling_color, self._border_width, self._border_align, self._border_color, self._opacity, self._z]
     
     # ======================================== GETTERS ========================================
     @property

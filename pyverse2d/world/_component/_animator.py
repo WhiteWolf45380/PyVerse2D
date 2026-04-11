@@ -6,7 +6,7 @@ from ...abc import Component, Request
 from ...asset import Animation, Image
 
 from dataclasses import dataclass
-from typing import Callable, ClassVar
+from typing import Callable, ClassVar, Iterator
 
 # ======================================== REQUEST ========================================
 @dataclass(frozen=True)
@@ -57,6 +57,18 @@ class Animator(Component):
     def __repr__(self) -> str:
         """Renvoie une représentation de l'animateur"""
         return f"Animator(current={self._current_animation}, frame={self._frame})"
+    
+    def __iter__(self) -> Iterator:
+        """Renvoie les attributs dans un itérateur"""
+        return iter(self.get_attributes())
+    
+    def __hash__(self) -> int:
+        """Renvoie le hash du composant"""
+        return hash(self.get_attributes())
+    
+    def get_attributes(self) -> tuple:
+        """Renvoie les attributs du composant"""
+        return (self._idle, self._requests, self._current_request, self._current_animation, self._frame, self._elapsed)
 
     # ======================================== GETTERS ========================================
     @property

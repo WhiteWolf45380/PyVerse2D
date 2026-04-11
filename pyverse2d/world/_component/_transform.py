@@ -40,19 +40,15 @@ class Transform(Component):
     
     def __iter__(self) -> Iterator:
         """Renvoie le composant dans un itérateur"""
-        return iter(self.to_tuple())
+        return iter(self.get_attributes())
     
     def __hash__(self) -> int:
         """Renvoie l'entier hashé du composant"""
-        return hash(self.to_tuple())
+        return hash(self.get_attributes())
     
-    def to_tuple(self) -> tuple[Point, Point, float, float]:
-        """Renvoie le composant sous forme tuple"""
+    def get_attributes(self) -> tuple:
+        """Renvoie les attributs du composant"""
         return (self._position, self._anchor, self._rotation, self._scale)
-    
-    def to_list(self) -> list:
-        """Renvoie le composant sous forme de liste"""
-        return [self._position, self._anchor, self._rotation, self._scale]
 
     # ======================================== GETTERS ========================================
     @property

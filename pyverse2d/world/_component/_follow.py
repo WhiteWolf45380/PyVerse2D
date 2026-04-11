@@ -24,7 +24,7 @@ class Follow(Component):
         max_speed: vitesse maximale en m/s
         radius: rayon de tolérance
     """
-    __slots__ = ("_entity", "_offset", "_smoothing", "_max_speed")
+    __slots__ = ("_entity", "_offset", "_smoothing", "_max_speed", "_radius")
     requires = ("Transform",)
 
     def __init__(
@@ -47,23 +47,19 @@ class Follow(Component):
     # ======================================== CONVERSIONS ========================================
     def __repr__(self) -> str:
         """Renvoie une représentation du composant"""
-        return f"Collider(entity={self._entity.id[:8]}..., offset={self._offset}, smoothing={self._smoothing}, max_speed={self._max_speed})"
+        return f"Collider(entity={self._entity.id[:8]}..., offset={self._offset})"
     
     def __iter__(self) -> Iterator:
         """Renvoie le composant dans un itérateur"""
-        return iter(self.to_tuple())
+        return iter(self.get_attributes())
     
     def __hash__(self) -> int:
         """Renvoie l'entier hashé du composant"""
-        return hash(self.to_tuple())
+        return hash(self.get_attributes())
     
-    def to_tuple(self) -> tuple[Entity, Vector, float, float | None]:
-        """Renvoie le composant sous forme de tuple"""
+    def get_attributes(self) -> list:
+        """Renvoie les attributs du composant"""
         return (self._entity, self._offset, self._smoothing, self._max_speed)
-    
-    def to_list(self) -> list:
-        """Renvoie le composant sous forme de liste"""
-        return [self._entity, self._offset, self._smoothing, self._max_speed]
     
     # ======================================== PROPERTIES ========================================
     @property

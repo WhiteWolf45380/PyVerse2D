@@ -53,24 +53,20 @@ class RigidBody(Component):
 
     # ======================================== CONVERSIONS ========================================
     def __repr__(self) -> str:
-        return (
-            f"RigidBody(mass={self._mass}, friction={self._friction}, "
-            f"restitution={self._restitution}, gravity={self._gravity}, "
-            f"gravity_scale={self._gravity_scale}, "
-            f"linear_damping={self._linear_damping})"
-        )
+        """Renvoie une représentation du composant"""
+        return f"RigidBody(mass={self._mass}, friction={self._friction}, restitution={self._restitution})"
 
     def __iter__(self) -> Iterator:
-        return iter(self.to_tuple())
+        """Renvoie les attributs dans un itérateur"""
+        return iter(self.get_attributes())
 
     def __hash__(self) -> int:
-        return hash(self.to_tuple())
+        """Renvoie le hash du composant"""
+        return hash(self.get_attributes())
 
-    def to_tuple(self) -> tuple:
+    def get_attributes(self) -> tuple:
+        """Renvoie les attributs du composant"""
         return (self._mass, self._friction, self._restitution, self._gravity, self._gravity_scale, self._linear_damping)
-
-    def to_list(self) -> list:
-        return [self._mass, self._friction, self._restitution, self._gravity, self._gravity_scale, self._linear_damping]
 
     # ======================================== GETTERS ========================================
     @property
