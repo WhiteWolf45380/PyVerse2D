@@ -127,6 +127,8 @@ class Viewport(Space):
         self._direction.x = value[0]
         self._direction.y = value[1]
 
+    # ======================================== COLLECTIONS ========================================
+
     # ======================================== RESOLVING ========================================
     def resolve(self, screen_width: int, screen_height: int) -> tuple[float, float, float, float]:
         """Renvoie ``(x, y, witdh, height, origin, )`` résolus dans l'espace logique
