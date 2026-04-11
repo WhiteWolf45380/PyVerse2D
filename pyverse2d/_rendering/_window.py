@@ -114,6 +114,21 @@ class Window(Space):
         return self._screen
     
     @property
+    def caption(self) -> str:
+        """Nom de la fenêtre"""
+        return self._pyglet_window.caption
+
+    @property
+    def fullscreen(self) -> bool:
+        """Plein écran"""
+        return self._pyglet_window.fullscreen
+    
+    @property
+    def visible(self) -> bool:
+        """Visibilité"""
+        return self._pyglet_window.visible
+    
+    @property
     def size(self) -> tuple[int, int]:
         """Taille actuelle de la fenpetre OS"""
         return (self._pyglet_window.width, self._pyglet_window.height)
@@ -127,6 +142,11 @@ class Window(Space):
     def height(self) -> int:
         """Hauteur actuelle de la fenêtre OS"""
         return self._pyglet_window.height
+    
+    @property
+    def position(self) -> tuple[int, int]:
+        """Position de la fenêtre sur le bureau"""
+        return self._pyglet_window.get_location()
 
     @property
     def canvas(self) -> _Canvas:
@@ -147,7 +167,7 @@ class Window(Space):
     def framebuffer_scale_y(self) -> float:
         """Ratio vertical pixels framebuffer / pixels logiques"""
         return self._framebuffer_scale_y
-
+    
     # ======================================== SETTERS ========================================
     def set_caption(self, caption: str):
         """Fixe le nom de la fenêtre"""
@@ -186,6 +206,10 @@ class Window(Space):
     def close(self):
         """Ferme la fenêtre"""
         self._pyglet_window.close()
+
+    def toggle_fullscreen(self) -> None:
+        """Bascule le plein écran"""
+        self._pyglet_window.set_fullscreen(not self._pyglet_window.fullscreen)
 
     # ======================================== CONVERSIONS ========================================
     def screen_to_window(self, x: Real, y: Real) -> tuple[float, float]:
