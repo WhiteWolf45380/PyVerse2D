@@ -118,8 +118,13 @@ class TileLayer(Layer):
         cr_min = max(0, int((vy - oy) // chunk_h))
         cr_max = min(chunk_rows, int((vy + vh_world - oy) // chunk_h) + 1)
 
+        # Génération du contexte
+        if self._clip_camera:
+            ctx = pipeline.scissor_world(ox + 1, oy + 1, tm.cols * tw - 2, tm.rows * th - 2, camera=self._clip_camera)
+        else:
+            ctx = nullcontext()
+
         # Rendu avec contexte
-        ctx = pipeline.scissor(ox + 1, oy + 1, tm.cols * tw - 2, tm.rows * th - 2) if self._clip else nullcontext()
         with ctx:
             self._renderer.begin()
             self._renderer.draw_visible(cc_min, cc_max, cr_min, cr_max)
