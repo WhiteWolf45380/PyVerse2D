@@ -227,13 +227,13 @@ class Pipeline:
         self._context.ppu_x,  self._context.ppu_y = self.compute_ppu(lw, lh, vw, vh, zoom)
 
         # Matrice de projection
-        projection = self.compute_projection(vw, vh, zoom)
+        projection = self.compute_projection(vw, vh, dx, dy, zoom)
         self._group.projection = projection
         self._context.projection_matrix = projection
         self._window.native.projection = projection
 
         # Matrice de vue
-        view = self.compute_view(cx, cy, rotation, ox, oy, dx, dy)
+        view = self.compute_view(cx, cy, rotation, ox, oy)
         self._group.view = view
         self._context.view_matrix = view
         self._window.native.view = view
@@ -264,7 +264,7 @@ class Pipeline:
         ppu_y = (lh / vh) * zoom
         return (ppu_x, ppu_y)
 
-    def compute_projection(self, vw: float, vh: float, zoom: float) -> Mat4:
+    def compute_projection(self, vw: float, vh: float, dx: float, dy: float, zoom: float) -> Mat4:
         """Calcul la matrice de projection
 
         Args:
@@ -272,10 +272,10 @@ class Pipeline:
             vh: hauteur de la vision (view space)
             zoom: facteur de zoom
         """
-        projection_key = (vw, vh, zoom)
+        projection_key = (vw, vh, dx, dy, zoom)
         if projection_key not in self._projection_cache:
-            half_w = (vw / zoom) / 2
-            half_h = (vh / zoom) / 2
+            half_w = vw / (dx * zoom * 2)
+            half_h = vh / (dx * zoom * 2)
             self._projection_cache[projection_key] = Mat4.orthogonal_projection(
                 left=-half_w,
                 right=half_w,
@@ -286,7 +286,7 @@ class Pipeline:
             )
         return self._projection_cache[projection_key]
     
-    def compute_view(self, cx: float, cy: float, rotation: float, ox: float, oy: float, dx: float, dy: float) -> Mat4:
+    def compute_view(self, cx: float, cy: float, rotation: float, ox: float, oy: float) -> Mat4:
         """Calcul la matrice de vue
         
         Args
@@ -298,7 +298,7 @@ class Pipeline:
             scale_x: facteur de redimensionnement horizontal
             scale_y: facteur de redimensionnement vertical
         """
-        view_key = (cx, cy, rotation, ox, oy, dx, dy)
+        view_key = (cx, cy, rotation, ox, oy)
         if view_key in self._view_buffer:
             return self._view_buffer[view_key]
         if view_key in self._view_cache:
@@ -307,7 +307,7 @@ class Pipeline:
             return view
         view = self._default_view
         view = self.compute_camera(view, cx, cy, rotation)
-        view = self.compute_viewport(view, ox, oy, dx, dy)
+        view = self.compute_viewport(view, ox, oy)
         self._view_buffer[view_key] = view
         return view
     
@@ -325,17 +325,13 @@ class Pipeline:
             view = view.rotate(math.radians(rotation), (0, 0, 1))
         return view
     
-    def compute_viewport(self, view: Mat4, ox: float, oy: float, dx: float, dy: float) -> Mat4:
+    def compute_viewport(self, view: Mat4, ox: float, oy: float) -> Mat4:
         """Transforme une matrice selon l'espace viewport
 
         Args:
             ox: origine horizontale du viewport (absolute viewport space)
             oy: origine verticale du viewport (absolute viewport space)
-            dx: direction horizontale du viewport (logical space)
-            dy: direction verticale du viewport (logical space)
         """
-        if dx != 1.0 or dy != 1.0:
-            view = view.scale((dx, dy, 1.0))
         view = view.translate((ox / self.ppu_x, oy / self.ppu_y, 0))
         return view
         
