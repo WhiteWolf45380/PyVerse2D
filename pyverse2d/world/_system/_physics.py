@@ -39,9 +39,6 @@ class PhysicsSystem(System):
             # Résistance de l'air sur X et Y
             rb._apply_damping(dt)
 
-           # Résistance de l'air sur X et Y
-            rb._apply_damping(dt)
-
             # Amortissement horizontal au sol
             if entity.has(GroundSensor):
                 gs: GroundSensor = entity.get(GroundSensor)
