@@ -373,7 +373,7 @@ class _BorderRenderer:
 
         # Changement de bordure
         if changes & (_TRANSFORM_DEPS | {"border_width", "border_align"}):
-            self._refresh_vertices(psr)
+            self._refresh_strip(psr)
 
         # Changement de style
         if "border_color" in changes or "opacity" in changes:
