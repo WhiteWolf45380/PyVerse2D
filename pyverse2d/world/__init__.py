@@ -17,6 +17,7 @@ from ._component import (
 from ._system import (
     PhysicsSystem,
     GravitySystem,
+    SteeringSystem,
     CollisionSystem,
     RenderSystem,
     AnimationSystem,
@@ -39,6 +40,7 @@ __all__ = [
 
     "PhysicsSystem",
     "GravitySystem",
+    "SteeringSystem",
     "CollisionSystem",
     "RenderSystem",
     "AnimationSystem",
