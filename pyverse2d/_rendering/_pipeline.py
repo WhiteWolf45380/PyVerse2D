@@ -188,13 +188,13 @@ class Pipeline:
         lx, ly, lw, lh, _, _ = self._context.viewport_resolve
 
         # FrameBuffer
-        window_viewport = self._window.viewport
+        canvas = self._window.canvas
         sx = self._window.framebuffer_scale_x
         sy = self._window.framebuffer_scale_y
 
         # Viewport OpenGl
-        px = int(window_viewport.x + lx * sx)
-        py = int(window_viewport.y + ly * sy)
+        px = int(canvas.x + lx * sx)
+        py = int(canvas.y + ly * sy)
         pw = int(lw * sx)
         ph = int(lh * sy)
         self._context.gl_viewport = (px, py, pw, ph)
@@ -219,7 +219,7 @@ class Pipeline:
         # Espace viewport
         _, _, lw, lh, (ox , oy), (dx, dy) = self._context.viewport_resolve
 
-        # Frustum
+        # Transformation camera
         self._context.camera_resolve = self.camera.resolve(lw, lh)
         cx, cy, vw, vh, zoom, rotation = self._context.camera_resolve
 
@@ -334,7 +334,7 @@ class Pipeline:
             dx: direction horizontale du viewport (logical space)
             dy: direction verticale du viewport (logical space)
         """
-        view = view.translate((-ox / self.ppu_x, -oy / self.ppu_y, 0))
+        view = view.translate((ox / self.ppu_x, oy / self.ppu_y, 0))
         if dx != 1.0 or dy != 1.0:
             view = view.scale((dx, dy, 1.0))
         return view
@@ -391,12 +391,12 @@ class Pipeline:
         nvc_x = (tx / half_w + 1) / 2
         nvc_y = (ty / half_h + 1) / 2
 
-        # NVC to GlViewport
-        gl_x = int((lx + (nvc_x * lw - ox) / dx) * self._window.framebuffer_scale_x)
-        gl_y = int((ly + (nvc_y * lh - oy) / dy) * self._window.framebuffer_scale_y)
+        # NVC to Canvas
+        gl_x = int((lx + (ox + nvc_x * lw) * dx) * self._window.framebuffer_scale_x)
+        gl_y = int((ly + (oy + nvc_y * lh) * dy) * self._window.framebuffer_scale_y)
 
-        # GlViewport to FrameBuffer
-        return self._window.viewport.x + gl_x, self._window.viewport.y + gl_y
+        # Canvas to FrameBuffer
+        return self._window.canvas.x + gl_x, self._window.canvas.y + gl_y
 
 
     def framebuffer_to_world(self, x: int, y: int, camera: Camera = None) -> tuple[float, float]:
@@ -411,13 +411,13 @@ class Pipeline:
         lx, ly, lw, lh, (ox, oy), (dx, dy) = self._context.viewport_resolve
         cx, cy, vw, vh, zoom, rotation = self._context.camera_resolve if camera is None else camera.resolve(lw, lh)
 
-        # FrameBuffer to GlViewport
-        gl_x = (x - self._window.viewport.x) / self._window.framebuffer_scale_x - lx
-        gl_y = (y - self._window.viewport.y) / self._window.framebuffer_scale_y - ly
+        # FrameBuffer to Canvas
+        gl_x = (x - self._window.canvas.x) / self._window.framebuffer_scale_x - lx
+        gl_y = (y - self._window.canvas.y) / self._window.framebuffer_scale_y - ly
 
-        # GlViewport to NVC
-        nvc_x = (gl_x * dx + ox) / lw
-        nvc_y = (gl_y * dy + oy) / lh
+        # Canvas to NVC
+        nvc_x = (gl_x * dx - ox) / lw
+        nvc_y = (gl_y * dy - oy) / lh
 
         # NVC to Frustum
         half_w, half_h = (vw / zoom) / 2, (vh / zoom) / 2

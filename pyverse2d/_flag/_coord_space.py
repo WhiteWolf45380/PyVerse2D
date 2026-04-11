@@ -9,5 +9,5 @@ class CoordSpace(IntEnum):
     NVC = 3
     VIEWPORT = 4
     LOGICAL = 5
-    GLVIEWPORT = 6
+    CANVAS = 6
     FRAMEBUFFER = 7

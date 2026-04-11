@@ -15,7 +15,7 @@ _PIPELINE = [
     CoordSpace.NVC,
     CoordSpace.VIEWPORT,
     CoordSpace.LOGICAL,
-    CoordSpace.GLVIEWPORT,
+    CoordSpace.DISPLAY_AREA,
     CoordSpace.FRAMEBUFFER,
 ]
 
@@ -102,9 +102,9 @@ def viewport_to_logical(vw_x: float, vw_y: float, lx: float, ly: float) -> tuple
     """
     return lx + vw_x, ly + vw_y
 
-@register(CoordSpace.LOGICAL, CoordSpace.GLVIEWPORT)
-def logical_to_glviewport(logic_x: float, logic_y: float, fb_scale_x: float, fb_scale_y: float) -> tuple[float, float]:
-    """Conversion de l'espace *Logical* à l'espace *GlViewport*
+@register(CoordSpace.LOGICAL, CoordSpace.CANVAS)
+def logical_to_canvas(logic_x: float, logic_y: float, fb_scale_x: float, fb_scale_y: float) -> tuple[float, float]:
+    """Conversion de l'espace *Logical* à l'espace *Canvas*
 
     Args:
         logic_x: coordonnée horizontale dans l'espace *Logical*
@@ -114,42 +114,42 @@ def logical_to_glviewport(logic_x: float, logic_y: float, fb_scale_x: float, fb_
     """
     return int(logic_x * fb_scale_x), int(logic_y * fb_scale_y)
 
-@register(CoordSpace.GLVIEWPORT, CoordSpace.FRAMEBUFFER)
-def glviewport_to_framebuffer(gl_x: float, gl_y: float, gl_ox: float, gl_oy: float) -> tuple[float, float]:
-    """Conversion de l'espace *GlViewport* à l'espace *FrameBuffer*
+@register(CoordSpace.CANVAS, CoordSpace.FRAMEBUFFER)
+def canvas_to_framebuffer(cnv_x: float, cnv_y: float, cnv_ox: float, cnv_oy: float) -> tuple[float, float]:
+    """Conversion de l'espace *Canvas* à l'espace *FrameBuffer*
     
     Args:
-        gl_x: coordonnée horizontale dans l'espace *GlViewport*
-        gl_y: coordonnée verticale dans l'espace *GlViewport*
-        gl_ox: position horizontale du viewport OpenGL
-        gl_oy: position verticale du viewport OpenGl
+        cnv_x: coordonnée horizontale dans l'espace *Canvas*
+        cnv_y: coordonnée verticale dans l'espace *Canvas*
+        cnv_ox: position horizontale du viewport OpenGL
+        cnv_oy: position verticale du viewport OpenGl
     """
-    return gl_ox + gl_x, gl_oy + gl_y
+    return cnv_ox + cnv_x, cnv_oy + cnv_y
 
 # ======================================== FRAMEBUFFER to WORLD ========================================
-@register(CoordSpace.FRAMEBUFFER, CoordSpace.GLVIEWPORT)
-def framebuffer_to_glviewport(fb_x: float, fb_y: float, gl_ox: float, gl_oy: float) -> tuple[float, float]:
-    """Conversion de l'espace *FrameBuffer* à l'espace *GlViewport*
+@register(CoordSpace.FRAMEBUFFER, CoordSpace.CANVAS)
+def framebuffer_to_canvas(fb_x: float, fb_y: float, cnv_ox: float, cnv_oy: float) -> tuple[float, float]:
+    """Conversion de l'espace *FrameBuffer* à l'espace *Canvas*
 
     Args:
         fb_x: coordonnée horizontale dans l'espace *FrameBuffer*
         fb_y: coordonnée verticale dans l'espace *FrameBuffer*
-        gl_ox: position horizontale du viewport OpenGL
-        gl_oy: position verticale du viewport OpenGL
+        cnv_ox: position horizontale du canvas
+        cnv_oy: position verticale du canvas
     """
-    return fb_x - gl_ox, fb_y - gl_oy
+    return fb_x - cnv_ox, fb_y - cnv_oy
 
-@register(CoordSpace.GLVIEWPORT, CoordSpace.LOGICAL)
-def glviewport_to_logical(gl_x: float, gl_y: float, fb_scale_x: float, fb_scale_y: float) -> tuple[float, float]:
-    """Conversion de l'espace *GlViewport* à l'espace *Logical*
+@register(CoordSpace.CANVAS, CoordSpace.LOGICAL)
+def canvas_to_logical(cnv_x: float, cnv_y: float, fb_scale_x: float, fb_scale_y: float) -> tuple[float, float]:
+    """Conversion de l'espace *Canvas* à l'espace *Logical*
 
     Args:
-        gl_x: coordonnée horizontale dans l'espace *GlViewport*
-        gl_y: coordonnée verticale dans l'espace *GlViewport*
+        cnv_x: coordonnée horizontale dans l'espace *Canvas*
+        cnv_y: coordonnée verticale dans l'espace *Canvas*
         fb_scale_x: ratio horizontal pixels framebuffer / pixels logiques
         fb_scale_y: ratio vertical pixels framebuffer / pixels logiques
     """
-    return gl_x / fb_scale_x, gl_y / fb_scale_y
+    return cnv_x / fb_scale_x, cnv_y / fb_scale_y
 
 @register(CoordSpace.LOGICAL, CoordSpace.VIEWPORT)
 def logical_to_viewport(logic_x: float, logic_y: float, lx: float, ly: float) -> tuple[float, float]:
@@ -260,8 +260,8 @@ class CoordContext:
         cx, cy, vw, vh, zoom, rotation = camera.resolve(lw, lh) if camera_resolve is None else camera_resolve
         fb_scale_x = window.framebuffer_scale_x
         fb_scale_y = window.framebuffer_scale_y
-        gl_ox = window.viewport.x
-        gl_oy = window.viewport.y
+        cnv_ox = window.viewport.x
+        cnv_oy = window.viewport.y
         
         # Arguments par transition
         _ARGS = (
@@ -270,8 +270,8 @@ class CoordContext:
             (),                                          # NDC to NVC
             (lw, lh, ox, oy, dx, dy),                    # NVC to VIEWPORT
             (lx, ly),                                    # VIEWPORT to LOGICAL
-            (fb_scale_x, fb_scale_y),                    # LOGICAL to GLVIEWPORT
-            (gl_ox, gl_oy),                              # GLVIEWPORT to FRAMEBUFFER
+            (fb_scale_x, fb_scale_y),                    # LOGICAL to CANVAS
+            (cnv_ox, cnv_oy),                              # CANVAS to FRAMEBUFFER
         )
 
         i_from = from_space.value
@@ -301,10 +301,10 @@ __all__ = [
     "ndc_to_nvc",
     "nvc_to_viewport",
     "viewport_to_logical",
-    "logical_to_glviewport",
-    "glviewport_to_framebuffer",
-    "framebuffer_to_glviewport",
-    "glviewport_to_logical",
+    "logical_to_canvas",
+    "canvas_to_framebuffer",
+    "framebuffer_to_canvas",
+    "canvas_to_logical",
     "logical_to_viewport",
     "viewport_to_nvc",
     "nvc_to_ndc",

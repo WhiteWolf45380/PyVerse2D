@@ -30,7 +30,7 @@ class Window(Space):
         visible: visibilité de la fenêtre
     """
     __slots__ = (
-        "_screen", "_pyglet_window", "_viewport",
+        "_screen", "_pyglet_window", "_canvas",
         "_framebuffer_scale_x", "_framebuffer_scale_y",
     )
 
@@ -88,7 +88,7 @@ class Window(Space):
             self._pyglet_window.set_minimum_size(min_width or 1, min_height or 1,)
 
         # Projection
-        self._viewport: _WindowViewport = _WindowViewport(0, 0, width, height)
+        self._canvas: _Canvas = _Canvas(0, 0, width, height)
         self._framebuffer_scale_x: float = 1.0
         self._framebuffer_scale_y: float = 1.0
         self._apply_letterboxing(width, height)
@@ -129,9 +129,9 @@ class Window(Space):
         return self._pyglet_window.height
 
     @property
-    def viewport(self) -> _WindowViewport:
-        """Viewport actif dans la fenêtre OS"""
-        return self._viewport
+    def canvas(self) -> _Canvas:
+        """Canvas actif dans la fenêtre OS"""
+        return self._canvas
     
     @property
     def framebuffer_scale(self) -> tuple[float, float]:
@@ -195,7 +195,7 @@ class Window(Space):
             x : coordonnée horizontale logique
             y: coordonnée verticale logique
         """
-        return self._viewport.x + x * self._framebuffer_scale_x, self._viewport.y + y * self.framebuffer_scale_y
+        return self._canvas.x + x * self._framebuffer_scale_x, self._canvas.y + y * self.framebuffer_scale_y
 
     def window_to_screen(self, x: Real, y: Real) -> tuple[float, float]:
         """Convertit des coordonnées de la fenêtre OS vers l'espace logique
@@ -204,7 +204,7 @@ class Window(Space):
             x: coordonnée horizontale dans la fenêtre OS
             y: coordonnée verticale dans la fenêtre OS
         """
-        return (x - self._viewport.x) * (1 / self._framebuffer_scale_x), (y - self._viewport.y) * (1 / self.framebuffer_scale_y)
+        return (x - self._canvas.x) * (1 / self._framebuffer_scale_x), (y - self._canvas.y) * (1 / self.framebuffer_scale_y)
     
     # ======================================== INTERNALS ========================================
     def _apply_letterboxing(self, win_w: int, win_h: int):
@@ -227,16 +227,16 @@ class Window(Space):
             x = 0
             y = (win_h - h) // 2
 
-        # Viewport actif
-        self._viewport.compute(x, y, w, h)
+        # Canvas actif
+        self._canvas.compute(x, y, w, h)
 
         # Mise en cache des ratios
         self._framebuffer_scale_x = w / self._screen.width
         self._framebuffer_scale_y = h / self._screen.height
 
-# ======================================== VIEWPORT ========================================
-class _WindowViewport:
-    """Viewport actif de la fenêtre OS
+# ======================================== CANVAS ========================================
+class _Canvas:
+    """Canvas actif de la fenêtre OS
     
     Args:
         x: coordonnée horizontale
@@ -265,7 +265,7 @@ class _WindowViewport:
         return (self.x, self.y, self.width, self.height)
     
     def compute(self, x: int, y: int, width: int, height: int) -> None:
-        """Actualise le viewport"""
+        """Actualise le canvas"""
         self.x = x
         self.y = y
         self.width = width
