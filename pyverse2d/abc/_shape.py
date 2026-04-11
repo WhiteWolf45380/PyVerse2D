@@ -109,7 +109,7 @@ class Shape(ABC):
             self._cache_rotscale = vertices * scale @ R
 
         ax, ay = anchor_offset(self.get_bounding_box(), anchor_x, anchor_y)
-        rx, ry = world_point(ax, ay, 0.0, 0.0, scale, rotation)
+        rx, ry = world_point(ax, ay, scale, rotation)
         self._cache_world = self._cache_rotscale + np.array([x - rx, y - ry], dtype=np.float32)
         self._cache_key = key
         return self._cache_world
@@ -154,7 +154,7 @@ class Shape(ABC):
             anchor_y: ancre relative verticale [0, 1]
         """
         ax, ay = anchor_offset(self.get_bounding_box(), anchor_x, anchor_y)
-        rx, ry = world_point(ax, ay, 0.0, 0.0, scale, rotation)
+        rx, ry = world_point(ax, ay, scale, rotation)
         px = float(point[0]) - (x - rx)
         py = float(point[1]) - (y - ry)
         if rotation:
