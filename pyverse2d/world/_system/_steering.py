@@ -31,33 +31,27 @@ class SteeringSystem(System):
                 continue
 
             # Cas dynamique
-            if entity.has(RigidBody):
-                rb: RigidBody = entity.get(RigidBody)
+            rb = entity.rigid_body
+            if rb is not None:
                 if rb.is_static():
                     continue
-
                 if rb.is_sleeping():
                     rb.wake()
 
                 dist = dist_sq ** 0.5
+                nx, ny = dx / dist, dy / dist
 
-                speed = follow.max_speed if follow.max_speed is not None else (
-                    (rb.velocity.x ** 2 + rb.velocity.y ** 2) ** 0.5
-                )
-                desired_vx = (dx / dist) * speed
-                desired_vy = (dy / dist) * speed
+                # Force d'attraction directe
+                steer_x = nx * follow.force
+                steer_y = ny * follow.force
 
-                # Force de steering vers la vélocité désirée
-                steer_x = (desired_vx - rb.velocity.x) * rb.mass
-                steer_y = (desired_vy - rb.velocity.y) * rb.mass
-
-                # Lissage sur la force
+                # Lissage
                 if follow.smoothing > 0.0:
                     s = 1.0 - follow.smoothing
                     steer_x *= s
                     steer_y *= s
 
-                rb.apply_force(Vector(steer_x, steer_y))
+                rb.apply_force(Vector._make(steer_x, steer_y))
 
             # Cas cinématique
             else:
