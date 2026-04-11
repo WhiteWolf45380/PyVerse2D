@@ -14,8 +14,7 @@ from dataclasses import dataclass
 
 # ======================================== CACHED CONTACT ========================================
 class CachedContact:
-    """
-    Impulsions accumulées + normale lissée pour une paire de contacts persistante
+    """Impulsions accumulées + normale lissée pour une paire de contacts persistante
 
     Args:
         jn: impulsion normale accumulée (>= 0)
@@ -63,7 +62,7 @@ class ResolveContext:
 
     @staticmethod
     def build(a, b, contact, cached: CachedContact, C: ConstantsDataset, dt: float) -> ResolveContext | None:
-        """Construit le contexte — retourne None si la paire est non résoluble"""
+        """Construit le contexte"""
         has_rb_a = a.has(RigidBody)
         has_rb_b = b.has(RigidBody)
         rb_a = a.get(RigidBody) if has_rb_a else None

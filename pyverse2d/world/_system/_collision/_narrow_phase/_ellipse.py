@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from .....math import Vector
+from .....abc import Shape
 from .....shape import Ellipse, Capsule
 
 from .._registry import Contact, register
@@ -13,7 +14,7 @@ from math import sqrt, cos, sin, atan2, pi as _PI
 
 # ======================================== Ellipse × Ellipse ========================================
 @register(Ellipse, Ellipse)
-def ellipse_ellipse(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b):
+def ellipse_ellipse(sa: Shape, ax: float, ay: float, scale_a: float, rot_a: float, sb: Shape, bx: float, by: float, scale_b: float, rot_b: float):
     ex_a, ey_a, rx_a, ry_a, rot_a_rad = ellipse_params(sa, ax, ay, scale_a, rot_a)
     ex_b, ey_b, rx_b, ry_b, rot_b_rad = ellipse_params(sb, bx, by, scale_b, rot_b)
 
@@ -39,6 +40,7 @@ def ellipse_ellipse(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b):
         theta = i * _STEP
         ct, st = cos(theta), sin(theta)
         h_a = sqrt(rx_a * rx_a * ct * ct + ry_a * ry_a * st * st)
+        
         # Axe theta dans le repère de B
         bt = ct * cos_rel + st * sin_rel
         bst = -ct * sin_rel + st * cos_rel
@@ -117,7 +119,7 @@ def ellipse_ellipse(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b):
 
 # ======================================== Ellipse × Capsule ========================================
 @register(Ellipse, Capsule)
-def ellipse_capsule(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b):
+def ellipse_capsule(sa: Shape, ax: float, ay: float, scale_a: float, rot_a: float, sb: Shape, bx: float, by: float, scale_b: float, rot_b: float):
     """Vérifie la collision entre ``Ellipse`` et ``Capsule``"""
     ex, ey, rx, ry, rot_rad = ellipse_params(sa, ax, ay, scale_a, rot_a)
     cap_ax, cap_ay, cap_bx, cap_by, cap_r = capsule_params(sb, bx, by, scale_b, rot_b)

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from ...._internal import Processor
 from ....math import Vector
+from ....abc import Shape
 
 from ..._world import World
 from ..._component import Transform, Collider, GroundSensor, RigidBody
@@ -15,7 +16,6 @@ from ._constants import ConstantsDataset
 
 from dataclasses import dataclass, field
 from math import sqrt
-
 
 # ======================================== CONTEXTE ========================================
 @dataclass(slots=True)
@@ -198,7 +198,7 @@ def _update_ground_sensor(a, b, nx: float, ny: float):
             gs._coyote_elapsed = 0.0
             gs._ground_normal = Vector._make(-nx / n_len, -ny_norm)
 
-def _try_step(a, b, nx: float, ny: float, depth: float) -> bool:
+def _try_step(a: Shape, b: Shape, nx: float, ny: float, depth: float) -> bool:
     """Tente de franchir un step horizontal"""
     if abs(ny) > abs(nx):
         return False
@@ -230,5 +230,5 @@ def _try_step(a, b, nx: float, ny: float, depth: float) -> bool:
 
         tr_m.y += step_h
         return True
-
+    
     return False

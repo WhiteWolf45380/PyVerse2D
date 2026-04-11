@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from .....math import Vector
+from .....abc import Shape
 from .....shape import Circle, Ellipse, Capsule
 
 from .._registry import Contact, register
@@ -13,7 +14,7 @@ from math import sqrt, cos, sin
 
 # ======================================== Circle × Circle ========================================
 @register(Circle, Circle)
-def circle_circle(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b):
+def circle_circle(sa: Shape, ax: float, ay: float, scale_a: float, rot_a: float, sb: Shape, bx: float, by: float, scale_b: float, rot_b: float):
     """Vérifie la collision entre ``Circle`` et ``Circle``"""
     _, _, ra = circle_params(sa, ax, ay, scale_a)
     _, _, rb = circle_params(sb, bx, by, scale_b)
@@ -27,7 +28,7 @@ def circle_circle(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b):
 
 # ======================================== Circle × Ellipse ========================================
 @register(Circle, Ellipse)
-def circle_ellipse(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b):
+def circle_ellipse(sa: Shape, ax: float, ay: float, scale_a: float, rot_a: float, sb: Shape, bx: float, by: float, scale_b: float, rot_b: float):
     """Vérifie la collision entre ``Circle`` et ``Ellipse``"""
     _, _, r = circle_params(sa, ax, ay, scale_a)
     ex, ey, rx, ry, rot_rad = ellipse_params(sb, bx, by, scale_b, rot_b)
@@ -50,7 +51,7 @@ def circle_ellipse(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b):
 
 # ======================================== Circle × Capsule ========================================
 @register(Circle, Capsule)
-def circle_capsule(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b):
+def circle_capsule(sa: Shape, ax: float, ay: float, scale_a: float, rot_a: float, sb: Shape, bx: float, by: float, scale_b: float, rot_b: float):
     """Vérifie la collision entre ``Circle`` et ``Capsule``"""
     _, _, r = circle_params(sa, ax, ay, scale_a)
     cap_ax, cap_ay, cap_bx, cap_by, cap_r = capsule_params(sb, bx, by, scale_b, rot_b)

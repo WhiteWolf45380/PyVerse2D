@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from .....math import Vector
+from .....abc import Shape
 from .....shape import Capsule
 
 from .._registry import Contact, register
@@ -13,7 +14,7 @@ from math import sqrt
 
 # ======================================== Capsule × Capsule ========================================
 @register(Capsule, Capsule)
-def capsule_capsule(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b):
+def capsule_capsule(sa: Shape, ax: float, ay: float, scale_a: float, rot_a: float, sb: Shape, bx: float, by: float, scale_b: float, rot_b: float):
     """Vérifie la collision entre ``Capsule`` et ``Capsule``"""
     a_ax, a_ay, a_bx, a_by, ra = capsule_params(sa, ax, ay, scale_a, rot_a)
     b_ax, b_ay, b_bx, b_by, rb = capsule_params(sb, bx, by, scale_b, rot_b)

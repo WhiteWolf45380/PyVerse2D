@@ -39,7 +39,7 @@ def rounded_rect_params(s: RoundedRect, x: float, y: float, scale: float, rotati
     rad = math.radians(rotation)
     cos_r, sin_r = math.cos(rad), math.sin(rad)
 
-    # Centres des coins en local (avant rotation)
+    # Centres des coins en local
     local_corners = [( hx,  hy), ( hx, -hy), (-hx, -hy), (-hx,  hy)]
 
     # Rotation + translation vers world

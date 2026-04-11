@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from .....math import Vector
+from .....abc import Shape
 from .....shape import Circle, Ellipse, Capsule, RoundedRect
 
 from .._registry import Contact, register
@@ -13,7 +14,7 @@ from math import sqrt, cos, sin
 
 # ======================================== RoundedRect × RoundedRect ========================================
 @register(RoundedRect, RoundedRect)
-def rr_rr(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b):
+def rr_rr(sa: Shape, ax: float, ay: float, scale_a: float, rot_a: float, sb: Shape, bx: float, by: float, scale_b: float, rot_b: float):
     """Vérifie la collision entre ``RoundedRect`` et ``RoundedRect``"""
     cx_a, cy_a, hx_a, hy_a, r_a, rot_a, _ = rounded_rect_params(sa, ax, ay, scale_a, rot_a)
     cx_b, cy_b, hx_b, hy_b, r_b, rot_b, _ = rounded_rect_params(sb, bx, by, scale_b, rot_b)
@@ -35,7 +36,7 @@ def rr_rr(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b):
 
 # ======================================== RoundedRect × Circle ========================================
 @register(RoundedRect, Circle)
-def rr_circle(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b):
+def rr_circle(sa: Shape, ax: float, ay: float, scale_a: float, rot_a: float, sb: Shape, bx: float, by: float, scale_b: float, rot_b: float):
     """Vérifie la collision entre ``RoundedRect`` et ``Circle``"""
     cx, cy, hx, hy, r, rot, _ = rounded_rect_params(sa, ax, ay, scale_a, rot_a)
     _, _, rb = circle_params(sb, bx, by, scale_b)
@@ -47,7 +48,7 @@ def rr_circle(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b):
 
 # ======================================== RoundedRect × Ellipse ========================================
 @register(RoundedRect, Ellipse)
-def rr_ellipse(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b):
+def rr_ellipse(sa: Shape, ax: float, ay: float, scale_a: float, rot_a: float, sb: Shape, bx: float, by: float, scale_b: float, rot_b: float):
     """Vérifie la collision entre ``RoundedRect`` et ``Ellipse``"""
     cx, cy, hx, hy, r, rot, _ = rounded_rect_params(sa, ax, ay, scale_a, rot_a)
     ex, ey, rx, ry, rot_rad = ellipse_params(sb, bx, by, scale_b, rot_b)
@@ -69,7 +70,7 @@ def rr_ellipse(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b):
 
 # ======================================== RoundedRect × Capsule ========================================
 @register(RoundedRect, Capsule)
-def rr_capsule(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b):
+def rr_capsule(sa: Shape, ax: float, ay: float, scale_a: float, rot_a: float, sb: Shape, bx: float, by: float, scale_b: float, rot_b: float):
     """Vérifie la collision entre ``RoundedRect`` et ``Capsule``"""
     cx, cy, hx, hy, r, rot, _ = rounded_rect_params(sa, ax, ay, scale_a, rot_a)
     cap_ax, cap_ay, cap_bx, cap_by, cap_r = capsule_params(sb, bx, by, scale_b, rot_b)

@@ -1,6 +1,7 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
+from .....abc import Shape
 from .....shape import Circle, Ellipse, Capsule
 
 from .._registry import Contact
@@ -11,11 +12,14 @@ from ._vertex import sat, circle_vs_pts, ellipse_vs_pts, capsule_vs_pts
 from . import _circle, _ellipse, _capsule, _rounded_rect     # noqa: F401 (enregistrement des handlers via @register)
 from ._prim_transform import circle_params, ellipse_params, capsule_params
 
+import numpy as np
+from numpy.typing import NDArray
+
 # ======================================== CONSTANTS ========================================
 _PRIMITIVE_TYPES = (Circle, Ellipse, Capsule)
 
 # ======================================== DISPATCH ========================================
-def dispatch(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b) -> Contact | None:
+def dispatch(sa: Shape, ax: float, ay: float, scale_a: float, rot_a: float, sb: Shape, bx: float, by: float, scale_b: float, rot_b: float) -> Contact | None:
     """Fait correspondre les shapes à leur test de collision"""
     a_is_prim = isinstance(sa, _PRIMITIVE_TYPES)
     b_is_prim = isinstance(sb, _PRIMITIVE_TYPES)
@@ -50,7 +54,7 @@ def dispatch(sa, ax, ay, scale_a, rot_a, sb, bx, by, scale_b, rot_b) -> Contact 
     return sat(pts_a, pts_b)
 
 # ======================================== HELPERS ========================================
-def _primitive_vs_pts(sp, px, py, scale_p, rot_p, pts):
+def _primitive_vs_pts(sp: Shape, px: float, py: float, scale_p: float, rot_p: float, pts: NDArray[np.float32]):
     """Dispatch une primitive contre un contour polygonal"""
     if isinstance(sp, Circle):
         cx, cy, r = circle_params(sp, px, py, scale_p)
@@ -68,6 +72,12 @@ def _primitive_vs_pts(sp, px, py, scale_p, rot_p, pts):
 
 
 def _flip(c: Contact | None) -> Contact | None:
+    """Inverse l'ordre d'une contacte"""
     if c is None:
         return None
     return Contact(c.normal.__class__(-c.normal.x, -c.normal.y), c.depth)
+
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "dispatch",
+]

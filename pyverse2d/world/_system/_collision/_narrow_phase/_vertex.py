@@ -21,11 +21,7 @@ def sat(pts_a: NDArray[np.float32], pts_b: NDArray[np.float32]) -> Contact | Non
         edges = np.roll(pts, -1, axis=0) - pts
         lengths = np.linalg.norm(edges, axis=1, keepdims=True)
         mask = lengths[:, 0] > 1e-10
-        normals = np.where(
-            np.repeat(mask[:, np.newaxis], 2, axis=1),
-            np.stack([-edges[:, 1], edges[:, 0]], axis=1) / np.where(lengths > 1e-10, lengths, 1.0),
-            0.0
-        )
+        normals = np.where(np.repeat(mask[:, np.newaxis], 2, axis=1), np.stack([-edges[:, 1], edges[:, 0]], axis=1) / np.where(lengths > 1e-10, lengths, 1.0), 0.0)
 
         for i in range(len(pts)):
             if not mask[i]:
@@ -196,7 +192,7 @@ def capsule_vs_pts(ax: float, ay: float, bx: float, by: float, r: float, pts: ND
             else:
                 best_nx, best_ny = enx, eny
 
-    if min_dist > 1e-6 and point_in_convex_poly(mid_x, mid_y, [(float(pts[i, 0]), float(pts[i, 1])) for i in range(n)]):
+    if min_dist > 1e-6 and point_in_convex_poly(mid_x, mid_y, pts):
         near_dist = float("inf")
         near_nx, near_ny = 0.0, 1.0
         for i in range(n):
