@@ -46,7 +46,7 @@ def dispatch(sa: Shape, ax: float, ay: float, scale_a: float, rot_a: float, sb: 
     if not a_is_prim and b_is_prim:
         pts_a = sa.world_vertices(ax, ay, scale_a, rot_a)
         c = _primitive_vs_pts(sb, bx, by, scale_b, rot_b, pts_a)
-        return c
+        return _flip(c)
 
     # Vertex vs Vertex
     pts_a = sa.world_vertices(ax, ay, scale_a, rot_a)
