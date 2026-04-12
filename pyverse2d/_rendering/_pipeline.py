@@ -430,11 +430,11 @@ class Pipeline:
     # ======================================== UTILITAIRES ========================================
     def visible_world_rect(self) -> tuple[float, float, float, float]:
         """Renvoie ``(x, y, width, height)`` du frustum visible en coordonnées monde"""
-        cx, cy, vw, vh, zoom, _, (ax, ay) = self._context.camera_resolve
+        cx, cy, vw, vh, zoom, _, _ = self._context.camera_resolve
         _, _, _, _, _, (dx, dy) = self._context.viewport_resolve
         half_w = vw / (zoom * 2 * abs(dx))
         half_h = vh / (zoom * 2 * abs(dy))
-        return (cx - ax - half_w, cy - ay - half_h, half_w * 2, half_h * 2)
+        return (cx - half_w, cy - half_h, half_w * 2, half_h * 2)
 
     def scale_to_screen(self, width: float = None, height: float = None) -> float | tuple[float, float]:
         """Convertit une taille monde en taille espace logique
