@@ -265,7 +265,7 @@ class CoordContext:
         
         # Arguments par transition
         _ARGS = (
-            (cx, cy, rotation),                          # WORLD to FRUSTUM
+            (cx + ax, cy + ay, rotation),                          # WORLD to FRUSTUM
             (vw, vh, zoom),                              # FRUSTUM to NDC
             (),                                          # NDC to NVC
             (lw, lh, ox, oy, dx, dy),                    # NVC to VIEWPORT
