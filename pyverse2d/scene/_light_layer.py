@@ -68,7 +68,7 @@ class LightLayer(Layer):
         pass
 
     # ======================================== LIFE CYCLE ========================================
-    def _preload(self, pipeline: Pipeline):
+    def _preload(self):
         """Préchargement spécialisé"""
         pass
 
