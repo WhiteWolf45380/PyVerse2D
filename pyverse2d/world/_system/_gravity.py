@@ -36,8 +36,7 @@ class GravitySystem(System):
 
     # ======================================== UPDATE ========================================
     def update(self, world: World, dt: float):
-        """
-        Applique la force gravitationnelle sur tous les corps dynamiques
+        """Applique la force gravitationnelle sur tous les corps dynamiques
 
         Args:
             world(World): monde à mettre à jour

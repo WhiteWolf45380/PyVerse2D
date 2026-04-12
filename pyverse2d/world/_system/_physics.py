@@ -16,8 +16,7 @@ class PhysicsSystem(System):
 
     # ======================================== UPDATE ========================================
     def update(self, world: World, dt: float):
-        """
-        Intègre la physique de tous les corps dynamiques actifs
+        """Intègre la physique de tous les corps dynamiques actifs
 
         Args:
             world(World): monde à mettre à jour

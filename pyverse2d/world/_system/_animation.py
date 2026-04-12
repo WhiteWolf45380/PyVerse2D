@@ -21,8 +21,7 @@ class AnimationSystem(System):
 
     # ======================================== UPDATE ========================================
     def update(self, world: World, dt: float) -> None:
-        """
-        Mise à jour des animations
+        """Mise à jour des animations
 
         Args:
             world(World): monde à mettre à jour

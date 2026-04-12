@@ -30,13 +30,17 @@ class RenderSystem(System):
 
     # ======================================== UPDATE ========================================
     def update(self, world: World, dt: float):
-        """Actualisation"""
+        """Actualisation du pilotage
+
+        Args:
+            world: monde courant
+            dt: delta temps
+        """
         pass
 
     # ======================================== DRAW ========================================
     def draw(self, world: World, pipeline: Pipeline):
-        """
-        Synchronise toutes les entités renderables avec le Batch de rendu
+        """Synchronise toutes les entités renderables avec le Batch de rendu
 
         Args:
             world(World): monde à rendre
