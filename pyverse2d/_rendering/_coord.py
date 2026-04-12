@@ -265,13 +265,13 @@ class CoordContext:
         
         # Arguments par transition
         _ARGS = (
-            (cx + ax, cy + ay, rotation),                          # WORLD to FRUSTUM
+            (cx + ax, cy + ay, rotation),                # WORLD to FRUSTUM
             (vw, vh, zoom),                              # FRUSTUM to NDC
             (),                                          # NDC to NVC
             (lw, lh, ox, oy, dx, dy),                    # NVC to VIEWPORT
             (lx, ly),                                    # VIEWPORT to LOGICAL
             (fb_scale_x, fb_scale_y),                    # LOGICAL to CANVAS
-            (cnv_ox, cnv_oy),                              # CANVAS to FRAMEBUFFER
+            (cnv_ox, cnv_oy),                            # CANVAS to FRAMEBUFFER
         )
 
         i_from = from_space.value

@@ -106,11 +106,10 @@ class SteeringSystem(System):
                 steer_x = fx * follow.force * t
                 steer_y = fy * follow.force * t
 
-                # Lissage sur la force appliquée
-                if follow.smoothing > 0.0:
-                    s = 1.0 - follow.smoothing
-                    steer_x *= s
-                    steer_y *= s
+                # Freinage à l'approche
+                vel = rb.velocity
+                steer_x -= vel.x * follow.smoothing
+                steer_y -= vel.y * follow.smoothing
 
                 rb.apply_force(Vector._make(steer_x, steer_y))
 
