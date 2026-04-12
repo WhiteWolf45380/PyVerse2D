@@ -63,7 +63,7 @@ class Camera(Space):
         rotation: angle de rotation en degrés
     """
     __slots__ = (
-        "_position", "_view_width", "_view_height", "_anchor"
+        "_position", "_view_width", "_view_height", "_anchor",
         "_zoom", "_rotation",
        "_state",
     )
@@ -255,6 +255,7 @@ class Camera(Space):
             position = self._position.copy(),
             view_width = self._view_width,
             view_height = self._view_height,
+            anchor = self._anchor.copy(),
             zoom = self._zoom,
             rotation = self._rotation,
         )
