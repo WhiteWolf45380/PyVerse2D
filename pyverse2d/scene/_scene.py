@@ -4,7 +4,6 @@ from __future__ import annotations
 from .._internal import expect
 from .._rendering._pipeline import Pipeline
 from .._flag import StackMode, SceneState
-from ..math import Point
 from ..abc import Layer
 
 from .._rendering._camera import Camera

@@ -67,11 +67,6 @@ def set_window(window: Window):
     for manager in _context_manager:
         manager.bind(window)
 
-    @_pipeline.window.native.event
-    def on_draw():
-        _pipeline.window.clear()
-        scene.draw(_pipeline)
-
 # ======================================== COLLECTIONS ========================================
 def preload(loadable: scene.Scene = None) -> None:
     """Précharge le rendu
@@ -103,7 +98,7 @@ def run(on_update: Callable[[float], None] = None, on_draw: Callable[[], None] =
         # Actualisation des gestionnaires
         for manager in _context_manager:
             manager.update(dt)
-        
+
         # Actualisation des scenes
         scene.update(dt)
 
@@ -111,13 +106,15 @@ def run(on_update: Callable[[float], None] = None, on_draw: Callable[[], None] =
         if on_update is not None:
             on_update(dt)
 
+        # Draw — garanti après l'update dans le même tick
+        _pipeline.window.clear()
+        scene.draw(_pipeline)
+        if on_draw is not None:
+            on_draw()
+
         # Nettoyage
         for manager in _context_manager:
             manager.flush()
-
-    # Draw handler
-    if on_draw is not None:
-        _pipeline.window.native.push_handlers(on_draw=on_draw)
 
     # Lancement
     time.schedule(_update)
