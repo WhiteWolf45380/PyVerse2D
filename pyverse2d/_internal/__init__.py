@@ -11,6 +11,10 @@ from ._validators import (
     rgba,
 )
 
+from ._protocols import (
+    Positionnal,
+)
+
 from ._processor import Processor
 from ._callbacks import CallbackList
 
@@ -25,6 +29,8 @@ __all__ = [
     "under",
     "clamped",
     "rgba",
+
+    "Positionnal",
 
     "Processor",
     "CallbackList",

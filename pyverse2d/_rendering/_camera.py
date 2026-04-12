@@ -1,21 +1,14 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from .._internal import expect, not_null, positive, clamped, not_in, over
+from .._internal import expect, not_null, positive, clamped, not_in, over, Positionnal
 from ..math import Point, Vector
 from ..math.easing import EasingFunc, is_easing
 from ..abc import Request, Space
 
 from numbers import Real
 from dataclasses import dataclass
-from typing import ClassVar, Type, Protocol
-
-# ======================================== PROTOCOL ========================================
-class Followable(Protocol):
-    @property
-    def x(self) -> float: ...
-    @property
-    def y(self) -> float: ...
+from typing import ClassVar, Type
 
 # ======================================== REQUEST ========================================
 @dataclass(slots=True)
@@ -31,7 +24,7 @@ class TransitionRequest(Request):
 @dataclass(frozen=True, slots=True)
 class FollowRequest(Request):
     """Requête de transition"""
-    target: Followable
+    target: Positionnal
     offset: Vector
     smoothing: float
     max_speed: float
@@ -292,7 +285,7 @@ class Camera(Space):
 
     def follow(
             self,
-            target: Followable,
+            target: Positionnal,
             offset: Vector = (0.0, 0.0),
             smoothing: Real = 0.0,
             max_speed: Real = None,
