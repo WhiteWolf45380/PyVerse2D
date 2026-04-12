@@ -420,7 +420,7 @@ class Camera(Space):
             self._rotation = camera.rotation + attach.rotation_offset
 
     # ======================================== RESOLVE ========================================
-    def resolve(self, viewport_width: int, viewport_height: int) -> tuple[float, float, float, float, float, float]:
+    def resolve(self, viewport_width: int, viewport_height: int) -> tuple[float, float, float, float, float, float, tuple[float, float]]:
         """Renvoie le frustum ``(x, y, width, height, rotation)`` dans l'espace monde
 
         Args:
@@ -442,16 +442,17 @@ class Camera(Space):
             height = self._view_height
 
         # Ancre
-        anchor_offset_x = (self._anchor.x - 0.5) * (width  / self._zoom)
-        anchor_offset_y = (self._anchor.y - 0.5) * (height / self._zoom)
+        ax = (self._anchor.x - 0.5) * (width  / self._zoom)
+        ay = (self._anchor.y - 0.5) * (height / self._zoom)
 
         return (
-            self._position.x + anchor_offset_x,
-            self._position.y + anchor_offset_y,
+            self._position.x,
+            self._position.y,
             width ,
             height,
             self._zoom,
             self._rotation,
+            (ax, ay),
         )
     
     # ======================================== INTERNALS ========================================

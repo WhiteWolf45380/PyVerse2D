@@ -125,7 +125,7 @@ class Pipeline:
         return self._layer.camera or self._scene.camera
     
     @property
-    def camera_resolve(self) -> tuple[float, float, float, float, float, float]:
+    def camera_resolve(self) -> tuple[float, float, float, float, float, float, tuple[float, float]]:
         """Résolution de la caméra"""
         return self._context.camera_resolve
     
@@ -221,7 +221,7 @@ class Pipeline:
 
         # Transformation camera
         self._context.camera_resolve = self.camera.resolve(lw, lh)
-        cx, cy, vw, vh, zoom, rotation = self._context.camera_resolve
+        cx, cy, vw, vh, zoom, rotation, (ax, ay) = self._context.camera_resolve
 
         # Ratios pixels per unit
         self._context.ppu_x,  self._context.ppu_y = self.compute_ppu(lw, lh, vw, vh, zoom)
@@ -233,7 +233,7 @@ class Pipeline:
         self._window.native.projection = projection
 
         # Matrice de vue
-        view = self.compute_view(cx, cy, rotation, ox, oy)
+        view = self.compute_view(cx + ax, cy + ay, rotation, ox, oy)
         self._group.view = view
         self._context.view_matrix = view
         self._window.native.view = view
@@ -373,17 +373,17 @@ class Pipeline:
         """
         # Resolutions
         lx, ly, lw, lh, (ox, oy), (dx, dy) = self._context.viewport_resolve
-        cx, cy, vw, vh, zoom, rotation = self._context.camera_resolve if camera is None else camera.resolve(lw, lh)
+        cx, cy, vw, vh, zoom, rotation, (ax, ay) = self._context.camera_resolve if camera is None else camera.resolve(lw, lh)
 
         # World to Frustum
-        tx, ty = x - cx, y - cy
+        tx, ty = x - (cx + ax), y - (cy + ay)
         if rotation != 0.0:
             rad = math.radians(rotation)
             cos_r, sin_r = math.cos(rad), math.sin(rad)
             tx, ty = tx * cos_r + ty * sin_r, -tx * sin_r + ty * cos_r
 
         # Frustum to NVC
-        half_w, half_h = vw / (zoom * dx * 2), vh / (zoom * dx * 2)
+        half_w, half_h = vw / (zoom * dx * 2), vh / (zoom * dy * 2)
         nvc_x = (tx / half_w + 1) / 2
         nvc_y = (ty / half_h + 1) / 2
 
@@ -405,7 +405,7 @@ class Pipeline:
         """
         # Resolutions
         lx, ly, lw, lh, (ox, oy), (dx, dy) = self._context.viewport_resolve
-        cx, cy, vw, vh, zoom, rotation = self._context.camera_resolve if camera is None else camera.resolve(lw, lh)
+        cx, cy, vw, vh, zoom, rotation, (ax, ay) = self._context.camera_resolve if camera is None else camera.resolve(lw, lh)
 
         # FrameBuffer to Canvas
         cnv_x = (x - self._window.canvas.x) / self._window.framebuffer_scale_x
@@ -416,7 +416,7 @@ class Pipeline:
         nvc_y = (cnv_y - ly - oy) / lh
 
         # NVC to Frustum
-        half_w, half_h = vw / (zoom * dx * 2), vh / (zoom * dx * 2)
+        half_w, half_h = vw / (zoom * dx * 2), vh / (zoom * dy * 2)
         fr_x = (nvc_x * 2 - 1) * half_w
         fr_y = (nvc_y * 2 - 1) * half_h
 
@@ -425,16 +425,16 @@ class Pipeline:
             rad = math.radians(rotation)
             cos_r, sin_r = math.cos(rad), math.sin(rad)
             fr_x, fr_y = fr_x * cos_r - fr_y * sin_r, fr_x * sin_r + fr_y * cos_r
-        return fr_x + cx, fr_y + cy
+        return fr_x + (cx + ax), fr_y + (cy + ay)
 
     # ======================================== UTILITAIRES ========================================
     def visible_world_rect(self) -> tuple[float, float, float, float]:
         """Renvoie ``(x, y, width, height)`` du frustum visible en coordonnées monde"""
-        cx, cy, vw, vh, zoom, _ = self._context.camera_resolve
+        cx, cy, vw, vh, zoom, _, (ax, ay) = self._context.camera_resolve
         _, _, _, _, _, (dx, dy) = self._context.viewport_resolve
-        half_w = (vw / zoom) / 2 / abs(dx)
-        half_h = (vh / zoom) / 2 / abs(dy)
-        return (cx - half_w, cy - half_h, half_w * 2, half_h * 2)
+        half_w = vw / (zoom * 2 * abs(dx))
+        half_h = vh / (zoom * 2 * abs(dy))
+        return (cx - ax - half_w, cy - ay - half_h, half_w * 2, half_h * 2)
 
     def scale_to_screen(self, width: float = None, height: float = None) -> float | tuple[float, float]:
         """Convertit une taille monde en taille espace logique
@@ -509,7 +509,7 @@ class Pipeline:
 @dataclass(slots=True)
 class _PipelineContext:
     viewport_resolve: tuple[float, float, float, float, tuple[float, float], tuple[float, float]] = None
-    camera_resolve: tuple[float, float, float, float, float, float] = None
+    camera_resolve: tuple[float, float, float, float, float, float, tuple[float, float]] = None
     gl_viewport: tuple[int, int, int, int] = None
     projection_matrix: Mat4 = None
     view_matrix: Mat4 = None
