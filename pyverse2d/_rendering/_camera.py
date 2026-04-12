@@ -77,7 +77,7 @@ class Camera(Space):
             position: Point = (0.0, 0.0),
             view_width: Real | None = None,
             view_height: Real | None = None,
-            anchor: Point = (0.0, 0.0),
+            anchor: Point = (0.5, 0.5),
             zoom: Real = 1.0,
             rotation: Real = 0.0,
         ):
