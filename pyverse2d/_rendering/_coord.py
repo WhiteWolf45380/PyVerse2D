@@ -257,7 +257,7 @@ class CoordContext:
 
         # Résolution des espaces
         lx, ly, lw, lh, (ox, oy), (dx, dy) = viewport.resolve(screen.width, screen.height) if viewport_resolve is None else viewport_resolve
-        cx, cy, vw, vh, zoom, rotation, (ax, ay) = camera.resolve(lw, lh) if camera_resolve is None else camera_resolve
+        cx, cy, vw, vh, zoom, rotation = camera.resolve(lw, lh) if camera_resolve is None else camera_resolve
         fb_scale_x = window.framebuffer_scale_x
         fb_scale_y = window.framebuffer_scale_y
         cnv_ox = window.viewport.x
@@ -265,7 +265,7 @@ class CoordContext:
         
         # Arguments par transition
         _ARGS = (
-            (cx + ax, cy + ay, rotation),                          # WORLD to FRUSTUM
+            (cx, cy, rotation),                          # WORLD to FRUSTUM
             (vw, vh, zoom),                              # FRUSTUM to NDC
             (),                                          # NDC to NVC
             (lw, lh, ox, oy, dx, dy),                    # NVC to VIEWPORT

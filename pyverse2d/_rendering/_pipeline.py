@@ -221,7 +221,7 @@ class Pipeline:
 
         # Transformation camera
         self._context.camera_resolve = self.camera.resolve(lw, lh)
-        cx, cy, vw, vh, zoom, rotation, (ax, ay) = self._context.camera_resolve
+        cx, cy, vw, vh, zoom, rotation = self._context.camera_resolve
 
         # Ratios pixels per unit
         self._context.ppu_x,  self._context.ppu_y = self.compute_ppu(lw, lh, vw, vh, zoom)
@@ -233,7 +233,7 @@ class Pipeline:
         self._window.native.projection = projection
 
         # Matrice de vue
-        view = self.compute_view(cx, cy, rotation, ax, ay, ox, oy)
+        view = self.compute_view(cx, cy, rotation, ox, oy)
         self._group.view = view
         self._context.view_matrix = view
         self._window.native.view = view
@@ -306,14 +306,13 @@ class Pipeline:
             self._view_buffer[view_key] = view
             return view
         view = self._default_view
-        view = self.compute_frustum(view, cx, cy, rotation)
-        view = self.compute_camera(view, ax, ay)
+        view = self.compute_camera(view, cx, cy, rotation)
         view = self.compute_viewport(view, ox, oy)
         self._view_buffer[view_key] = view
         return view
     
-    def compute_frustum(self, view: Mat4, cx: float, cy: float, rotation: float) -> Mat4:
-        """Transforme une matrice selon l'espace Frustum
+    def compute_camera(self, view: Mat4, cx: float, cy: float, rotation: float) -> Mat4:
+        """Transforme une matrice selon l'espace caméra
         
         Args:
             matrix: matrice de vue
@@ -324,16 +323,6 @@ class Pipeline:
         view = view.translate((-cx, -cy, 0))
         if rotation != 0.0:
             view = view.rotate(math.radians(rotation), (0, 0, 1))
-        return view
-    
-    def compute_camera(self, view: Mat4, ax: float, ay: float) -> Mat4:
-        """Transforme une matrice selon l'espace caméra
-
-        Args:
-            ax: décalage horizontal dû à l'ancre caméra
-            ay: décalage vertical dû à l'acnre caméra
-        """
-        view = view.translate((-ax, -ay, 0))
         return view
     
     def compute_viewport(self, view: Mat4, ox: float, oy: float) -> Mat4:
@@ -384,10 +373,10 @@ class Pipeline:
         """
         # Resolutions
         lx, ly, lw, lh, (ox, oy), (dx, dy) = self._context.viewport_resolve
-        cx, cy, vw, vh, zoom, rotation, (ax, ay) = self._context.camera_resolve if camera is None else camera.resolve(lw, lh)
+        cx, cy, vw, vh, zoom, rotation = self._context.camera_resolve if camera is None else camera.resolve(lw, lh)
 
         # World to Frustum
-        tx, ty = x - (cx + ax), y - (cy + ay)
+        tx, ty = x - cx, y - cy
         if rotation != 0.0:
             rad = math.radians(rotation)
             cos_r, sin_r = math.cos(rad), math.sin(rad)
@@ -416,7 +405,7 @@ class Pipeline:
         """
         # Resolutions
         lx, ly, lw, lh, (ox, oy), (dx, dy) = self._context.viewport_resolve
-        cx, cy, vw, vh, zoom, rotation, (ax, ay) = self._context.camera_resolve if camera is None else camera.resolve(lw, lh)
+        cx, cy, vw, vh, zoom, rotation = self._context.camera_resolve if camera is None else camera.resolve(lw, lh)
 
         # FrameBuffer to Canvas
         cnv_x = (x - self._window.canvas.x) / self._window.framebuffer_scale_x
@@ -436,12 +425,12 @@ class Pipeline:
             rad = math.radians(rotation)
             cos_r, sin_r = math.cos(rad), math.sin(rad)
             fr_x, fr_y = fr_x * cos_r - fr_y * sin_r, fr_x * sin_r + fr_y * cos_r
-        return fr_x + (cx + ax), fr_y + (cy + ay)
+        return fr_x + cx, fr_y + cy
 
     # ======================================== UTILITAIRES ========================================
     def visible_world_rect(self) -> tuple[float, float, float, float]:
         """Renvoie ``(x, y, width, height)`` du frustum visible en coordonnées monde"""
-        cx, cy, vw, vh, zoom, _, _ = self._context.camera_resolve
+        cx, cy, vw, vh, zoom, _ = self._context.camera_resolve
         _, _, _, _, _, (dx, dy) = self._context.viewport_resolve
         half_w = vw / (zoom * 2 * abs(dx))
         half_h = vh / (zoom * 2 * abs(dy))

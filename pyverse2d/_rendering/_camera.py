@@ -446,13 +446,12 @@ class Camera(Space):
         ay = (self._anchor.y - 0.5) * (height / self._zoom)
 
         return (
-            self._position.x,
-            self._position.y,
+            self._position.x + ax,
+            self._position.y + ay,
             width ,
             height,
             self._zoom,
             self._rotation,
-            (ax, ay),
         )
     
     # ======================================== INTERNALS ========================================
