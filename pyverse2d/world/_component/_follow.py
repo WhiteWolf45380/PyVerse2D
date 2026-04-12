@@ -22,16 +22,11 @@ class Follow(Component):
         offset: ``Vecteur`` de décalage par rapport à la cible
         force: force d'attraction en Newtons
         smoothing: facteur de retard relatif [0, 1[
-        radius_min: borne intérieure de la zone acceptable — en dessous, force répulsive.
-                    Doit être inférieur ou égal à radius_max.
-        radius_max: borne extérieure de la zone acceptable — au delà, force attractive.
-                    0 = pile sur la cible.
-        dot_min: composante alignée minimale acceptable par rapport à l'offset [-1, 1].
-                 1 = exactement dans la direction de l'offset, -1 = direction opposée.
-        cross_min: composante latérale minimale acceptable par rapport à l'offset [-1, 1].
-                   0 = aligné, -1 = 90° à droite.
-        cross_max: composante latérale maximale acceptable par rapport à l'offset [-1, 1].
-                   0 = aligné, 1 = 90° à gauche.
+        radius_min: borne intérieure de la zone acceptable
+        radius_max: borne extérieure de la zone acceptable
+        dot_min: composante alignée minimale acceptable par rapport à l'offset [-1, 1]
+        cross_min: composante latérale minimale acceptable par rapport à l'offset [-1, 1]
+        cross_max: composante latérale maximale acceptable par rapport à l'offset [-1, 1]
         axis_x: activer le suivi horizontal
         axis_y: activer le suivi vertical
         noise_amplitude: amplitude du bruit de déplacement en unités monde. 0 = pas de bruit
@@ -73,16 +68,16 @@ class Follow(Component):
         r_max = abs(float(expect(radius_max, Real)))
         self._radius_min: float = r_min
         self._radius_max: float = r_max
-        self._dot_min: float = float(clamped(expect(dot_min, Real)))
-        self._cross_min: float = float(clamped(expect(cross_min, Real)))
-        self._cross_max: float = float(clamped(expect(cross_max, Real)))
+        self._dot_min: float = clamped(float(expect(dot_min, Real)), min=-1)
+        self._cross_min: float = clamped(float(expect(cross_min, Real)), min=-1)
+        self._cross_max: float = clamped(float(expect(cross_max, Real)), min=-1)
         self._axis_x: bool = expect(axis_x, bool)
         self._axis_y: bool = expect(axis_y, bool)
         self._noise_amplitude: float = abs(float(expect(noise_amplitude, Real)))
         self._noise_frequency: float = over(float(expect(noise_frequency, Real)), 0.0, include=False)
         self._noise_t: float = 0.0
 
-        assert r_min > r_max, ValueError(f"radius_min ({r_min}) doit être inférieur ou égal à radius_max ({r_max})")
+        assert r_min <= r_max, ValueError(f"radius_min ({r_min}) doit être inférieur ou égal à radius_max ({r_max})")
         assert self._entity.has("Transform"), ValueError(f"Entity {self._entity.id}... has no Transform component")
 
     # ======================================== CONVERSIONS ========================================
