@@ -58,11 +58,12 @@ class Camera(Space):
         position: position de la caméra
         view_width: largeur de vision (en unités)
         view_height: hauteur de vision (en unités)
+        anchor: ancre relative locale
         zoom: facteur de zoom
         rotation: angle de rotation en degrés
     """
     __slots__ = (
-        "_position", "_view_width", "_view_height",
+        "_position", "_view_width", "_view_height", "_anchor"
         "_zoom", "_rotation",
        "_state",
     )
@@ -76,6 +77,7 @@ class Camera(Space):
             position: Point = (0.0, 0.0),
             view_width: Real | None = None,
             view_height: Real | None = None,
+            anchor: Point = (0.0, 0.0),
             zoom: Real = 1.0,
             rotation: Real = 0.0,
         ):
@@ -83,6 +85,7 @@ class Camera(Space):
         self._position: Point = Point(position)
         self._view_width: float = over(float(expect(view_width, Real)), 0, include=False) if view_width is not None else None
         self._view_height: float = over(float(expect(view_height, Real)), 0, include=False) if view_height is not None else None
+        self._anchor: Point = Point(anchor)
 
         # Transformation
         self._zoom: float = over(float(expect(zoom, Real)), 0, include=False)
@@ -188,6 +191,19 @@ class Camera(Space):
     @view_height.setter
     def view_height(self, value: Real | None) -> None:
         self._view_height = over(float(expect(value, Real)), 0, include=False) if value is not None else None
+
+    @property
+    def anchor(self) -> Point:
+        """Ancre relative locale
+
+        Les coordonnées de l'ancre doivent être normalisées dans l'intervalle [0, 1].
+        Cette propriété défini le point de la caméra correspondant à sa position ``(cx, cy)``.
+        """
+        return self._anchor
+    
+    @anchor.setter
+    def anchor(self, value: Point) -> None:
+        self._anchor: Point = Point(value)
 
     @property
     def zoom(self) -> float:
@@ -424,9 +440,13 @@ class Camera(Space):
             width  = self._view_width
             height = self._view_height
 
+        # Ancre
+        anchor_offset_x = (self._anchor.x - 0.5) * (width  / self._zoom)
+        anchor_offset_y = (self._anchor.y - 0.5) * (height / self._zoom)
+
         return (
-            self._position.x,
-            self._position.y,
+            self._position.x + anchor_offset_x,
+            self._position.y + anchor_offset_y,
             width ,
             height,
             self._zoom,
