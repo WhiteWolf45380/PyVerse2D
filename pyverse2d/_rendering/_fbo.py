@@ -48,12 +48,13 @@ class Framebuffer:
 
     def resize(self, width: int, height: int) -> None:
         """Recrée la texture aux nouvelles dimensions et la réattache"""
+        self._fbo.delete()
         self._texture = pyglet.image.Texture.create(
             width, height,
             min_filter=gl.GL_LINEAR,
             mag_filter=gl.GL_LINEAR,
         )
-        self._fbo.clear()
+        self._fbo = pyglet.image.buffer.Framebuffer()
         self._fbo.attach_texture(self._texture, attachment=gl.GL_COLOR_ATTACHMENT0)
 
     def delete(self) -> None:
