@@ -6,6 +6,8 @@ from ...math import Vector
 from .._world import World
 from .._component import Transform, Follow
 
+import math
+
 # ======================================== SYSTEM ========================================
 class SteeringSystem(System):
     """Système gérant le pilotage positionnel"""
