@@ -98,6 +98,7 @@ def run(on_update: Callable[[float], None] = None, on_draw: Callable[[], None] =
         raise RuntimeError("No window set, try set_window() before run()")
 
     def _update(raw_dt: float):
+        """Boucle interne"""
         # Calcul du delta-time
         dt = time.tick(raw_dt)
 
@@ -122,7 +123,7 @@ def run(on_update: Callable[[float], None] = None, on_draw: Callable[[], None] =
 
     # Lancement
     time.schedule(_update)
-    pyglet.app.run()
+    pyglet.app.run(time.target_dt)
 
 def stop():
     """Arrête proprement le moteur"""

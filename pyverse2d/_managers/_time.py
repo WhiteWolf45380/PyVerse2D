@@ -24,7 +24,7 @@ class TimeManager(Manager):
         "_raw_dt", "_dt", "_eff_dt",
         "_target_fps", "_fps", "_fps_buffer",
         "_time_scale",
-        "_timers",
+        "_scheduling", "_timers",
     )
 
     def __init__(self, context_manager: ContextManager):
@@ -47,7 +47,8 @@ class TimeManager(Manager):
         # Effects
         self._time_scale: float = 1.0
 
-        # Timers
+        # Handlers
+        self._scheduling: list[Callable[[float], None]] = []
         self._timers: list[_TimerRequest] = []
 
     # ======================================== PROPERTIES ========================================
@@ -78,11 +79,12 @@ class TimeManager(Manager):
         Le delta-time doit être un ``float`` compris dans l'invervalle ]0, 0.66].
         Mettre à ``None`` pour ne pas limiter le delta-time.
         """
-        return (1 / self._target_fps) if self._target_fps is not None else None
+        return (1 / self._target_fps) if self._target_fps is not None else 0.0
     
     @target_dt.setter
     def target_dt(self, value: float | None) -> None:
         self._target_fps = int(1 / clamped(expect(value, float), min=0, max=_DT_MAX, include_min=False, include_max=True)) if value is not None else None
+        self._update_framerate()
     
     @property
     def fps(self) -> float:
@@ -95,7 +97,7 @@ class TimeManager(Manager):
         return  sum(self._fps_buffer) / len(self._fps_buffer) if self._fps_buffer else 0.0
     
     @property
-    def target_fps(self) -> float:
+    def target_fps(self) -> float | None:
         """Frame-rate cible
 
         Le frame-rate doit être un ``int`` positif non nul supérieur ou égale à 15.
@@ -106,6 +108,7 @@ class TimeManager(Manager):
     @target_fps.setter
     def target_fps(self, value: int | None) -> None:
         self._target_fps = over(expect(value, int), _FPS_MIN, arg="target_fps") if value is not None else None
+        self._update_framerate()
 
     @property
     def time_scale(self) -> float:
@@ -122,9 +125,8 @@ class TimeManager(Manager):
     # ======================================== COLLECTIONS ========================================
     def schedule(self, func: Callable) -> None:
         """Lance une boucle sur une fonction"""
-        if self._target_fps is None:
-            return pyglet.clock.schedule(func)
-        return pyglet.clock.schedule_interval(func, self.target_dt)
+        self._scheduling.append(func)
+        pyglet.clock.schedule_interval(func, self.target_dt)
     
     def scale(self, value: Real) -> Real:
         """Convertit une valeur en unité/s
@@ -188,7 +190,17 @@ class TimeManager(Manager):
         """Nettoyage"""
         pass
 
-# ======================================== TIMERS ========================================
+    # ======================================== INTERNALES ========================================
+    def _update_framerate(self) -> None:
+        """Actualise le taux de rafraichissement"""
+        for func in self._scheduling:
+            pyglet.clock.unschedule(func)
+            pyglet.clock.schedule_interval(func, self.target_dt)
+        if pyglet.app.event_loop.is_running:
+            pyglet.clock.unschedule(pyglet.app.event_loop._redraw_windows)
+            pyglet.clock.schedule_interval(pyglet.app.event_loop._redraw_windows, self.target_dt)
+
+# ======================================== REQUEST ========================================
 @dataclass(slots=True)
 class _TimerRequest(Request):
     """Requête d'appel de fonction avec timer"""
