@@ -9,7 +9,7 @@ from ._screen import LogicalScreen
 import pyglet
 from pyglet.window import Window as PygletWindow
 from numbers import Real
-from typing import Iterator
+from typing import Iterator, Callable
 
 # ======================================== WINDOW ========================================
 class Window(Space):
@@ -32,6 +32,7 @@ class Window(Space):
     __slots__ = (
         "_screen", "_pyglet_window", "_canvas",
         "_framebuffer_scale_x", "_framebuffer_scale_y",
+        "_on_canvas_resize",
     )
 
     def __init__(
@@ -89,6 +90,7 @@ class Window(Space):
 
         # Projection
         self._canvas: _Canvas = _Canvas(0, 0, width, height)
+        self._on_canvas_resize: list[Callable[[int, int], None]] = []
         self._framebuffer_scale_x: float = 1.0
         self._framebuffer_scale_y: float = 1.0
         self._apply_letterboxing(width, height)
@@ -230,6 +232,12 @@ class Window(Space):
         """
         return (x - self._canvas.x) * (1 / self._framebuffer_scale_x), (y - self._canvas.y) * (1 / self.framebuffer_scale_y)
     
+    # ======================================== HOOKS ========================================
+    def on_canvas_resize(self, func):
+        """Décorateur pour s'abonner au resize du canvas"""
+        self._on_canvas_resize_callbacks.append(func)
+        return func
+    
     # ======================================== INTERNALS ========================================
     def _apply_letterboxing(self, win_w: int, win_h: int):
         """Calcul du letterboxing"""
@@ -257,6 +265,10 @@ class Window(Space):
         # Mise en cache des ratios
         self._framebuffer_scale_x = w / self._screen.width
         self._framebuffer_scale_y = h / self._screen.height
+
+        # Appel des callbacks
+        for callback in self._on_canvas_resize_callbacks:
+            callback(w, h)
 
 # ======================================== CANVAS ========================================
 class _Canvas:

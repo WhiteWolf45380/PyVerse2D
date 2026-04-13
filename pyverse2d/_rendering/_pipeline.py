@@ -90,6 +90,12 @@ class Pipeline:
         self._group: Group = None
         self._z_groups: dict[int, Group] = None
 
+        # Abonnement au resize du canvas
+        @self._window.on_canvas_resize
+        def on_canvas_resize(w: int, h: int):
+            for data in self._data.values():
+                data.fbo.resize(w, h)
+
     # ======================================== GETTERS ========================================
     @property
     def quad(self) -> ScreenQuad:
@@ -197,7 +203,7 @@ class Pipeline:
         self._scene = scene
         if scene not in self._data:
             batch = Batch()
-            fbo = Framebuffer(self._window.screen.width, self._window.screen.height)
+            fbo = Framebuffer(self._window.canvas.width, self._window.canvas.height)
             self._data[scene] = SceneRenderData(batch, fbo, {})
         self._batch = self._data[scene].batch
         self._fbo = self._data[scene].fbo
@@ -221,6 +227,10 @@ class Pipeline:
 
         # Activation du FrameBuffer Viewport
         gl.glViewport(px, py, pw, ph)
+
+        # Assignation du FrameBuffer
+        self._fbo.bind()
+        self._fbo.clear()
 
     def bind_layer(self, layer: Layer, z: int=0) -> None:
         """Configure le contexte de rendu pour un layer de la scene courante
@@ -264,8 +274,21 @@ class Pipeline:
 
     def end(self) -> None:
         """Met fin à la connexion avec une scene"""
+        # Blit FBO sur window
+        gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, 0)
+        gl.glViewport(*self._context.gl_viewport)
+        self._quad.blit(self._fbo.texture_id)
+
+        # Nettoyage de l'état courant
         self._scene = None
+        self._layer = None
+        self._batch = None
+        self._fbo = None
+        self._group = None
+        self._z_groups = None
         self._context.clear()
+
+        # Flush des caches
         self._view_cache, self._view_buffer = self._view_buffer, self._view_cache
         self._view_buffer.clear()
 

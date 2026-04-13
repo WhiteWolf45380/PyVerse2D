@@ -36,9 +36,7 @@ void main() {
 class LightRenderer:
     """Renderer de lumière
 
-    Gère les effets lumineux via ping-pong FBO :
-    - Lumière ambiante multiplicative (tint + ambient)
-    - (futur) Sources de lumière ponctuelles
+    Gère les effets lumineux via ping-pong FBO.
     """
     __slots__ = ("_temp_fbo",)
 
