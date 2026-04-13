@@ -5,6 +5,8 @@ from .._flag import CoordSpace
 from ..abc import Layer
 
 from . import Window, LogicalScreen, Viewport, Camera, CoordSpace, CoordContext
+from ._fbo import Framebuffer
+from ._quad import ScreenQuad
 
 import pyglet.gl as gl
 from pyglet.graphics import Batch, Group
@@ -24,6 +26,7 @@ if TYPE_CHECKING:
 @dataclass(slots=True, frozen=True)
 class SceneRenderData:
     batch: Batch
+    fbo: Framebuffer
     layers: dict[Layer, LayerGroups]
 
 @dataclass(slots=True, frozen=True)
@@ -53,13 +56,16 @@ class Pipeline:
         window(Window): fenêtre associée
     """
     __slots__ = (
-        "_window", "_scene", "_layer",
+        "_quad", "_window", "_scene", "_layer",
         "_data", "_projection_cache", "_view_cache", '_view_buffer', "_default_view",
         "_context", "_coord_context",
-        "_batch", "_group", "_z_groups",
+        "_batch", "_fbo", "_group", "_z_groups",
     )
 
     def __init__(self, window: Window):
+        # ScreenQuad
+        self._quad: ScreenQuad = ScreenQuad()
+
         # Binding
         self._window: Window = window
         self._scene: Scene | None = None
@@ -80,6 +86,7 @@ class Pipeline:
 
         # Gpu configuration
         self._batch: Batch = None
+        self._fbo: Framebuffer = None
         self._group: Group = None
         self._z_groups: dict[int, Group] = None
 
@@ -150,6 +157,11 @@ class Pipeline:
         return self._batch
     
     @property
+    def fbo(self) -> Framebuffer:
+        """Framebuffer courant"""
+        return self._fbo
+    
+    @property
     def group(self) -> Group:
         """Groupe du ``Layer`` courant"""
         return self._group
@@ -179,8 +191,11 @@ class Pipeline:
         # Etablissement de la connexion à la scene
         self._scene = scene
         if scene not in self._data:
-            self._data[scene] = SceneRenderData(Batch(), {})
+            batch = Batch()
+            fbo = Framebuffer(self._window.screen.width, self._window.screen.height)
+            self._data[scene] = SceneRenderData(batch, fbo, {})
         self._batch = self._data[scene].batch
+        self._fbo = self._data[scene].fbo
 
         # Espace logique
         screen = self._window.screen
