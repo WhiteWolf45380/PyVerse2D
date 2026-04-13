@@ -84,6 +84,12 @@ class ScreenQuad:
         gl.glDrawElements(gl.GL_TRIANGLES, 6, gl.GL_UNSIGNED_INT, 0)
         gl.glBindVertexArray(0)
 
+    def draw_raw(self) -> None:
+        """Draw le quad sans toucher au shader"""
+        gl.glBindVertexArray(self._vao[0])
+        gl.glDrawElements(gl.GL_TRIANGLES, 6, gl.GL_UNSIGNED_INT, 0)
+        gl.glBindVertexArray(0)
+
     def delete(self) -> None:
         """Libère les ressources GPU"""
         gl.glDeleteVertexArrays(1, self._vao)

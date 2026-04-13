@@ -89,12 +89,12 @@ class LightRenderer:
 
         gl.glActiveTexture(gl.GL_TEXTURE0)
         gl.glBindTexture(gl.GL_TEXTURE_2D, scene_fbo.texture_id)
-        pipeline.quad.blit(scene_fbo.texture_id)
+        pipeline.quad.draw_raw(scene_fbo.texture_id)
 
         # Recopie temp_fbo dans scene_fbo
         scene_fbo.bind()
         scene_fbo.clear()
-        pipeline.quad.blit(temp_fbo.texture_id)
+        pipeline.quad.draw_raw(temp_fbo.texture_id)
 
         # Rebind scene_fbo pour la suite
         scene_fbo.bind()
