@@ -191,7 +191,7 @@ class Pipeline:
         temp_fbo.clear()
         program.use()
         for name, value in uniforms.items():
-            program[name] = self._to_c_array(value) if isinstance(value, list) else value
+            program[name] = value
         program['u_texture'] = 0
         gl.glActiveTexture(gl.GL_TEXTURE0)
         gl.glBindTexture(gl.GL_TEXTURE_2D, scene_fbo.texture_id)
@@ -565,16 +565,6 @@ class Pipeline:
         elif self._temp_fbo.width != fbo.width or self._temp_fbo.height != fbo.height:
             self._temp_fbo.resize(fbo.width, fbo.height)
         return self._temp_fbo
-    
-    # ======================================== HELPERS ========================================
-    @staticmethod
-    def _to_c_array(value: list):
-        """Convertit une liste python en  array C"""
-        flat = [x for v in value for x in (v if isinstance(v, tuple) else (v,))]
-        if len(flat) == 1:
-            return flat[0]  # scalaire, pas de ctypes array
-        t = c_float if isinstance(flat[0], float) else c_int
-        return (t * len(flat))(*flat)
 
 # ======================================== CONTEXT ========================================
 @dataclass(slots=True)

@@ -47,12 +47,12 @@ class LightSource(ABC):
         self._position: Point = Point(position)
         self._color: Color = Color(color)
         self._intensity: float = float(intensity)
-        self._falloff: EasingFunc = falloff or linear
+        self._falloff: EasingFunc = falloff
         self._enabled: bool = enabled
 
         if __debug__:
             if not 0.0 <= self._intensity <= 1.0: raise ValueError("intensity must be within 0.0 and 1.0")
-            if not is_easing(self._falloff): raise ValueError("falloff must be an EasingFunc from pv.math.easing module")
+            if self._falloff is not None and not is_easing(self._falloff): raise ValueError("falloff must be an EasingFunc from pv.math.easing module or None")
             if not isinstance(enabled, bool): raise TypeError(f"enabled must be a boolean, got {type(self._enabled).__name__}")
 
         # Paramètres internes
@@ -128,14 +128,13 @@ class LightSource(ABC):
         """Fonction d'atténuation
 
         La fonction doit être une ``EasingFunc``du module math.easing.
-        Par défaut, une atténuation linéaire est utilisée.
+        Mettre cette propriété à None pour un éclairage constant.
         """
         return self._falloff
     
     @falloff.setter
     def falloff(self, value: EasingFunc) -> None:
-        value = value or linear
-        assert is_easing(value), "falloff must be an EasingFunc from math.easing module"
+        assert value is None or is_easing(value), "falloff must be an EasingFunc from math.easing module or None"
         self._falloff = value
 
     @property

@@ -5,6 +5,8 @@ from ..._rendering import Pipeline
 from ...abc import LightSource
 from ._point import PointLight
 
+import ctypes
+import pyglet.gl as gl
 from pyglet.graphics.shader import Shader, ShaderProgram
 
 # ======================================== BUCKETS ========================================
@@ -47,13 +49,12 @@ def _build_frag_ambient_points(max_lights: int) -> str:
 #version 330 core
 uniform sampler2D u_texture;
 uniform float u_ambient;
-
 uniform int u_count;
 uniform vec2 u_positions[{max_lights}];
 uniform float u_radii[{max_lights}];
 uniform vec3 u_colors[{max_lights}];
 uniform float u_intensities[{max_lights}];
-uniform float u_luts[{max_lights * _LUT_SIZE}];
+uniform sampler2D u_lut_atlas;
 
 in vec2 v_uv;
 out vec4 out_color;
@@ -61,19 +62,18 @@ out vec4 out_color;
 void main() {{
     vec4 pixel = texture(u_texture, v_uv);
     vec2 frag = gl_FragCoord.xy;
-
     vec3 light_accum = vec3(0.0);
 
     for (int i = 0; i < u_count; i++) {{
         float dist = distance(frag, u_positions[i]);
         float normalized = clamp(dist / u_radii[i], 0.0, 1.0);
-        int lut_index = i * {_LUT_SIZE} + int(normalized * float({_LUT_SIZE - 1}));
-        float falloff = u_luts[lut_index];
+        float row = (float(i) + 0.5) / float({max_lights});
+        float falloff = texture(u_lut_atlas, vec2(1.0 - normalized, row)).r;
         light_accum += u_colors[i] * u_intensities[i] * falloff;
     }}
 
-    vec3 tinted = pixel.rgb * max(vec3(u_ambient), light_accum);
-    out_color = vec4(tinted, pixel.a);
+    vec3 lit = pixel.rgb * max(vec3(u_ambient), light_accum);
+    out_color = vec4(lit, pixel.a);
 }}
 """
 
@@ -104,10 +104,29 @@ class LightRenderer:
             )
         return cls._ambient_point_programs[max_lights]
 
-    # ======================================== LUT ========================================
+    # ======================================== LUT ATLAS ========================================
     @staticmethod
-    def _build_lut(falloff) -> list[float]:
-        return [falloff(i / (_LUT_SIZE - 1)) for i in range(_LUT_SIZE)]
+    def _build_lut_atlas(lights: list[PointLight], bucket: int) -> gl.GLuint:
+        """Construit une texture 2D atlas : une ligne par lumière, paddé jusqu'au bucket"""
+        atlas = (ctypes.c_float * (_LUT_SIZE * bucket))()
+        for i, light in enumerate(lights):
+            for j in range(_LUT_SIZE):
+                atlas[i * _LUT_SIZE + j] = 1.0 if light.falloff is None else light.falloff(j / (_LUT_SIZE - 1))
+
+        tex = gl.GLuint()
+        gl.glGenTextures(1, ctypes.byref(tex))
+        gl.glBindTexture(gl.GL_TEXTURE_2D, tex)
+        gl.glTexImage2D(
+            gl.GL_TEXTURE_2D, 0, gl.GL_R32F,
+            _LUT_SIZE, bucket, 0,
+            gl.GL_RED, gl.GL_FLOAT, atlas,
+        )
+        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
+        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
+        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_EDGE)
+        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_EDGE)
+        gl.glBindTexture(gl.GL_TEXTURE_2D, 0)
+        return tex
 
     # ======================================== AMBIENT + POINTS ========================================
     def render_ambient(self, pipeline: Pipeline, ambient: float, sources: set[LightSource]) -> None:
@@ -118,64 +137,41 @@ class LightRenderer:
             ambient: luminosité ambiante [0, 1]
             sources: ensemble des sources de lumière
         """
-        # Filtrage des PointLights actives
         point_lights = [s for s in sources if isinstance(s, PointLight) and s.is_enabled()]
-
-        if not point_lights:
-            # Pas de lights, shader ambient simple
-            program = self._get_ambient_point_program(1)
-            pipeline.apply_shader(program,
-                u_ambient=ambient,
-                u_count=0,
-                u_positions=[(0.0, 0.0)],
-                u_radii=[1.0],
-                u_colors=[(1.0, 1.0, 1.0)],
-                u_intensities=[0.0],
-                u_luts=[0.0] * _LUT_SIZE,
-            )
-            return
-
-        # Bucket
-        bucket = _get_bucket(len(point_lights))
+        bucket = _get_bucket(len(point_lights)) if point_lights else 1
         program = self._get_ambient_point_program(bucket)
 
-        # Conversion world to framebuffer + rayon en pixels
-        fb_scale = pipeline.window.framebuffer_scale
+        # Atlas LUT
+        atlas_tex = self._build_lut_atlas(point_lights, bucket)
+        gl.glActiveTexture(gl.GL_TEXTURE1)
+        gl.glBindTexture(gl.GL_TEXTURE_2D, atlas_tex)
 
-        positions = []
-        radii = []
-        colors = []
-        intensities = []
-        luts = []
+        # Données par lumière (paddées jusqu'au bucket)
+        fb_scale = pipeline.window.framebuffer_scale_x
+        positions   = [(0.0, 0.0)] * bucket
+        radii       = [1.0]        * bucket
+        colors      = [(1.0, 1.0, 1.0)] * bucket
+        intensities = [0.0]        * bucket
 
-        # Points lumineux
-        for light in point_lights:
+        for i, light in enumerate(point_lights):
             fx, fy = pipeline.world_to_framebuffer(light.x, light.y)
-            positions.append((fx, fy))
-            radii.append(light.radius * pipeline.ppu * fb_scale)
-            colors.append(light.color.rgb)
-            intensities.append(light.intensity)
-            luts.append(self._build_lut(light.falloff))
-
-        # Padding jusqu'au bucket
-        while len(positions) < bucket:
-            positions.append((0.0, 0.0))
-            radii.append(1.0)
-            colors.append((1.0, 1.0, 1.0))
-            intensities.append(0.0)
-            luts.append([0.0] * _LUT_SIZE)
-
-        flat_luts = [v for lut in luts for v in lut]
+            positions[i]   = (float(fx), float(fy))
+            radii[i]       = light.radius * pipeline.ppu * fb_scale
+            colors[i]      = light.color.rgb
+            intensities[i] = light.intensity
 
         pipeline.apply_shader(program,
-            u_ambient=ambient,
-            u_count=len(point_lights),
-            u_positions=positions,
-            u_radii=radii,
-            u_colors=colors,
-            u_intensities=intensities,
-            u_luts=flat_luts,
+            u_ambient     = ambient,
+            u_count       = len(point_lights),
+            u_positions   = positions,
+            u_radii       = radii,
+            u_colors      = colors,
+            u_intensities = intensities,
+            u_lut_atlas   = 1,
         )
+
+        # Cleanup atlas
+        gl.glDeleteTextures(1, ctypes.byref(atlas_tex))
 
     # ======================================== TINT ========================================
     def render_tint(self, pipeline: Pipeline, tint: tuple[float, float, float], strength: float) -> None:

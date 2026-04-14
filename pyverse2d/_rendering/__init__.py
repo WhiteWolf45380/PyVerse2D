@@ -60,4 +60,6 @@ __all__ = [
     "PygletShapeRenderer",
     "PygletSpriteRenderer",
     "PygletLabelRenderer",
+
+    "get_glsl_easing",
 ]
