@@ -16,7 +16,7 @@ from pyglet.graphics.shader import ShaderProgram
 from typing import TYPE_CHECKING
 from dataclasses import dataclass
 from contextlib import contextmanager
-from ctypes import c_int
+from ctypes import c_int, c_float
 import math
 
 if TYPE_CHECKING: 
@@ -191,7 +191,7 @@ class Pipeline:
         temp_fbo.clear()
         program.use()
         for name, value in uniforms.items():
-            program[name] = value
+            program[name] = self._to_c_array(value) if isinstance(value, list) else value
         program['u_texture'] = 0
         gl.glActiveTexture(gl.GL_TEXTURE0)
         gl.glBindTexture(gl.GL_TEXTURE_2D, scene_fbo.texture_id)
@@ -565,6 +565,14 @@ class Pipeline:
         elif self._temp_fbo.width != fbo.width or self._temp_fbo.height != fbo.height:
             self._temp_fbo.resize(fbo.width, fbo.height)
         return self._temp_fbo
+    
+    # ======================================== HELPERS ========================================
+    @staticmethod
+    def _to_c_array(value: list):
+        """Convertit une liste python en  array C"""
+        flat = [x for v in value for x in (v if isinstance(v, tuple) else (v,))]
+        t = c_float if isinstance(flat[0], float) else c_int
+        return (t * len(flat))(*flat)
 
 # ======================================== CONTEXT ========================================
 @dataclass(slots=True)

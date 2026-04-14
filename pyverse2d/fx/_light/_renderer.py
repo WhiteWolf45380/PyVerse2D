@@ -53,7 +53,7 @@ uniform vec2 u_positions[{max_lights}];
 uniform float u_radii[{max_lights}];
 uniform vec3 u_colors[{max_lights}];
 uniform float u_intensities[{max_lights}];
-uniform float u_luts[{max_lights * _LUT_SIZE}];
+uniform float u_luts[{max_lights}][{_LUT_SIZE}];
 
 in vec2 v_uv;
 out vec4 out_color;
@@ -67,11 +67,12 @@ void main() {{
     for (int i = 0; i < u_count; i++) {{
         float dist = distance(frag, u_positions[i]);
         float normalized = clamp(dist / u_radii[i], 0.0, 1.0);
-        int lut_index = i * {_LUT_SIZE} + int(normalized * float({_LUT_SIZE - 1}));
-        float falloff = u_luts[lut_index];
+        int lut_index = int(normalized * float({_LUT_SIZE - 1}));
+        float falloff = u_luts[i][lut_index];
         light_accum += u_colors[i] * u_intensities[i] * falloff;
     }}
 
+    float brightness = max(u_ambient, length(light_accum) / 1.732);
     vec3 tinted = pixel.rgb * max(vec3(u_ambient), light_accum);
     out_color = vec4(tinted, pixel.a);
 }}
@@ -131,7 +132,7 @@ class LightRenderer:
                 u_radii=[1.0],
                 u_colors=[(1.0, 1.0, 1.0)],
                 u_intensities=[0.0],
-                u_luts=[0.0] * _LUT_SIZE,
+                u_luts=[[0.0] * _LUT_SIZE],
             )
             return
 
@@ -165,8 +166,6 @@ class LightRenderer:
             intensities.append(0.0)
             luts.append([0.0] * _LUT_SIZE)
 
-        flat_luts = [v for lut in luts for v in lut]
-
         pipeline.apply_shader(program,
             u_ambient=ambient,
             u_count=len(point_lights),
@@ -174,7 +173,7 @@ class LightRenderer:
             u_radii=radii,
             u_colors=colors,
             u_intensities=intensities,
-            u_luts=flat_luts,
+            u_luts=luts,
         )
 
     # ======================================== TINT ========================================
