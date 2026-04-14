@@ -3,7 +3,10 @@ from typing import Protocol
 
 # ======================================== PROTOCOLS ========================================
 class Positionnal(Protocol):
-    """Objet exposant une position ``(x, y)``"""
+    """Objet positionnel
+    
+    L'objet doit exposé deux attributs ou propriétés ``x`` et ``y``.
+    """
     @property
     def x(self) -> float: ...
     @property

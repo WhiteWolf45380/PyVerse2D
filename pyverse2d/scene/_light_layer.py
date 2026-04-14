@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from .._rendering import Pipeline, Camera
 from ..asset import Color
-from ..abc import Layer
+from ..abc import Layer, LightSource
 from ..fx import LightRenderer
 
 from numbers import Real
@@ -15,12 +15,12 @@ class LightLayer(Layer):
     Args:
         ambient: luminosité ambiante [0, 1]
         tint: couleur d'accentuation *(RGB)*
-        tint_strength: force de la teinte
+        tint_strength: intensité de la teinte
         camera: caméra locale
     """
     __slots__ = (
         "_ambient", "_tint", "_tint_strength",
-        "_renderer",
+        "_renderer", "_sources",
     )
 
     _IS_FX = True
@@ -46,6 +46,7 @@ class LightLayer(Layer):
 
         # Paramètres internes
         self._renderer: LightRenderer = LightRenderer()
+        self._sources: set[LightSource] = set()
 
     # ======================================== PROPERTIES ========================================
     @property
@@ -78,7 +79,7 @@ class LightLayer(Layer):
 
     @property
     def tint_strength(self) -> float:
-        """Force de la couleur d'accentuation
+        """Itensité de la couleur d'accentuation
 
         Le facteur force doit être un ``Réel`` compris dans l'intervalle *[0, 1]*.
         Mettre cette propriété à 0.0 pour ne pas appliquer la couleur d'accentuation.
@@ -90,6 +91,28 @@ class LightLayer(Layer):
         value = float(value)
         assert 0 <= value <= 1.0, ValueError(f"tint_strength must be within 0 and 1, got {value}")
         self._tint_strength = value
+
+    # ======================================== SOURCES ========================================
+    def add_source(self, source: LightSource) -> None:
+        """Ajoute une source de lumière
+
+        Args:
+            source: source à ajouter
+        """
+        assert isinstance(source, LightSource), f"source must be a LightSource, got {source}"
+        self._sources.add(source)
+
+    def remove_source(self, source: LightSource) -> None:
+        """Retire une source de lumière
+
+        Args:
+            source: source à retirer
+        """
+        self._sources.discard(source)
+
+    def get_sources(self) -> set[LightSource]:
+        """Renvoie l'ensemble des sources de lumière"""
+        return self._sources
 
     # ======================================== HOOKS ========================================
     def on_start(self):
@@ -111,5 +134,5 @@ class LightLayer(Layer):
 
     def _draw(self, pipeline: Pipeline) -> None:
         """Affichage"""
-        self._renderer.render_ambient(pipeline, self._ambient)
+        self._renderer.render_ambient(pipeline, self._ambient, self._sources)
         self._renderer.render_tint(pipeline, self._tint.rgb, self._tint_strength)

@@ -1,11 +1,7 @@
 # ======================================== IMPORTS ========================================
-from ._light import (
-    PointLight,
-    LightRenderer,
-)
+from ._light_source import LightSource
 
 # ======================================== EXPORTS ========================================
 __all__ = [
-    "PointLight",
-    "LightRenderer",
+    "LightSource",
 ]
