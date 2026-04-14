@@ -24,71 +24,47 @@ if TYPE_CHECKING:
 
 # ======================================== DATA ========================================
 @dataclass(slots=True, frozen=True)
-class SceneRenderData:
-    batch: Batch
+class SceneData:
     fbo: Framebuffer
-    layers: dict[Layer, LayerGroups]
+    layers: dict[Layer, LayerData]
 
 @dataclass(slots=True, frozen=True)
-class LayerGroups:
-    group: CameraGroup
+class LayerData:
+    batch: Batch
     z_groups: dict[int, Group]
-
-# ======================================== CAMERA GROUP ========================================
-class CameraGroup(Group):
-    def __init__(self, window: PygletWindow, order: int= 0, parent: Group = None):
-        super().__init__(order=order, parent=parent)
-        self._window = window
-        self.projection: Mat4 = None
-        self.view: Mat4 = None
-    
-    def set_state(self):
-        """Applique les matrices du groupe"""
-        self._window.projection = self.projection
-        self._window.view = self.view
 
 # ======================================== PIPELINE ========================================
 class Pipeline:
-    """
-    Pipeline de rendu exploitant OpenGL
+    """Pipeline de rendu OpenGl
 
     Args:
         window(Window): fenêtre associée
     """
     __slots__ = (
-        "_quad", "_window", "_scene", "_layer",
-        "_data", "_projection_cache", "_view_cache", '_view_buffer', "_default_view",
+        "_window",
+        "_data", "_projection_cache", "_view_cache",
+        "_view_buffer", "_default_view",
         "_context", "_coord_context",
-        "_batch", "_fbo", "_group", "_z_groups",
     )
 
-    def __init__(self, window: Window):
-        # ScreenQuad
-        self._quad: ScreenQuad = ScreenQuad()
+    _QUAD: ScreenQuad = ScreenQuad()
 
+    def __init__(self, window: Window):
         # Binding
         self._window: Window = window
-        self._scene: Scene | None = None
-        self._layer: Layer | None = None
 
         # Cache
-        self._data: dict[Scene, SceneRenderData] = {}
-        self._projection_cache: dict[tuple[float, float, float], Mat4] = {}
-        self._view_cache: dict[tuple[float, float, float], Mat4] = {}
+        self._data: dict[Scene, SceneData] = {}
+        self._projection_cache: dict[tuple, Mat4] = {}
+        self._view_cache: dict[tuple, Mat4] = {}
 
-        # Pipeline de vue
-        self._view_buffer: dict[tuple[float, float, float], Mat4] = {}
+        # Buffering de la view matrix
+        self._view_buffer: dict[tuple, Mat4] = {}
         self._default_view: Mat4 = Mat4()
 
         # Contexte
         self._context: _PipelineContext = _PipelineContext()
         self._coord_context: CoordContext = CoordContext(self._window, self._window.screen)
-
-        # Gpu configuration
-        self._batch: Batch = None
-        self._fbo: Framebuffer = None
-        self._group: Group = None
-        self._z_groups: dict[int, Group] = None
 
         # Abonnement au resize du canvas
         @self._window.on_canvas_resize
@@ -97,20 +73,22 @@ class Pipeline:
                 data.fbo.resize(w, h)
 
     # ======================================== GETTERS ========================================
+    # OpenGl
     @property
     def quad(self) -> ScreenQuad:
         """Rectangle d'écran complet"""
-        return self._quad
-
-    @property
-    def window(self) -> Window:
-        """Fenêtre OS assignée"""
-        return self._window
+        return self._QUAD
     
     @property
     def gl_viewport(self) -> tuple[int, int, int, int]:
         """Viewport OpenGl"""
         return self._context.gl_viewport
+    
+    # Pipeline interne
+    @property
+    def window(self) -> Window:
+        """Fenêtre OS assignée"""
+        return self._window
     
     @property
     def screen(self) -> LogicalScreen:
@@ -118,39 +96,58 @@ class Pipeline:
         return self._window.screen
     
     @property
-    def scene(self) -> Scene:
-        """Scene en cours de rendu"""
-        return self._scene
-    
-    @property
     def viewport(self) -> Viewport:
         """Viewport de la scène en cours de rendu"""
-        return self._scene.viewport
+        return self._context.viewport
+
+    @property
+    def camera(self) -> Camera:
+        """Caméra du layer en cours de rendu"""
+        return self._context.camera
     
+    # Assgination courante
+    @property
+    def scene(self) -> Scene:
+        """Scene en cours de rendu"""
+        return self._context.scene
+    
+    @property
+    def layer(self) -> Layer:
+        """Layer en couche de rendu"""
+        return self._context.layer
+    
+    # Etat courant
+    @property
+    def batch(self) -> Batch:
+        """Batch courant"""
+        return self._context.batch
+    
+    @property
+    def fbo(self) -> Framebuffer:
+        """Framebuffer courant"""
+        return self._context.fbo
+    
+    @property
+    def z_groups(self) -> dict[int, Group]:
+        """Groupes du ``Layer`` courant selon leur ``z-order``"""
+        return self._context.z_groups
+    
+    # Résolutions
     @property
     def viewport_resolve(self) -> tuple[float, float, float, float]:
         """Résolution du viewport dans l'espace logique"""
         return self._context.viewport_resolve
     
     @property
-    def layer(self) -> Layer:
-        """Layer en couche de rendu"""
-        return self._layer
-    
-    @property
-    def camera(self) -> Camera:
-        """Caméra du layer en cours de rendu"""
-        return self._layer.camera or self._scene.camera
-    
-    @property
     def camera_resolve(self) -> tuple[float, float, float, float, float, float, tuple[float, float]]:
         """Résolution de la caméra"""
         return self._context.camera_resolve
     
+    # Ratios
     @property
     def ppu(self) -> tuple[float, float]:
         """Ratio pixels par unité moyen"""
-        return (self._context.ppu_x + self._context.ppu_y) / 2
+        return self._context.ppu
     
     @property
     def ppu_x(self) -> float:
@@ -161,36 +158,17 @@ class Pipeline:
     def ppu_y(self) -> float:
         """Ratio pixels par unité vertical"""
         return self._context.ppu_y
-
-    @property
-    def batch(self) -> Batch:
-        """Batch courant"""
-        return self._batch
     
-    @property
-    def fbo(self) -> Framebuffer:
-        """Framebuffer courant"""
-        return self._fbo
-    
-    @property
-    def group(self) -> Group:
-        """Groupe du ``Layer`` courant"""
-        return self._group
-    
-    @property
-    def z_groups(self) -> dict[int, Group]:
-        """Groupes du ``Layer`` courant selon leur ``z-order``"""
-        return self._z_groups
-    
+    # ======================================== INTERFACE ========================================
     def get_group(self, z: int = 0) -> Group:
         """Renvoie le ``Group`` associé au z-order donné dans le ``Layer``courant
 
         Args:
             z (int): z-order du groupe
         """
-        if z not in self._z_groups:
-            self._z_groups[z] = Group(order=z, parent=self.group)
-        return self._z_groups[z]
+        if z not in self._context.z_groups:
+            self._context.z_groups[z] = Group(order=z)
+        return self._context.z_groups[z]
 
     # ======================================== PIPELINE ========================================
     def bind_scene(self, scene: Scene) -> None:
@@ -199,96 +177,93 @@ class Pipeline:
         Args:
             scene: scene courante
         """
-        # Etablissement de la connexion à la scene
-        self._scene = scene
-        if scene not in self._data:
-            batch = Batch()
-            fbo = Framebuffer(self._window.canvas.width, self._window.canvas.height)
-            self._data[scene] = SceneRenderData(batch, fbo, {})
-        self._batch = self._data[scene].batch
-        self._fbo = self._data[scene].fbo
+        # Assignation de la scene
+        self._context.scene = scene
+        self._context.viewport = scene.viewport
 
-        # Espace logique
+        # Création des données si non exisantes
+        if scene not in self._data:
+            fbo = Framebuffer(self._window.canvas.width, self._window.canvas.height)
+            self._data[scene] = SceneData(fbo, {})
+
+        # Enregistrement de l'état courant
+        self._context.fbo = self._data[scene].fbo
+
+        # Résolution du viewport
         screen = self._window.screen
         self._context.viewport_resolve = scene.viewport.resolve(screen.width, screen.height)
         lx, ly, lw, lh, _, _ = self._context.viewport_resolve
 
-        # FrameBuffer
+        # Résolution de la fenêtre OS
         canvas = self._window.canvas
         sx = self._window.framebuffer_scale_x
         sy = self._window.framebuffer_scale_y
 
-        # Viewport OpenGl
+        # Calcul du viewport OpenGl
         px = int(canvas.x + lx * sx)
         py = int(canvas.y + ly * sy)
         pw = int(lw * sx)
         ph = int(lh * sy)
         self._context.gl_viewport = (px, py, pw, ph)
-
-        # Activation du FrameBuffer Viewport
         gl.glViewport(px, py, pw, ph)
 
         # Assignation du FrameBuffer
-        self._fbo.bind()
-        self._fbo.clear()
+        self._context.fbo.bind()
+        self._context.fbo.clear()
 
-    def bind_layer(self, layer: Layer, z: int=0) -> None:
+    def bind_layer(self, layer: Layer) -> None:
         """Configure le contexte de rendu pour un layer de la scene courante
         
         Args:
             layer: Layer courant
         """
         # Etablissement de la connexion au layer
-        self._layer = layer
-        layer_groups = self._data[self._scene].layers
-        if layer not in layer_groups:
-            layer_groups[layer] = LayerGroups(CameraGroup(window=self._window.native, order=z), {})
-        self._group = layer_groups[layer].group
-        self._z_groups = layer_groups[layer].z_groups
+        self._context.layer = layer
+        self._context.camera = layer.camera or self._context.scene.camera
 
-        # Espace viewport
+        # Création des données si non existantes
+        layers_data = self._data[self._context.scene].layers
+        if layer not in layers_data:
+            layers_data[layer] = LayerData(Batch(), {})
+
+        # Enregistrement de l'état courant
+        self._context.batch = layers_data[layer].batch
+        self._context.z_groups = layers_data[layer].z_groups
+
+        # Résolution de la caméra
         _, _, lw, lh, (ox , oy), (dx, dy) = self._context.viewport_resolve
-
-        # Transformation camera
-        self._context.camera_resolve = self.camera.resolve(lw, lh)
+        self._context.camera_resolve = self._context.camera.resolve(lw, lh)
         cx, cy, vw, vh, zoom, rotation = self._context.camera_resolve
 
-        # Ratios pixels per unit
+        # Calcul des ratios
         self._context.ppu_x,  self._context.ppu_y = self.compute_ppu(lw, lh, vw, vh, zoom)
+        self._context.ppu = (self._context.ppu_x + self._context.ppu_y) / 2
 
         # Matrice de projection
         projection = self.compute_projection(vw, vh, dx, dy, zoom)
-        self._group.projection = projection
         self._context.projection_matrix = projection
         self._window.native.projection = projection
 
         # Matrice de vue
         view = self.compute_view(cx, cy, rotation, ox, oy)
-        self._group.view = view
         self._context.view_matrix = view
         self._window.native.view = view
 
     def flush(self) -> None:
         """Envoie tout le batch au GPU"""
-        self._batch.draw()
+        self._context.batch.draw()
 
     def end(self) -> None:
         """Met fin à la connexion avec une scene"""
         # Blit FBO sur window
         gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, 0)
         gl.glViewport(*self._context.gl_viewport)
-        self._quad.blit(self._fbo.texture_id)
+        self._QUAD.blit(self._context.fbo.texture_id)
 
         # Nettoyage de l'état courant
-        self._scene = None
-        self._layer = None
-        self._batch = None
-        self._fbo = None
-        self._group = None
-        self._z_groups = None
         self._context.clear()
 
-        # Flush des caches
+        # Nettoyage des caches
         self._view_cache, self._view_buffer = self._view_buffer, self._view_cache
         self._view_buffer.clear()
 
@@ -406,16 +381,17 @@ class Pipeline:
         # Conversion
         return self._coord_context.convert(x, y, from_space, to_space, viewport=viewport, camera=camera, viewport_resolve=viewport_resolve, camera_resolve=camera_resolve)
 
-    def world_to_framebuffer(self, x: float, y: float, camera: Camera = None) -> tuple[int, int]:
+    def world_to_framebuffer(self, x: float, y: float, viewport: Viewport = None, camera: Camera = None) -> tuple[int, int]:
         """Convertit un point monde en pixel framebuffer
 
         Args:
             x: coordonnée horizontale monde
             y: coordonnée verticale monde
+            viewport: Viewport à utiliser (par défaut le viewport courant)
             camera: Camera à utiliser (par défaut la caméra courante)
         """
         # Resolutions
-        lx, ly, lw, lh, (ox, oy), (dx, dy) = self._context.viewport_resolve
+        lx, ly, lw, lh, (ox, oy), (dx, dy) = self._context.viewport_resolve if viewport is None else viewport.resolve(self._window.screen.width, self._window.screen.height)
         cx, cy, vw, vh, zoom, rotation = self._context.camera_resolve if camera is None else camera.resolve(lw, lh)
 
         # World to Frustum
@@ -438,16 +414,17 @@ class Pipeline:
         return self._window.canvas.x + cnv_x, self._window.canvas.y + cnv_y
 
 
-    def framebuffer_to_world(self, x: int, y: int, camera: Camera = None) -> tuple[float, float]:
+    def framebuffer_to_world(self, x: int, y: int, viewport: Viewport =  None, camera: Camera = None) -> tuple[float, float]:
         """Convertit un pixel framebuffer en point monde
 
         Args:
             x: coordonnée horizontale framebuffer
             y: coordonnée verticale framebuffer
+            viewport: Viewport à utiliser (par défaut le viewport courant)
             camera: Camera à utiliser (par défaut la caméra courante)
         """
         # Resolutions
-        lx, ly, lw, lh, (ox, oy), (dx, dy) = self._context.viewport_resolve
+        lx, ly, lw, lh, (ox, oy), (dx, dy) = self._context.viewport_resolve if viewport is None else viewport.resolve(self._window.screen.width, self._window.screen.height)
         cx, cy, vw, vh, zoom, rotation = self._context.camera_resolve if camera is None else camera.resolve(lw, lh)
 
         # FrameBuffer to Canvas
@@ -493,7 +470,7 @@ class Pipeline:
         return (width * self._context.ppu_x, height * self._context.ppu_y)
     
     @contextmanager
-    def scissor_world(self, wx: float, wy: float, ww: float, wh: float, camera: Camera = None):
+    def scissor_world(self, wx: float, wy: float, ww: float, wh: float, viewport: Viewport = None, camera: Camera = None):
         """Context manager appliquant un scissor test en coordonnées monde
 
         Args:
@@ -502,8 +479,8 @@ class Pipeline:
             ww: largeur monde
             wh: hauteur monde
         """
-        x0, y0 = self.world_to_framebuffer(wx, wy, camera)
-        x1, y1 = self.world_to_framebuffer(wx + ww, wy + wh, camera)
+        x0, y0 = self.world_to_framebuffer(wx, wy, viewport=viewport, camera=camera)
+        x1, y1 = self.world_to_framebuffer(wx + ww, wy + wh, viewport=viewport, camera=camera)
 
         left = min(x0, x1)
         top = min(y0, y1)
@@ -551,20 +528,32 @@ class Pipeline:
 # ======================================== CONTEXTE ========================================
 @dataclass(slots=True)
 class _PipelineContext:
-    viewport_resolve: tuple[float, float, float, float, tuple[float, float], tuple[float, float]] = None
-    camera_resolve: tuple[float, float, float, float, float, float, tuple[float, float]] = None
-    gl_viewport: tuple[int, int, int, int] = None
-    projection_matrix: Mat4 = None
-    view_matrix: Mat4 = None
+    # Binding
+    scene: Scene = None
+    layer: Layer = None
+
+    # Configuration OpenGl
+    gl_viewport: tuple = None
+    fbo: Framebuffer = None
+    batch: Batch = None
+    z_groups: dict[int, Group] = None
+
+    # Espaces internes
+    viewport: Viewport = None
+    viewport_resolve: tuple = None
+    camera: Camera = None
+    camera_resolve: tuple = None
+
+    # Ratios
     ppu_x: float = None
     ppu_y: float = None
+    ppu: float = None
+    
+    # Matrices
+    projection_matrix: Mat4 = None
+    view_matrix: Mat4 = None
 
     def clear(self) -> None:
         """Nettoie le contexte"""
-        self.viewport_resolve = None
-        self.camera_resolve = None
-        self.gl_viewport = None
-        self.projection_matrix = None
-        self.view_matrix = None
-        self.ppu_x = None
-        self.ppu_y = None
+        for attr in self.__slots__:
+            setattr(self, attr, None)

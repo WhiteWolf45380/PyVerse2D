@@ -22,6 +22,8 @@ class LightLayer(Layer):
         "_renderer",
     )
 
+    _IS_FX = True
+
     def __init__(
             self,
             tint: Color = (255, 255, 255),
@@ -83,5 +85,4 @@ class LightLayer(Layer):
 
     def _draw(self, pipeline: Pipeline) -> None:
         """Affichage"""
-        pipeline.flush()
         self._renderer.render_ambient(pipeline, self._tint.rgb, self._ambient)

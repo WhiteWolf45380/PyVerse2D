@@ -36,7 +36,7 @@ class Scene:
         self._stack_mode: StackMode = expect(stack_mode, StackMode)
         self._state: SceneState = SceneState.SLEEPING
         self._update_callbacks: list[Callable[[float], None]] = []
-        self._draw_callbacks: list[Callable[[Pipeline], None]] = []
+        self._draw_callbacks: list[Callable[[], None]] = []
 
     # ======================================== GETTERS ========================================
     @property
@@ -117,7 +117,7 @@ class Scene:
         self._update_callbacks.append(fn)
         return fn
 
-    def on_draw(self, fn: Callable[[Pipeline], None]) -> Callable[[Pipeline], None]:
+    def on_draw(self, fn: Callable[[], None]) -> Callable[[], None]:
         """Enregistre un callback appelé à chaque draw, après les layers
 
         Args:
@@ -157,16 +157,15 @@ class Scene:
     def draw(self, pipeline: Pipeline):
         """Affichage"""
         pipeline.bind_scene(self)
-        for layer, z in zip(self._layers, self._z_orders):
+        for layer in self._layers:
             if not layer.is_visible():
                 continue
-            pipeline.bind_layer(layer, z=z)
+            pipeline.bind_layer(layer)
             layer.draw(pipeline)
-        pipeline.flush()
-
-        for fn in self._draw_callbacks:
-            fn(pipeline)
+            pipeline.flush()
         pipeline.end()
+        for fn in self._draw_callbacks:
+            fn()
 
     # ======================================== INTERNALS ========================================
     def _set_state(self, value: SceneState) -> None:

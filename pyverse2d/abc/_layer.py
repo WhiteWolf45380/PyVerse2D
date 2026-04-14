@@ -19,6 +19,8 @@ class Layer(ABC):
     """
     __slots__ = ("_camera", "_active", "_visible")
 
+    _IS_FX: bool = False
+
     def __init__(self, camera: Camera = None):
         from .._rendering import Camera
         self._camera: Camera = expect(camera, (Camera, None))
@@ -38,6 +40,11 @@ class Layer(ABC):
     def camera(self, value: Camera) -> None:
         from .._rendering import Camera
         self._camera = expect(value, (Camera, None))
+
+    # ======================================== PREDICATES ========================================
+    def is_fx(self) -> bool:
+        """Vérifie que le layer soit un layer d'effets  post-process"""
+        return self._IS_FX
     
     # ======================================== ACTIVITY ========================================
     def is_active(self) -> bool:
