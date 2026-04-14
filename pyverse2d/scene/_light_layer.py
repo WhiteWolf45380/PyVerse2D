@@ -112,4 +112,4 @@ class LightLayer(Layer):
     def _draw(self, pipeline: Pipeline) -> None:
         """Affichage"""
         self._renderer.render_ambient(pipeline, self._ambient)
-        self._apply_tint(pipeline, self._tint, self._tint_strength)
+        self._renderer.render_tint(pipeline, self._tint, self._tint_strength)
