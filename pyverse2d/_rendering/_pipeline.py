@@ -563,10 +563,10 @@ class Pipeline:
         width = self.scale_to_framebuffer(ww)
         height = self.scale_to_framebuffer(wh)
 
-        left = min(x, x - width)
-        top = min(y, y - height)
-        width = abs(width)
-        height = abs(height)
+        left = int(min(x, x - width))
+        top = int(min(y, y - height))
+        width = int(abs(width))
+        height = int(abs(height))
 
         was_enabled = (gl.GLboolean * 1)()
         prev_box = (c_int * 4)()
