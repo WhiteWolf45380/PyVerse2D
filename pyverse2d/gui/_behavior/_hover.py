@@ -81,7 +81,7 @@ class HoverBehavior(Behavior):
     def update(self, dt: float) -> None:
         """Actualisation"""
         # Détection du survol
-        if ui.hovered is None and self._collides(mouse.viewport_position):
+        if ui.hovered is None and self._collides(mouse._get_world_position()):
             hovered = ui.ask_hover(self._owner)
         else:
             hovered = False

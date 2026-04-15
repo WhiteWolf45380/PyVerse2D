@@ -73,8 +73,7 @@ _NAMES: dict[MouseManager.Button] = {
 class MouseManager(Manager):
     """Gestionnaire de la souris"""
     __slots__ = (
-        "_mouse_x", "_mouse_y",
-        "_mouse_out",
+        "_mouse_x", "_mouse_y", "_mouse_out", "_world_position",
         "_mouse_dx", "_mouse_dy",
         "_drag_dx", "_drag_dy",
         "_scroll_dx", "_scroll_dy",
@@ -124,6 +123,7 @@ class MouseManager(Manager):
         self._mouse_x: float = 0.0
         self._mouse_y: float = 0.0
         self._mouse_out: bool = False
+        self._world_position: tuple[float, float] = (0.0, 0.0)
 
         # Deltas
         self._mouse_dx: float = 0.0
@@ -258,26 +258,7 @@ class MouseManager(Manager):
     def is_currently_pressed(self, button: Button) -> bool:
         """Vérifie si un bouton est pressé cette frame ou maintenu"""
         return self._pressed.get(button, False) or button in self._step
-
-    # ======================================== LIFE CYCLE ========================================
-    def update(self, dt: float) -> None:
-        """Actualisation"""
-        pass
-
-    def flush(self) -> None:
-        """Nettoyage"""
-        self._mouse_dx = 0.0
-        self._mouse_dy = 0.0
-        self._drag_dx = 0.0
-        self._drag_dy = 0.0
-        self._scroll_dx = 0.0
-        self._scroll_dy = 0.0
-        for button in self._step:
-            if button not in self._released_this_frame:
-                self._pressed[button] = True
-        self._step.clear()
-        self._released_this_frame.clear()
-
+        
     # ======================================== HOOKS ========================================
     def _on_motion(self, x: float, y: float, dx: float, dy: float) -> None:
         """Déplacement de la souris"""
@@ -318,6 +299,25 @@ class MouseManager(Manager):
         self._scroll_dx = scroll_x
         self._scroll_dy = scroll_y
 
+    # ======================================== LIFE CYCLE ========================================
+    def update(self, dt: float) -> None:
+        """Actualisation"""
+        pass
+
+    def flush(self) -> None:
+        """Nettoyage"""
+        self._mouse_dx = 0.0
+        self._mouse_dy = 0.0
+        self._drag_dx = 0.0
+        self._drag_dy = 0.0
+        self._scroll_dx = 0.0
+        self._scroll_dy = 0.0
+        for button in self._step:
+            if button not in self._released_this_frame:
+                self._pressed[button] = True
+        self._step.clear()
+        self._released_this_frame.clear()
+
     # ======================================== INTERNALS ========================================
     def _compute_position(self, x: float, y: float) -> None:
         """Convertit les coords pyglet en coords écran centrées"""
@@ -329,3 +329,11 @@ class MouseManager(Manager):
         """Vérifie que la souris soit en dehors du canas de la fenêtre"""
         hw, hh = self._window.screen.half_width, self._window.screen.half_height
         self._mouse_out = not (-hw <= self._mouse_x <= hw and -hh <= self._mouse_y <= hh)
+
+    def _set_world_position(self, x: float, y: float) -> None:
+        """Fixe la position monde du curseur"""
+        self._world_position = (x, y)
+    
+    def _get_world_position(self) -> tuple[float, float]:
+        """Renvoie la position monde du curseur"""
+        return self._world_position

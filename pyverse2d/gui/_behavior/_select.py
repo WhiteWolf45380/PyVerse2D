@@ -146,7 +146,7 @@ class SelectBehavior(Behavior):
     def _is_hovered(self) -> bool:
         """Vérifie si le widget est survolé"""
         if self._owner.hover is None:
-            return self._collides(mouse.viewport_position)
+            return self._collides(mouse._get_world_position())
         return self._owner.hover.is_hovered()
 
     def _collides(self, point: Point) -> bool:
