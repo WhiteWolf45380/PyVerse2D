@@ -106,5 +106,5 @@ class Layer(ABC):
     def draw(self, pipeline: Pipeline) -> None:
         """Affichage global"""
         from pyverse2d import mouse
-        mouse._set_world_position(*pipeline.framebuffer_to_world(mouse.raw_position))
+        mouse._set_world_position(*pipeline.framebuffer_to_world(*mouse.raw_position))
         self._draw(pipeline)

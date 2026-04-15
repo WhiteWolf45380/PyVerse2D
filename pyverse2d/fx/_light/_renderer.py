@@ -314,7 +314,7 @@ class LightRenderer:
     def _render_points(self, pipeline: Pipeline, ambient: float, points: list[PointLight]) -> None:
         bucket = _get_bucket(len(points))
         program = self._get_point_program(bucket)
-        fb_scale = pipeline.window.framebuffer_scale_x
+        fb_scale = pipeline.window.framebuffer_scale
 
         atlas_tex = self._build_lut_atlas(points, bucket)
         gl.glActiveTexture(gl.GL_TEXTURE1)
@@ -346,7 +346,7 @@ class LightRenderer:
     def _render_cones(self, pipeline: Pipeline, ambient: float, cones: list[ConeLight]) -> None:
         bucket = _get_bucket(len(cones))
         program = self._get_cone_program(bucket)
-        fb_scale = pipeline.window.framebuffer_scale_x
+        fb_scale = pipeline.window.framebuffer_scale
 
         atlas_tex = self._build_lut_atlas(cones, bucket)
         gl.glActiveTexture(gl.GL_TEXTURE1)
@@ -388,7 +388,7 @@ class LightRenderer:
         bp = _get_bucket(len(points))
         bc = _get_bucket(len(cones))
         program = self._get_point_cone_program(bp, bc)
-        fb_scale = pipeline.window.framebuffer_scale_x
+        fb_scale = pipeline.window.framebuffer_scale
 
         point_atlas = self._build_lut_atlas(points, bp)
         gl.glActiveTexture(gl.GL_TEXTURE1)

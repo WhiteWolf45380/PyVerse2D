@@ -228,7 +228,7 @@ class Pipeline:
 
         # Résolution de la fenêtre OS
         canvas = self._window.canvas
-        fb_scale = self._window.fb_scale
+        fb_scale = self._window.framebuffer_scale
 
         # Calcul du viewport OpenGl
         px = int(canvas.x + lx * fb_scale)
