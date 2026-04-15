@@ -126,7 +126,10 @@ class TimeManager(Manager):
     def schedule(self, func: Callable) -> None:
         """Lance une boucle sur une fonction"""
         self._scheduling.append(func)
-        pyglet.clock.schedule_interval(func, self.target_dt)
+        if self._target_dt == 0.0:
+            pyglet.clock.schedule(func)
+        else:
+            pyglet.clock.schedule_interval(func, self.target_dt)
     
     def scale(self, value: Real) -> Real:
         """Convertit une valeur en unité/s
