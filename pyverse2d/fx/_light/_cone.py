@@ -119,3 +119,5 @@ class ConeLight(LightSource):
     def get_outer_angle(self) -> float:
         """Renvoie l'angle extérieur du bord"""
         return self._angle
+    
+    # ======================================== INTERFACE ========================================
