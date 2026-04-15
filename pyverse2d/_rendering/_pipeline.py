@@ -280,9 +280,6 @@ class Pipeline:
         self._context.view_matrix = view
         self._window.native.view = view
 
-        # Actualisation du curseur courant
-        self._update_world_cursor()
-
     def flush(self) -> None:
         """Envoie tout le batch au GPU"""
         self._context.batch.draw()
@@ -603,11 +600,6 @@ class Pipeline:
         elif self._temp_fbo.width != fbo.width or self._temp_fbo.height != fbo.height:
             self._temp_fbo.resize(fbo.width, fbo.height)
         return self._temp_fbo
-    
-    def _update_world_cursor(self):
-        """Actualisation de la position monde du curseur courant"""
-        from pyverse2d import mouse
-        mouse._set_world_position(*self.framebuffer_to_world(mouse.raw_position))
 
 # ======================================== CONTEXT ========================================
 @dataclass(slots=True)
