@@ -193,12 +193,20 @@ class TimeManager(Manager):
     # ======================================== INTERNALES ========================================
     def _update_framerate(self) -> None:
         """Actualise le taux de rafraichissement"""
+        target_dt = self.target_dt
         for func in self._scheduling:
             pyglet.clock.unschedule(func)
-            pyglet.clock.schedule_interval(func, self.target_dt)
+            if target_dt == 0.0:
+                pyglet.clock.schedule(func)
+            else:
+                pyglet.clock.schedule_interval(func, self.target_dt)
+    
         if pyglet.app.event_loop.is_running:
             pyglet.clock.unschedule(pyglet.app.event_loop._redraw_windows)
-            pyglet.clock.schedule_interval(pyglet.app.event_loop._redraw_windows, self.target_dt)
+            if target_dt == 0.0:
+                pyglet.clock.schedule(pyglet.app.event_loop._redraw_windows)
+            else:
+                pyglet.clock.schedule_interval(pyglet.app.event_loop._redraw_windows, self.target_dt)
 
 # ======================================== REQUEST ========================================
 @dataclass(slots=True)
