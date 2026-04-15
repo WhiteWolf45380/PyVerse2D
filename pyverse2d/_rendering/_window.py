@@ -225,7 +225,7 @@ class Window(Space):
             x: coordonnée horizontale dans la fenêtre OS
             y: coordonnée verticale dans la fenêtre OS
         """
-        return (x - self._canvas.x) * (1 / self.logical_scale), (y - self._canvas.y) * (1 / self.logo)
+        return (x - self._canvas.x) * self._framebuffer_scale, (y - self._canvas.y) * self._framebuffer_scale
     
     # ======================================== HOOKS ========================================
     def on_canvas_resize(self, func):
