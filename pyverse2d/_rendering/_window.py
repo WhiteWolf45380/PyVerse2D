@@ -31,7 +31,7 @@ class Window(Space):
     """
     __slots__ = (
         "_screen", "_pyglet_window", "_canvas",
-        "_framebuffer_scale_x", "_framebuffer_scale_y",
+        "_logical_scale", "_framebuffer_scale",
         "_on_canvas_resize_callbacks",
     )
 
@@ -91,8 +91,8 @@ class Window(Space):
         # Projection
         self._canvas: _Canvas = _Canvas(0, 0, width, height)
         self._on_canvas_resize_callbacks: list[Callable[[int, int], None]] = []
-        self._framebuffer_scale_x: float = 1.0
-        self._framebuffer_scale_y: float = 1.0
+        self._logical_scale: float = 1.0
+        self._framebuffer_scale: float = 1.0
         self._apply_letterboxing(width, height)
 
         @self._pyglet_window.event
@@ -156,19 +156,14 @@ class Window(Space):
         return self._canvas
     
     @property
-    def framebuffer_scale(self) -> tuple[float, float]:
+    def framebuffer_scale(self) -> float:
         """Ratio pixels framebuffer / pixels logiques"""
-        return (self._framebuffer_scale_x, self._framebuffer_scale_y)
+        return self._framebuffer_scale
     
     @property
-    def framebuffer_scale_x(self) -> float:
-        """Ratio horizontal pixels framebuffer / pixels logiques"""
-        return self._framebuffer_scale_x
-    
-    @property
-    def framebuffer_scale_y(self) -> float:
-        """Ratio vertical pixels framebuffer / pixels logiques"""
-        return self._framebuffer_scale_y
+    def logical_scale(self) -> tuple[float, float]:
+        """Ratio pixels logiques / pixels framebuffer"""
+        return self._logical_scale
     
     # ======================================== SETTERS ========================================
     def set_caption(self, caption: str):
@@ -221,7 +216,7 @@ class Window(Space):
             x : coordonnée horizontale logique
             y: coordonnée verticale logique
         """
-        return self._canvas.x + x * self._framebuffer_scale_x, self._canvas.y + y * self.framebuffer_scale_y
+        return self._canvas.x + x * self._logical_scale, self._canvas.y + y * self._logical_scale
 
     def window_to_screen(self, x: Real, y: Real) -> tuple[float, float]:
         """Convertit des coordonnées de la fenêtre OS vers l'espace logique
@@ -230,7 +225,7 @@ class Window(Space):
             x: coordonnée horizontale dans la fenêtre OS
             y: coordonnée verticale dans la fenêtre OS
         """
-        return (x - self._canvas.x) * (1 / self._framebuffer_scale_x), (y - self._canvas.y) * (1 / self.framebuffer_scale_y)
+        return (x - self._canvas.x) * (1 / self.logical_scale), (y - self._canvas.y) * (1 / self.logo)
     
     # ======================================== HOOKS ========================================
     def on_canvas_resize(self, func):
@@ -263,8 +258,8 @@ class Window(Space):
         self._canvas.compute(x, y, w, h)
 
         # Mise en cache des ratios
-        self._framebuffer_scale_x = w / self._screen.width
-        self._framebuffer_scale_y = h / self._screen.height
+        self._framebuffer_scale = w / self._screen.width
+        self._logical_scale = self._screen.width / w
 
         # Appel des callbacks
         for callback in self._on_canvas_resize_callbacks:

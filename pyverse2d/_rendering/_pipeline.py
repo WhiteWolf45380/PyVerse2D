@@ -16,7 +16,7 @@ from pyglet.graphics.shader import ShaderProgram
 from typing import TYPE_CHECKING
 from dataclasses import dataclass
 from contextlib import contextmanager
-from ctypes import c_int, c_float
+from ctypes import c_int
 import math
 
 if TYPE_CHECKING: 
@@ -228,14 +228,13 @@ class Pipeline:
 
         # Résolution de la fenêtre OS
         canvas = self._window.canvas
-        sx = self._window.framebuffer_scale_x
-        sy = self._window.framebuffer_scale_y
+        fb_scale = self._window.fb_scale
 
         # Calcul du viewport OpenGl
-        px = int(canvas.x + lx * sx)
-        py = int(canvas.y + ly * sy)
-        pw = int(lw * sx)
-        ph = int(lh * sy)
+        px = int(canvas.x + lx * fb_scale)
+        py = int(canvas.y + ly * fb_scale)
+        pw = int(lw * fb_scale)
+        ph = int(lh * fb_scale)
         self._context.gl_viewport = (px, py, pw, ph)
         gl.glViewport(px, py, pw, ph)
 
@@ -439,8 +438,8 @@ class Pipeline:
         nvc_y = (ty / half_h + 1) / 2
 
         # NVC to Canvas
-        cnv_x = int((lx + ox + nvc_x * lw) * self._window.framebuffer_scale_x)
-        cnv_y = int((ly + oy + nvc_y * lh) * self._window.framebuffer_scale_y)
+        cnv_x = int((lx + ox + nvc_x * lw) * self._window.framebuffer_scale)
+        cnv_y = int((ly + oy + nvc_y * lh) * self._window.framebuffer_scale)
 
         # Canvas to FrameBuffer
         return self._window.canvas.x + cnv_x, self._window.canvas.y + cnv_y
@@ -460,8 +459,8 @@ class Pipeline:
         cx, cy, vw, vh, zoom, rotation = self._context.camera_resolve if camera is None else camera.resolve(lw, lh)
 
         # FrameBuffer to Canvas
-        cnv_x = (x - self._window.canvas.x) / self._window.framebuffer_scale_x
-        cnv_y = (y - self._window.canvas.y) / self._window.framebuffer_scale_y
+        cnv_x = (x - self._window.canvas.x) / self._window.framebuffer_scale
+        cnv_y = (y - self._window.canvas.y) / self._window.framebuffer_scale
 
         # Canvas to NVC
         nvc_x = (cnv_x - lx - ox) / lw
@@ -497,8 +496,8 @@ class Pipeline:
 
         # Scale frustum -> NVC -> framebuffer
         half_w, half_h = vw / (zoom * fdx * 2), vh / (zoom * fdy * 2)
-        fx = (dx / half_w / 2) * lw * self._window.framebuffer_scale_x
-        fy = (dy / half_h / 2) * lh * self._window.framebuffer_scale_y
+        fx = (dx / half_w / 2) * lw * self._window.framebuffer_scale
+        fy = (dy / half_h / 2) * lh * self._window.framebuffer_scale
 
         return fx, fy
 

@@ -73,7 +73,6 @@ _NAMES: dict[MouseManager.Button] = {
 class MouseManager(Manager):
     """Gestionnaire de la souris"""
     __slots__ = (
-        "_viewport_origin",
         "_mouse_x", "_mouse_y",
         "_mouse_out",
         "_mouse_dx", "_mouse_dy",
@@ -122,7 +121,6 @@ class MouseManager(Manager):
         super().__init__(context_manager)
 
         # Position
-        self._viewport_origin: Point = Point(0, 0)
         self._mouse_x: float = 0.0
         self._mouse_y: float = 0.0
         self._mouse_out: bool = False
@@ -156,39 +154,34 @@ class MouseManager(Manager):
 
     # ======================================== PROPERTIES ========================================
     @property
+    def raw_position(self) -> tuple[float, float]:
+        """Position de la souris dans la fenêtre OS"""
+        return self._mouse_x  * self._window.framebuffer_scale, self._mouse_y * self._window.framebuffer_scale
+    
+    @property
+    def raw_x(self) -> float:
+        """Position horizontale de la souris dans la fenêtre OS"""
+        return self._mouse_x * self._window.framebuffer_scale
+    
+    @property
+    def raw_y(self) -> float:
+        """Position verticale de la souris dans la fenêtre OS"""
+        return self._mouse_y * self._window.framebuffer_scale
+
+    @property
     def position(self) -> tuple[float, float]:
-        """Position absolue de la souris"""
+        """Position de la souris dans ``LogicalScreen``"""
         return self._mouse_x, self._mouse_y
 
     @property
     def x(self) -> float:
-        """Position X absolue de la souris"""
+        """Position horizontale de la souris dans ``LogicalScreen``"""
         return self._mouse_x
 
     @property
     def y(self) -> float:
-        """Position Y absolue de la souris"""
+        """Position verticale de la souris dans ``LogicalScreen``"""
         return self._mouse_y
-
-    @property
-    def viewport_origin(self) -> Point:
-        """Origine du viewport courant"""
-        return self._viewport_origin
-    
-    @property
-    def viewport_position(self) -> tuple[float, float]:
-        """Position de la souris dans le viewport courant"""
-        return self.viewport_x, self.viewport_y
-
-    @property
-    def viewport_x(self) -> float:
-        """Position X de la souris dans le viewport courant"""
-        return self._mouse_x - self._viewport_origin.x
-
-    @property
-    def viewport_y(self) -> float:
-        """Position Y de la souris dans le viewport courant"""
-        return self._mouse_y - self._viewport_origin.y
     
     @property
     def motion(self) -> tuple[float, float]:
@@ -245,17 +238,9 @@ class MouseManager(Manager):
         assert isinstance(cursor, MouseCursor), f"Cursor must be a MouseCursor instance, not a {type(cursor)}"
         self._window.native.set_mouse_cursor(cursor.to_pyglet(self._window.native))
 
-    def set_viewport_origin(self, point: Point) -> None:
-        """Définit l'origine du viewport courant
-
-        Args:
-            point: origine du viewport
-        """
-        self._viewport_origin = Point(point)
-
     # ======================================== PREDICATES ========================================
     def is_out(self) -> bool:
-        """Vérifie si la souris est hors du viewport"""
+        """Vérifie si la souris est hors du canvas"""
         return self._mouse_out
     
     def is_pressed(self, button: Button) -> bool:
@@ -341,6 +326,6 @@ class MouseManager(Manager):
         self._mouse_y = ly - self._window.screen.half_height
 
     def _check_out(self) -> None:
-        """Vérifie que la souris soit en dehors du viewport de la fenêtre"""
+        """Vérifie que la souris soit en dehors du canas de la fenêtre"""
         hw, hh = self._window.screen.half_width, self._window.screen.half_height
         self._mouse_out = not (-hw <= self._mouse_x <= hw and -hh <= self._mouse_y <= hh)
