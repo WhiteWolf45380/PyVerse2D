@@ -7,6 +7,8 @@ from ...asset import Color, Image
 import pyglet
 import pyglet.sprite
 
+import os
+
 # ======================================== CONSTANTS ========================================
 _UNSET = object()   # élément non défini
 _HANDLER_GROUPS = {
@@ -92,11 +94,18 @@ class PygletSpriteRenderer:
         """Charge et met en cache une texture depuis son chemin"""
         if path in cls._cache:
             return cls._cache[path]
+
+        directory = os.path.dirname(os.path.abspath(path))
+        if directory not in pyglet.resource.path:
+            pyglet.resource.path.append(directory)
+            pyglet.resource.reindex()
+
+        filename = os.path.basename(path)
         try:
-            raw = pyglet.image.load(path)
+            raw = pyglet.resource.image(filename, atlas=False)
             cls._cache[path] = raw
             return raw
-        except FileNotFoundError:
+        except pyglet.resource.ResourceNotFoundException:
             print(f"[PygletSpriteRenderer] Cannot load image: {path}")
             return None
 
