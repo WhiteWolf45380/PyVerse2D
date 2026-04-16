@@ -81,7 +81,8 @@ void main() {{
         float falloff = texture(u_lut_atlas, vec2(1.0 - normalized, row)).r;
         light_accum += u_colors[i] * u_intensities[i] * falloff;
     }}
-    light_accum = 1.0 - exp(-light_accum);
+
+    light_accum = 1.0 - exp(-light_accum * u_light_scale);
     vec3 lit = pixel.rgb * max(vec3(u_ambient), light_accum);
     out_color = vec4(lit, pixel.a);
 }}
@@ -133,7 +134,8 @@ void main() {{
 
         light_accum += u_colors[i] * u_intensities[i] * radial_falloff * angular_falloff;
     }}
-    light_accum = 1.0 - exp(-light_accum);
+
+    light_accum = 1.0 - exp(-light_accum * u_light_scale);
     vec3 lit = pixel.rgb * max(vec3(u_ambient), light_accum);
     out_color = vec4(lit, pixel.a);
 }}
@@ -200,7 +202,8 @@ void main() {{
 
         light_accum += u_cone_colors[i] * u_cone_intensities[i] * radial_falloff * angular_falloff;
     }}
-    light_accum = 1.0 - exp(-light_accum);
+
+    light_accum = 1.0 - exp(-light_accum * u_light_scale);
     vec3 lit = pixel.rgb * max(vec3(u_ambient), light_accum);
     out_color = vec4(lit, pixel.a);
 }}
@@ -283,7 +286,7 @@ class LightRenderer:
         return tex
 
     # ======================================== RENDER AMBIENT ========================================
-    def render_ambient(self, pipeline: Pipeline, ambient: float, points: list[PointLight], cones: list[ConeLight]) -> None:
+    def render_ambient(self, pipeline: Pipeline, ambient: float, light_scale: float, points: list[PointLight], cones: list[ConeLight]) -> None:
         has_points = bool(points)
         has_cones = bool(cones)
 
@@ -293,14 +296,14 @@ class LightRenderer:
             return
 
         if has_points and has_cones:
-            self._render_points_cones(pipeline, ambient, points, cones)
+            self._render_points_cones(pipeline, ambient, light_scale, points, cones)
         elif has_points:
-            self._render_points(pipeline, ambient, points)
+            self._render_points(pipeline, ambient, light_scale, points)
         else:
-            self._render_cones(pipeline, ambient, cones)
+            self._render_cones(pipeline, ambient, light_scale, cones)
 
     # ======================================== POINTS ONLY ========================================
-    def _render_points(self, pipeline: Pipeline, ambient: float, points: list[PointLight]) -> None:
+    def _render_points(self, pipeline: Pipeline, ambient: float, light_scale: float, points: list[PointLight]) -> None:
         bucket = _get_bucket(len(points))
         program = self._get_point_program(bucket)
         fb_scale = pipeline.window.framebuffer_scale
@@ -324,6 +327,7 @@ class LightRenderer:
 
         pipeline.apply_shader(program,
             u_ambient=ambient,
+            u_light_scale=light_scale,
             u_count=len(points),
             u_positions=positions,
             u_radii=radii,
@@ -335,7 +339,7 @@ class LightRenderer:
         gl.glDeleteTextures(1, ctypes.byref(atlas_tex))
 
     # ======================================== CONES ONLY ========================================
-    def _render_cones(self, pipeline: Pipeline, ambient: float, cones: list[ConeLight]) -> None:
+    def _render_cones(self, pipeline: Pipeline, ambient: float, light_scale: float, cones: list[ConeLight]) -> None:
         bucket = _get_bucket(len(cones))
         program = self._get_cone_program(bucket)
         fb_scale = pipeline.window.framebuffer_scale
@@ -366,6 +370,7 @@ class LightRenderer:
 
         pipeline.apply_shader(program,
             u_ambient=ambient,
+            u_light_scale=light_scale,
             u_count=len(cones),
             u_positions=positions,
             u_directions=directions,
@@ -380,7 +385,7 @@ class LightRenderer:
         gl.glDeleteTextures(1, ctypes.byref(atlas_tex))
 
     # ======================================== POINTS + CONES ========================================
-    def _render_points_cones(self, pipeline: Pipeline, ambient: float, points: list[PointLight], cones: list[ConeLight]) -> None:
+    def _render_points_cones(self, pipeline: Pipeline, ambient: float, light_scale: float, points: list[PointLight], cones: list[ConeLight]) -> None:
         bp = _get_bucket(len(points))
         bc = _get_bucket(len(cones))
         program = self._get_point_cone_program(bp, bc)
@@ -431,6 +436,7 @@ class LightRenderer:
 
         # Uniforms scalaires
         program['u_ambient'] = ambient
+        program['u_light_scale'] = light_scale
         program['u_point_count'] = len(points)
         program['u_cone_count'] = len(cones)
         program['u_point_positions'] = p_positions
