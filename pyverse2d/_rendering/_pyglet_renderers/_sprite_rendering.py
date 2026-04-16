@@ -28,8 +28,7 @@ _HANDLER_GROUPS = {
 
 # ======================================== SPRITE RENDERER ========================================
 class PygletSpriteRenderer:
-    """
-    Renderer pyglet unifié pour un sprite
+    """Renderer pyglet unifié pour un sprite
 
     Args:
         image: descripteur d'image (asset)
