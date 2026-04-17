@@ -141,6 +141,7 @@ class GuiLayer(Layer):
             origin=Point(0.0, 0.0),
             opacity=self._opacity,
             z=0,
+            group=None,
         )
 
 # ======================================== WRAPPER ========================================
