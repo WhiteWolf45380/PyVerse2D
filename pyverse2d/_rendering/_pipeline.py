@@ -161,6 +161,17 @@ class Pipeline:
         """Ratio pixels par unité vertical"""
         return self._context.ppu_y
     
+    # Matrices
+    @property
+    def projection_matrix(self) -> Mat4:
+        """Matrice de projection"""
+        return self._context.projection_matrix
+    
+    @property
+    def view_matrix(self) -> Mat4:
+        """Matrice de vue"""
+        return self._context.view_matrix
+    
     # ======================================== INTERFACE ========================================
     def get_group(self, z: int = 0) -> Group:
         """Renvoie le ``Group`` associé au z-order donné dans le ``Layer``courant
@@ -182,6 +193,8 @@ class Pipeline:
         scene_fbo = self._context.fbo
         temp_fbo = self._get_temp_fbo(scene_fbo)
 
+        gl.glViewport(0, 0, scene_fbo.width, scene_fbo.height)
+
         temp_fbo.bind()
         temp_fbo.clear()
         program.use()
@@ -196,6 +209,8 @@ class Pipeline:
         scene_fbo.clear()
         self.quad.blit(temp_fbo.texture_id)
         scene_fbo.bind()
+
+        gl.glViewport(*self._context.gl_viewport)
 
     # ======================================== PIPELINE ========================================
     def bind_scene(self, scene: Scene) -> None:
@@ -437,8 +452,8 @@ class Pipeline:
         ndc_y = (ty / half_h + 1) / 2
 
         # NDC to LogicalScreen
-        fb_x = int(lx + ox + ndc_x * lw)
-        fb_y = int(ly + oy + ndc_y * lh)
+        fb_x = int((lx + ox + ndc_x * lw))
+        fb_y = int((ly + oy + ndc_y * lh))
 
         return fb_x, fb_y
 
