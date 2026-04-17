@@ -69,12 +69,6 @@ class Pipeline:
         self._context: _PipelineContext = _PipelineContext()
         self._coord_context: CoordContext = CoordContext(self._window, self._window.screen)
 
-        # Abonnement au resize du canvas
-        @self._window.on_canvas_resize
-        def on_canvas_resize(w: int, h: int):
-            for data in self._data.values():
-                data.fbo.resize(w, h)
-
     # ======================================== GETTERS ========================================
     # OpenGl
     @property
@@ -210,34 +204,27 @@ class Pipeline:
         Args:
             scene: scene courante
         """
+        screen = self._window.screen
+
         # Assignation de la scene
         self._context.scene = scene
         self._context.viewport = scene.viewport
 
         # Création des données si non exisantes
         if scene not in self._data:
-            fbo = Framebuffer(self._window.canvas.width, self._window.canvas.height)
+            fbo = Framebuffer(screen.width, screen.height)
             self._data[scene] = SceneData(fbo, {})
 
         # Enregistrement de l'état courant
         self._context.fbo = self._data[scene].fbo
 
         # Résolution du viewport
-        screen = self._window.screen
         self._context.viewport_resolve = scene.viewport.resolve(screen.width, screen.height)
         lx, ly, lw, lh, _, _ = self._context.viewport_resolve
 
-        # Résolution de la fenêtre OS
-        canvas = self._window.canvas
-        fb_scale = self._window.framebuffer_scale
-
         # Calcul du viewport OpenGl
-        px = int(canvas.x + lx * fb_scale)
-        py = int(canvas.y + ly * fb_scale)
-        pw = int(lw * fb_scale)
-        ph = int(lh * fb_scale)
-        self._context.gl_viewport = (px, py, pw, ph)
-        gl.glViewport(px, py, pw, ph)
+        self._context.gl_viewport = (lx, ly, lw, lh)
+        gl.glViewport(lx, ly, lw, lh)
 
         # Assignation du FrameBuffer
         self._context.fbo.bind()
@@ -268,7 +255,7 @@ class Pipeline:
         cx, cy, vw, vh, zoom, rotation = self._context.camera_resolve
 
         # Calcul des ratios
-        self._context.ppu_x,  self._context.ppu_y = self.compute_ppu(lw, lh, vw, vh, zoom)
+        self._context.ppu_x, self._context.ppu_y = self.compute_ppu(lw, lh, vw, vh, zoom)
         self._context.ppu = (self._context.ppu_x + self._context.ppu_y) / 2
 
         # Matrice de projection
@@ -287,9 +274,16 @@ class Pipeline:
 
     def end(self) -> None:
         """Met fin à la connexion avec une scene"""
+        canvas = self._window.canvas
+
         # Blit FBO sur window
         gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, 0)
-        gl.glViewport(*self._context.gl_viewport)
+        gl.glViewport(
+            canvas.x,
+            canvas.y,
+            canvas.width,
+            canvas.height,
+        )
         self._quad.blit(self._context.fbo.texture_id)
 
         # Nettoyage de l'état courant
@@ -433,18 +427,16 @@ class Pipeline:
             cos_r, sin_r = math.cos(rad), math.sin(rad)
             tx, ty = tx * cos_r + ty * sin_r, -tx * sin_r + ty * cos_r
 
-        # Frustum to NVC
+        # Frustum to NDC
         half_w, half_h = vw / (zoom * dx * 2), vh / (zoom * dy * 2)
-        nvc_x = (tx / half_w + 1) / 2
-        nvc_y = (ty / half_h + 1) / 2
+        ndc_x = (tx / half_w + 1) / 2
+        ndc_y = (ty / half_h + 1) / 2
 
-        # NVC to Canvas
-        cnv_x = int((lx + ox + nvc_x * lw) * self._window.framebuffer_scale)
-        cnv_y = int((ly + oy + nvc_y * lh) * self._window.framebuffer_scale)
+        # NDC to LogicalScreen
+        fb_x = int(lx + ox + ndc_x * lw)
+        fb_y = int(ly + oy + ndc_y * lh)
 
-        # Canvas to FrameBuffer
-        return self._window.canvas.x + cnv_x, self._window.canvas.y + cnv_y
-
+        return fb_x, fb_y
 
     def framebuffer_to_world(self, x: int, y: int, viewport: Viewport =  None, camera: Camera = None) -> tuple[float, float]:
         """Convertit un pixel framebuffer en point monde
@@ -459,24 +451,21 @@ class Pipeline:
         lx, ly, lw, lh, (ox, oy), (dx, dy) = self._context.viewport_resolve if viewport is None else viewport.resolve(self._window.screen.width, self._window.screen.height)
         cx, cy, vw, vh, zoom, rotation = self._context.camera_resolve if camera is None else camera.resolve(lw, lh)
 
-        # FrameBuffer to Canvas
-        cnv_x = (x - self._window.canvas.x) / self._window.framebuffer_scale
-        cnv_y = (y - self._window.canvas.y) / self._window.framebuffer_scale
+        # LogicalScreen to NDC
+        ndc_x = (x - lx - ox) / lw
+        ndc_y = (y - ly - oy) / lh
 
-        # Canvas to NVC
-        nvc_x = (cnv_x - lx - ox) / lw
-        nvc_y = (cnv_y - ly - oy) / lh
-
-        # NVC to Frustum
+        # NDC to Frustum
         half_w, half_h = vw / (zoom * dx * 2), vh / (zoom * dy * 2)
-        fr_x = (nvc_x * 2 - 1) * half_w
-        fr_y = (nvc_y * 2 - 1) * half_h
+        fr_x = (ndc_x * 2 - 1) * half_w
+        fr_y = (ndc_y * 2 - 1) * half_h
 
         # Frustum to World
         if rotation != 0.0:
             rad = math.radians(rotation)
             cos_r, sin_r = math.cos(rad), math.sin(rad)
             fr_x, fr_y = fr_x * cos_r - fr_y * sin_r, fr_x * sin_r + fr_y * cos_r
+
         return fr_x + cx, fr_y + cy
     
     def world_to_framebuffer_dir(self, dx: float, dy: float) -> tuple[float, float]:
@@ -495,10 +484,10 @@ class Pipeline:
             cos_r, sin_r = math.cos(rad), math.sin(rad)
             dx, dy = dx * cos_r + dy * sin_r, -dx * sin_r + dy * cos_r
 
-        # Scale frustum -> NVC -> framebuffer
+        # Scale frustum -> NVC -> Framebuffer
         half_w, half_h = vw / (zoom * fdx * 2), vh / (zoom * fdy * 2)
-        fx = (dx / half_w / 2) * lw * self._window.framebuffer_scale
-        fy = (dy / half_h / 2) * lh * self._window.framebuffer_scale
+        fx = (dx / half_w / 2) * lw
+        fy = (dy / half_h / 2) * lh
 
         return fx, fy
 
@@ -524,8 +513,8 @@ class Pipeline:
         half_h = vh / (zoom * 2 * abs(dy))
         return (cx - half_w, cy - half_h, half_w * 2, half_h * 2)
 
-    def scale_to_screen(self, width: float = None, height: float = None) -> float | tuple[float, float]:
-        """Convertit une taille monde en taille espace logique
+    def scale_to_framebuffer(self, width: float = None, height: float = None) -> float | tuple[float, float]:
+        """Convertit une taille monde en taille framebuffer
         
         Args:
             width: largeur monde
