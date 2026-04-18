@@ -129,7 +129,7 @@ class PygletLabelRenderer:
             height=height,
             multiline=self._multiline,
             rotation=-self._rotation,
-            batch=self._pipeline,
+            batch=self._pipeline.batch,
             group=self._pipeline.get_group(z=self._z) if self._parent is None else self._parent,
         )
         self._apply_styles()
