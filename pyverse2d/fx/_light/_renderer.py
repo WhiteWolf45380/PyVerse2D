@@ -304,7 +304,6 @@ void main() {{
 }}
 """
 
-
 # ======================================== RENDERER ========================================
 class LightRenderer:
     """Renderer de lumière 2D"""
@@ -320,12 +319,15 @@ class LightRenderer:
 
     _lut_cache: dict[tuple, gl.GLuint] = {}
 
+    _vec2_pool:  dict[tuple[int, int], list] = {}
+    _vec3_pool:  dict[tuple[int, int], list] = {}
+    _float_pool: dict[tuple[int, int], list] = {}
+
     def __init__(self):
         self._active_points: list[PointLight] = []
         self._active_cones: list[ConeLight] = []
 
     # ======================================== SHADER CACHE ========================================
-
     @classmethod
     def _get_tint_program(cls) -> ShaderProgram:
         """Retourne (en le créant si nécessaire) le shader de tint coloré."""
@@ -398,8 +400,47 @@ class LightRenderer:
             gl.glDeleteTextures(1, ctypes.byref(tex))
         cls._lut_cache.clear()
 
-    # ======================================== LUT ATLAS ========================================
+    # ======================================== BUFFER POOLS ========================================
+    @classmethod
+    def _vec2(cls, bucket: int, slot: int) -> list:
+        """Retourne (en le créant si nécessaire) une liste pré-allouée de bucket tuples (x, y)
 
+        Args:
+            bucket: nombre d'entrées (nombre de lumières dans le bucket)
+            slot: indice de slot pour éviter les collisions entre buffers de même taille
+        """
+        key = (bucket, slot)
+        if key not in cls._vec2_pool:
+            cls._vec2_pool[key] = [(0.0, 0.0)] * bucket
+        return cls._vec2_pool[key]
+
+    @classmethod
+    def _vec3(cls, bucket: int, slot: int) -> list:
+        """Retourne (en le créant si nécessaire) une liste pré-allouée de bucket tuples (x, y, z)
+
+        Args:
+            bucket: nombre d'entrées (nombre de lumières dans le bucket)
+            slot: indice de slot pour éviter les collisions entre buffers de même taille
+        """
+        key = (bucket, slot)
+        if key not in cls._vec3_pool:
+            cls._vec3_pool[key] = [(0.0, 0.0, 0.0)] * bucket
+        return cls._vec3_pool[key]
+
+    @classmethod
+    def _floats(cls, bucket: int, slot: int) -> list:
+        """Retourne (en le créant si nécessaire) une liste pré-allouée de bucket floats
+
+        Args:
+            bucket: nombre d'entrées (nombre de lumières dans le bucket)
+            slot: indice de slot pour éviter les collisions entre buffers de même taille
+        """
+        key = (bucket, slot)
+        if key not in cls._float_pool:
+            cls._float_pool[key] = [0.0] * bucket
+        return cls._float_pool[key]
+
+    # ======================================== LUT ATLAS ========================================
     @staticmethod
     def _lut_key(lights: list, bucket: int) -> tuple:
         """Calcule la clé de cache pour un LUT atlas.
@@ -442,7 +483,6 @@ class LightRenderer:
         return tex
 
     # ======================================== RENDER AMBIENT ========================================
-
     def render_ambient(
         self,
         pipeline: Pipeline,
@@ -486,7 +526,6 @@ class LightRenderer:
             self._render_cones(pipeline, ambient, exposure, cones, ambient_color=ambient_color, gamma=gamma)
 
     # ======================================== POINTS ONLY ========================================
-
     def _render_points(
         self,
         pipeline: Pipeline,
@@ -507,25 +546,25 @@ class LightRenderer:
             ambient_color: Teinte RGB de l'ambient
             gamma: Correction gamma de sortie
         """
-        bucket = _get_bucket(len(points))
-        program = self._get_point_program(bucket)
+        bucket   = _get_bucket(len(points))
+        program  = self._get_point_program(bucket)
         fb_scale = pipeline.window.framebuffer_scale
+
+        pos_buf = self._vec2(bucket, 0)
+        col_buf = self._vec3(bucket, 0)
+        rad_buf = self._floats(bucket, 0)
+        int_buf = self._floats(bucket, 1)
+
+        for i, light in enumerate(points):
+            fx, fy = pipeline.world_to_framebuffer(light.x, light.y)
+            pos_buf[i] = (float(fx), float(fy))
+            col_buf[i] = light.color.rgb
+            rad_buf[i] = light.radius * pipeline.ppu * fb_scale
+            int_buf[i] = light.intensity
 
         atlas_tex = self._get_lut_atlas(points, bucket)
         gl.glActiveTexture(gl.GL_TEXTURE1)
         gl.glBindTexture(gl.GL_TEXTURE_2D, atlas_tex)
-
-        positions   = [(0.0, 0.0)] * bucket
-        radii       = [1.0] * bucket
-        colors      = [(1.0, 1.0, 1.0)] * bucket
-        intensities = [0.0] * bucket
-
-        for i, light in enumerate(points):
-            fx, fy = pipeline.world_to_framebuffer(light.x, light.y)
-            positions[i] = (float(fx), float(fy))
-            radii[i] = light.radius * pipeline.ppu * fb_scale
-            colors[i] = light.color.rgb
-            intensities[i] = light.intensity
 
         pipeline.apply_shader(program,
             u_ambient=ambient,
@@ -533,15 +572,14 @@ class LightRenderer:
             u_exposure=exposure,
             u_gamma=gamma,
             u_count=len(points),
-            u_positions=positions,
-            u_radii=radii,
-            u_colors=colors,
-            u_intensities=intensities,
+            u_positions=pos_buf,
+            u_radii=rad_buf,
+            u_colors=col_buf,
+            u_intensities=int_buf,
             u_lut=1,
         )
 
     # ======================================== CONES ONLY ========================================
-
     def _render_cones(
         self,
         pipeline: Pipeline,
@@ -562,32 +600,32 @@ class LightRenderer:
             ambient_color: Teinte RGB de l'ambient
             gamma: Correction gamma de sortie
         """
-        bucket = _get_bucket(len(cones))
-        program = self._get_cone_program(bucket)
+        bucket   = _get_bucket(len(cones))
+        program  = self._get_cone_program(bucket)
         fb_scale = pipeline.window.framebuffer_scale
+
+        pos_buf = self._vec2(bucket, 1)
+        dir_buf = self._vec2(bucket, 2)
+        col_buf = self._vec3(bucket, 1)
+        rad_buf = self._floats(bucket, 2)
+        int_buf = self._floats(bucket, 3)
+        inn_buf = self._floats(bucket, 4)
+        out_buf = self._floats(bucket, 5)
+
+        for i, light in enumerate(cones):
+            fx, fy   = pipeline.world_to_framebuffer(light.x, light.y)
+            dfx, dfy = pipeline.world_to_framebuffer_dir_normalized(light.direction.x, light.direction.y)
+            pos_buf[i] = (float(fx), float(fy))
+            dir_buf[i] = (dfx, dfy)
+            col_buf[i] = light.color.rgb
+            rad_buf[i] = light.radius * pipeline.ppu * fb_scale
+            int_buf[i] = light.intensity
+            inn_buf[i] = math.radians(light.get_inner_angle())
+            out_buf[i] = math.radians(light.get_outer_angle())
 
         atlas_tex = self._get_lut_atlas(cones, bucket)
         gl.glActiveTexture(gl.GL_TEXTURE1)
         gl.glBindTexture(gl.GL_TEXTURE_2D, atlas_tex)
-
-        positions = [(0.0, 0.0)] * bucket
-        directions = [(1.0, 0.0)] * bucket
-        radii = [1.0] * bucket
-        inner_angles = [0.0] * bucket
-        outer_angles = [0.0] * bucket
-        colors = [(1.0, 1.0, 1.0)] * bucket
-        intensities = [0.0] * bucket
-
-        for i, light in enumerate(cones):
-            fx, fy = pipeline.world_to_framebuffer(light.x, light.y)
-            dir_fb = pipeline.world_to_framebuffer_dir_normalized(light.direction.x, light.direction.y)
-            positions[i] = (float(fx), float(fy))
-            directions[i] = dir_fb
-            radii[i] = light.radius * pipeline.ppu * fb_scale
-            inner_angles[i] = math.radians(light.get_inner_angle())
-            outer_angles[i] = math.radians(light.get_outer_angle())
-            colors[i] = light.color.rgb
-            intensities[i] = light.intensity
 
         pipeline.apply_shader(program,
             u_ambient=ambient,
@@ -595,18 +633,17 @@ class LightRenderer:
             u_exposure=exposure,
             u_gamma=gamma,
             u_count=len(cones),
-            u_positions=positions,
-            u_directions=directions,
-            u_radii=radii,
-            u_inner_angles=inner_angles,
-            u_outer_angles=outer_angles,
-            u_colors=colors,
-            u_intensities=intensities,
+            u_positions=pos_buf,
+            u_directions=dir_buf,
+            u_radii=rad_buf,
+            u_inner_angles=inn_buf,
+            u_outer_angles=out_buf,
+            u_colors=col_buf,
+            u_intensities=int_buf,
             u_lut=1,
         )
 
     # ======================================== POINTS + CONES ========================================
-
     def _render_points_cones(
         self,
         pipeline: Pipeline,
@@ -629,46 +666,44 @@ class LightRenderer:
             ambient_color: Teinte RGB de l'ambient
             gamma: Correction gamma de sortie
         """
-        bp = _get_bucket(len(points))
-        bc = _get_bucket(len(cones))
-        program = self._get_point_cone_program(bp, bc)
+        bp       = _get_bucket(len(points))
+        bc       = _get_bucket(len(cones))
+        program  = self._get_point_cone_program(bp, bc)
         fb_scale = pipeline.window.framebuffer_scale
 
-        point_atlas = self._get_lut_atlas(points, bp)
-        cone_atlas = self._get_lut_atlas(cones, bc)
-
-        # Points
-        p_positions = [(0.0, 0.0)] * bp
-        p_radii = [1.0] * bp
-        p_colors = [(1.0, 1.0, 1.0)] * bp
-        p_intensities = [0.0] * bp
+        p_pos = self._vec2(bp, 0)
+        p_col = self._vec3(bp, 0)
+        p_rad = self._floats(bp, 0)
+        p_int = self._floats(bp, 1)
 
         for i, light in enumerate(points):
             fx, fy = pipeline.world_to_framebuffer(light.x, light.y)
-            p_positions[i] = (float(fx), float(fy))
-            p_radii[i] = light.radius * pipeline.ppu * fb_scale
-            p_colors[i] = light.color.rgb
-            p_intensities[i] = light.intensity
+            p_pos[i] = (float(fx), float(fy))
+            p_col[i] = light.color.rgb
+            p_rad[i] = light.radius * pipeline.ppu * fb_scale
+            p_int[i] = light.intensity
 
-        # Cones
-        c_positions = [(0.0, 0.0)] * bc
-        c_directions = [(1.0, 0.0)] * bc
-        c_radii = [1.0] * bc
-        c_inner_angles = [0.0] * bc
-        c_outer_angles = [0.0] * bc
-        c_colors = [(1.0, 1. , 1.0)] * bc
-        c_intensities = [0.0] * bc
+        c_pos = self._vec2(bc, 1)
+        c_dir = self._vec2(bc, 2)
+        c_col = self._vec3(bc, 1)
+        c_rad = self._floats(bc, 2)
+        c_int = self._floats(bc, 3)
+        c_inn = self._floats(bc, 4)
+        c_out = self._floats(bc, 5)
 
         for i, light in enumerate(cones):
-            fx, fy = pipeline.world_to_framebuffer(light.x, light.y)
-            dir_fb = pipeline.world_to_framebuffer_dir_normalized(light.direction.x, light.direction.y)
-            c_positions[i] = (float(fx), float(fy))
-            c_directions[i] = dir_fb
-            c_radii[i] = light.radius * pipeline.ppu * fb_scale
-            c_inner_angles[i] = math.radians(light.get_inner_angle())
-            c_outer_angles[i] = math.radians(light.get_outer_angle())
-            c_colors[i] = light.color.rgb
-            c_intensities[i] = light.intensity
+            fx, fy   = pipeline.world_to_framebuffer(light.x, light.y)
+            dfx, dfy = pipeline.world_to_framebuffer_dir_normalized(light.direction.x, light.direction.y)
+            c_pos[i] = (float(fx), float(fy))
+            c_dir[i] = (dfx, dfy)
+            c_col[i] = light.color.rgb
+            c_rad[i] = light.radius * pipeline.ppu * fb_scale
+            c_int[i] = light.intensity
+            c_inn[i] = math.radians(light.get_inner_angle())
+            c_out[i] = math.radians(light.get_outer_angle())
+
+        point_atlas = self._get_lut_atlas(points, bp)
+        cone_atlas  = self._get_lut_atlas(cones, bc)
 
         gl.glActiveTexture(gl.GL_TEXTURE1)
         gl.glBindTexture(gl.GL_TEXTURE_2D, point_atlas)
@@ -682,23 +717,22 @@ class LightRenderer:
             u_gamma=gamma,
             u_point_count=len(points),
             u_cone_count=len(cones),
-            u_point_positions=p_positions,
-            u_point_radii=p_radii,
-            u_point_colors=p_colors,
-            u_point_intensities=p_intensities,
-            u_cone_positions=c_positions,
-            u_cone_directions=c_directions,
-            u_cone_radii=c_radii,
-            u_cone_inner_angles=c_inner_angles,
-            u_cone_outer_angles=c_outer_angles,
-            u_cone_colors=c_colors,
-            u_cone_intensities=c_intensities,
+            u_point_positions=p_pos,
+            u_point_radii=p_rad,
+            u_point_colors=p_col,
+            u_point_intensities=p_int,
+            u_cone_positions=c_pos,
+            u_cone_directions=c_dir,
+            u_cone_radii=c_rad,
+            u_cone_inner_angles=c_inn,
+            u_cone_outer_angles=c_out,
+            u_cone_colors=c_col,
+            u_cone_intensities=c_int,
             u_point_lut=1,
             u_cone_lut=2,
         )
 
     # ======================================== TINT ========================================
-
     def render_tint(
         self,
         pipeline: Pipeline,
@@ -715,7 +749,6 @@ class LightRenderer:
         pipeline.apply_shader(self._get_tint_program(), u_tint=tint, u_strength=strength)
 
     # ======================================== VIGNETTE ========================================
-
     def render_vignette(
         self,
         pipeline: Pipeline,
