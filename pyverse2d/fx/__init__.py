@@ -2,7 +2,6 @@
 from ._light import (
     PointLight,
     ConeLight,
-    AreaLight,
     LightRenderer,
 )
 
@@ -10,6 +9,5 @@ from ._light import (
 __all__ = [
     "PointLight",
     "ConeLight",
-    "AreaLight",
     "LightRenderer",
 ]
