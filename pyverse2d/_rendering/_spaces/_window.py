@@ -31,7 +31,7 @@ class Window(Space):
     """
     __slots__ = (
         "_screen", "_pyglet_window", "_canvas",
-        "_logical_scale", "_framebuffer_scale",
+        "_logical_scale", "_physical_scale",
     )
 
     def __init__(
@@ -90,7 +90,7 @@ class Window(Space):
         # Projection
         self._canvas: _Canvas = _Canvas(0, 0, width, height)
         self._logical_scale: float = 1.0
-        self._framebuffer_scale: float = 1.0
+        self._physical_scale: float = 1.0
         self._apply_letterboxing(width, height)
 
         @self._pyglet_window.event
@@ -154,13 +154,13 @@ class Window(Space):
         return self._canvas
     
     @property
-    def framebuffer_scale(self) -> float:
-        """Ratio pixels framebuffer / pixels logiques"""
-        return self._framebuffer_scale
+    def physical_scale(self) -> float:
+        """Ratio pixels phyisiques / pixels logiques"""
+        return self._physical_scale
     
     @property
     def logical_scale(self) -> tuple[float, float]:
-        """Ratio pixels logiques / pixels framebuffer"""
+        """Ratio pixels logiques / pixels physiques"""
         return self._logical_scale
     
     # ======================================== SETTERS ========================================
@@ -223,7 +223,7 @@ class Window(Space):
             x: coordonnée horizontale dans la fenêtre OS
             y: coordonnée verticale dans la fenêtre OS
         """
-        return (x - self._canvas.x) * self._framebuffer_scale, (y - self._canvas.y) * self._framebuffer_scale
+        return (x - self._canvas.x) * self._physical_scale, (y - self._canvas.y) * self._physical_scale
     
     # ======================================== INTERNALS ========================================
     def _apply_letterboxing(self, win_w: int, win_h: int):
@@ -250,7 +250,7 @@ class Window(Space):
         self._canvas.compute(x, y, w, h)
 
         # Mise en cache des ratios
-        self._framebuffer_scale = w / self._screen.width
+        self._physical_scale = w / self._screen.width
         self._logical_scale = self._screen.width / w
 
 # ======================================== CANVAS ========================================

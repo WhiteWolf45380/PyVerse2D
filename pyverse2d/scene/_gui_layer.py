@@ -123,7 +123,7 @@ class GuiLayer(Layer):
 
     def _draw(self, pipeline: Pipeline) -> None:
         """Affichage du layer"""
-        context = self._generate_context()
+        context = self._generate_context(pipeline)
         for wrapper in self._wrappers:
             wrapper.widget.draw(pipeline, context)
 
@@ -135,9 +135,10 @@ class GuiLayer(Layer):
                 return wrapper
         raise ValueError(f"This layer has not widget {widget}")
     
-    def _generate_context(self) -> RenderContext:
+    def _generate_context(self, pipeline: Pipeline) -> RenderContext:
         """Génère un contexte de rendu"""
         return RenderContext(
+            pipeline=pipeline,
             origin=Point(0.0, 0.0),
             opacity=self._opacity,
             z=0,

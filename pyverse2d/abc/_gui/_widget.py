@@ -645,9 +645,9 @@ class Widget(ABC):
         context.z += 1
         context.origin += self._position
         context.opacity *= self._opacity
-        context.group = WidgetGroup.get_group(order=context.z, parent=context.group, scissor=self._compute_scissor() if self._clipping else None)
+        context.group = WidgetGroup.get_group(order=context.z, parent=context.group, scissor=self._compute_scissor(context) if self._clipping else None)
 
-    def _compute_scissor(self) -> tuple | None:
+    def _compute_scissor(self, context: RenderContext) -> tuple | None:
         """Calcule le scissor résolu en coordonnées framebuffer"""
         if not self._scissor_dirty:
             return self._cached_scissor
@@ -660,7 +660,9 @@ class Widget(ABC):
                 scale=getattr(self, "_scale", 1.0),
                 rotation=getattr(self, "_rotation", 0.0),
             )
-            scissor = (int(xmin), int(ymin), int(xmax - xmin), int(ymax - ymin))
+            x, y = context.pipeline.world_to_framebuffer(xmin, ymin)
+            width, height = context.pipeline.scale_to_framebuffer(xmax - xmin, ymax - ymin)
+            scissor = (int(x), int(y), int(width), int(height))
             parent_scissor = self._parent._compute_scissor() if self._parent else None
             result = intersect(parent_scissor, scissor) if parent_scissor else scissor
         self._cached_scissor = result
