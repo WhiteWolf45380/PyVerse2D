@@ -14,14 +14,16 @@ class LightLayer(Layer):
     """Layer gérant la lumière
 
     Args:
-        ambient: luminosité ambiante [0, 1]
-        light_scale: facteur d'intensité des lumières *[0, inf[*
+        ambient: luminosité ambiante *[0, 1]*
+        ambient_color: teinte ambiante
+        gamma: facteur de luminosité global *[0, 1]*
+        exposure: facteur d'intensité des lumières *[0, inf[*
         tint: couleur d'accentuation *(RGB)*
         tint_strength: intensité de la teinte
         camera: caméra locale
     """
     __slots__ = (
-        "_ambient", "_light_scale", "_tint", "_tint_strength",
+        "_ambient", "_ambient_color", "_gamma", "_exposure", "_tint", "_tint_strength",
         "_sources", "_active_points", "_active_cones", "_active_areas",
         "_renderer",
     )
@@ -31,7 +33,9 @@ class LightLayer(Layer):
     def __init__(
             self,
             ambient: Real = 1.0,
-            light_scale: Real = 1.0,
+            ambient_color: Color = (255, 255, 255),
+            gamma: Real = 1.0,
+            exposure: Real = 1.0,
             tint: Color = (255, 255, 255),
             tint_strength: Real = 0.0,
             camera: Camera = None
@@ -41,13 +45,16 @@ class LightLayer(Layer):
 
         # Paramètres publiques
         self._ambient: float = float(ambient)
-        self._light_scale: float = float(light_scale)
+        self._ambient_color = Color(ambient_color)
+        self._gamma: float = float(gamma)
+        self._exposure: float = float(exposure)
         self._tint: Color = Color(tint)
         self._tint_strength: float = float(tint_strength)
 
         if __debug__:
             if not 0.0 <= self._ambient <= 1.0: raise ValueError(f"ambient must be within 0.0 and 1.0, got {self._ambient}")
-            if self._light_scale < 0.0: raise ValueError(f"light_scale must be positive, got {self._light_scale}")
+            if self._gamma < 0.0: raise ValueError(f"gamma must be positive, got {self._gamma}")
+            if self._exposure < 0.0: raise ValueError(f"exposure must be positive, got {self._exposure}")
             if not 0.0 <= self._tint_strength <= 1.0: raise ValueError(f"tint_strength must be within 0.0 and 1.0, got {self._tint_strength}")
 
         # Paramètres internes
@@ -74,18 +81,46 @@ class LightLayer(Layer):
         self._ambient = value
 
     @property
-    def light_scale(self) -> float:
+    def ambient_color(self) -> Color:
+        """Teinte ambiante
+
+        La couleur ambiante peut être un objet ``Color`` ou n'importe quel tuple ``(r, g, b)``.
+        Mettre cette propriété à (255, 255, 255) pour une couleur ambiante par défaut.
+        """
+        return self._ambient_color
+    
+    @ambient_color
+    def ambient_color(self, value: Color) -> None:
+        self._ambient_color = Color(value)
+
+    @property
+    def gamma(self) -> float:
+        """Facteur de luminosité global
+
+        Le gamma doit être un ``Réel`` positif.
+        Mettre cette propriété à 1.0 pour une luminosité normale.
+        """
+        return self._gamma
+    
+    @gamma.setter
+    def gamma(self, value: Real) -> None:
+        value = float(value)
+        assert value >= 0.0, f"gamma ({value}) must be positive"
+        self._gamma = value
+
+    @property
+    def exposure(self) -> float:
         """Facteur d'intensité des lumières
 
         Le facteur doit être un ``Réel`` positif.
         Mettre cette propriété à 1.0 pour un éclairage par défaut.
         """
-        return self._light_scale
+        return self._exposure
     
-    @light_scale.setter
-    def light_scale(self, value: Real) -> None:
+    @exposure.setter
+    def exposure(self, value: Real) -> None:
         value = float(value)
-        assert value >= 0.0, f"light_scale must be positive, got {value}"
+        assert value >= 0.0, f"exposure must be positive, got {value}"
 
     @property
     def tint(self) -> Color:
@@ -168,7 +203,7 @@ class LightLayer(Layer):
 
     def _draw(self, pipeline: Pipeline) -> None:
         """Affichage"""
-        self._renderer.render_ambient(pipeline, self._ambient, self._light_scale, self._active_points, self._active_cones)
+        self._renderer.render_ambient(pipeline, self._ambient, self._exposure, self._active_points, self._active_cones, ambient_color=self._ambient_color, gamma=self._gamma)
         self._renderer.render_tint(pipeline, self._tint.rgb, self._tint_strength)
 
     # ======================================== LIFE CYCLE ========================================
