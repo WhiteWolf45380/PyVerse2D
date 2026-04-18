@@ -89,7 +89,7 @@ class LightLayer(Layer):
         """
         return self._ambient_color
     
-    @ambient_color
+    @ambient_color.setter
     def ambient_color(self, value: Color) -> None:
         self._ambient_color = Color(value)
 
