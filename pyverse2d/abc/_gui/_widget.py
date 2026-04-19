@@ -396,7 +396,11 @@ class Widget(ABC):
             raise ValueError(f"This widget already has a {type(behavior).__name__}, try to remove it first")
         behavior.attach(self, _from_widget=True)
         setattr(self, f"_{behavior._ID}", behavior)
-        insort(self._behaviors, behavior, key=lambda b: -b._PRIORITY)
+        for i in range(len(self._behaviors)):
+            if behavior._PRIORITY > self._behaviors[i]:
+                self._behaviors.insert(i, behavior._ID)
+                return
+        self._behaviors.append(behavior._ID)
 
     def remove_behavior(self, behavior: Behavior | Type[Behavior]) -> None:
         """Retire un comportement
