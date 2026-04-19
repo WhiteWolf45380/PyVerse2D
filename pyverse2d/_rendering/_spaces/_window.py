@@ -214,7 +214,7 @@ class Window(Space):
             x : coordonnée horizontale logique
             y: coordonnée verticale logique
         """
-        return self._canvas.x + x * self._logical_scale, self._canvas.y + y * self._logical_scale
+        return self._canvas.x + x * self._physical_scale, self._canvas.y + y * self._physical_scale
 
     def window_to_screen(self, x: Real, y: Real) -> tuple[float, float]:
         """Convertit des coordonnées de la fenêtre OS vers l'espace logique
@@ -223,7 +223,7 @@ class Window(Space):
             x: coordonnée horizontale dans la fenêtre OS
             y: coordonnée verticale dans la fenêtre OS
         """
-        return (x - self._canvas.x) * self._physical_scale, (y - self._canvas.y) * self._physical_scale
+        return (x - self._canvas.x) * self._logical_scale, (y - self._canvas.y) * self._logical_scale
     
     # ======================================== INTERNALS ========================================
     def _apply_letterboxing(self, win_w: int, win_h: int):

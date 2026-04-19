@@ -81,84 +81,60 @@ class CoordinatesManager(Manager):
     # ======================================== FAST CONVERSIONS ========================================
     def world_to_logical(self, x: float, y: float, viewport: Viewport = None, camera: Camera = None) -> tuple[int, int]:
         """Conversion directe World to Logical (espace LogicalScreen)"""
+        # Résolutions
         vp_r, cam_r = self._resolve(viewport, camera)
         lx, ly, lw, lh, (ox, oy), (dx, dy) = vp_r
         cx, cy, vw, vh, zoom, rotation = cam_r
 
+        # World to Frustum
         fx, fy = x - cx, y - cy
         if rotation != 0.0:
             rad = math.radians(rotation)
             c, s = math.cos(rad), math.sin(rad)
             fx, fy = fx * c + fy * s, -fx * s + fy * c
 
-        fx = ((fx / ((vw / zoom) / 2)) + 1) / 2
-        fy = ((fy / ((vh / zoom) / 2)) + 1) / 2
+        # Frustum to NDC to NVC
+        nvc_x = ((fx / (vw * zoom * 2)) + 1) / 2
+        nvc_y = ((fy / (vh * zoom * 2)) + 1) / 2
 
-        return int(lx + ox + fx * lw * dx), int(ly + oy + fy * lh * dy)
+        # NVC to Viewport to Logical
+        return int(lx + ox + nvc_x * lw * dx), int(ly + oy + nvc_y * lh * dy)
 
     def logical_to_world(self, x: float, y: float, viewport: Viewport = None, camera: Camera = None) -> tuple[float, float]:
         """Conversion directe Logical to World"""
+        # Résolutions
         vp_r, cam_r = self._resolve(viewport, camera)
         lx, ly, lw, lh, (ox, oy), (dx, dy) = vp_r
         cx, cy, vw, vh, zoom, rotation = cam_r
 
+        # Logical to Viewport to NVC
         nvc_x = (x - lx - ox) / (dx * lw)
         nvc_y = (y - ly - oy) / (dy * lh)
 
-        fr_x = (nvc_x * 2 - 1) * (vw / zoom) / 2
-        fr_y = (nvc_y * 2 - 1) * (vh / zoom) / 2
+        # NVC to NDC to Frustum
+        fr_x = (nvc_x * 2 - 1) * (vw * zoom * 2)
+        fr_y = (nvc_y * 2 - 1) * (vh * zoom * 2)
 
+        # Frustum to World
         if rotation != 0.0:
             rad = math.radians(rotation)
             c, s = math.cos(rad), math.sin(rad)
-            fr_x, fr_y = fr_x * c - fr_y * s, fr_x * s + fr_y * c
+            fr_x, fr_y = fr_x * c + fr_y * s, fr_x * s - fr_y * c
         return fr_x + cx, fr_y + cy
 
-    def window_to_world(self, x: float, y: float, viewport: Viewport = None, camera: Camera = None) -> tuple[float, float]:
-        """Conversion directe Window to World"""
-        vp_r, cam_r = self._resolve(viewport, camera)
-        lx, ly, lw, lh, (ox, oy), (dx, dy) = vp_r
-        cx, cy, vw, vh, zoom, rotation = cam_r
+    def window_to_logical(self, x: float, y: float) -> tuple[float, float]:
+        """Conversion directe Window to Logical"""
         canvas = self._window.canvas
+        logic_x = (x - canvas.x) * self._window.logical_scale
+        logic_y = (y - canvas.y) * self._window.logical_scale
+        return logic_x, logic_y
 
-        log_x = (x - canvas.x) * self._window.physical_scale
-        log_y = (y - canvas.y) * self._window.physical_scale
-
-        nvc_x = (log_x - lx - ox) / (dx * lw)
-        nvc_y = (log_y - ly - oy) / (dy * lh)
-
-        fr_x = (nvc_x * 2 - 1) * (vw / zoom) / 2
-        fr_y = (nvc_y * 2 - 1) * (vh / zoom) / 2
-
-        if rotation != 0.0:
-            rad = math.radians(rotation)
-            c, s = math.cos(rad), math.sin(rad)
-            fr_x, fr_y = fr_x * c - fr_y * s, fr_x * s + fr_y * c
-        return fr_x + cx, fr_y + cy
-
-    def world_to_window(self, x: float, y: float, viewport: Viewport = None, camera: Camera = None) -> tuple[int, int]:
-        """Conversion directe World to Window"""
-        vp_r, cam_r = self._resolve(viewport, camera)
-        lx, ly, lw, lh, (ox, oy), (dx, dy) = vp_r
-        cx, cy, vw, vh, zoom, rotation = cam_r
+    def logical_to_window(self, x: float, y: float) -> tuple[int, int]:
+        """Conversion directe Logical to Window"""
         canvas = self._window.canvas
-
-        fx, fy = x - cx, y - cy
-        if rotation != 0.0:
-            rad = math.radians(rotation)
-            c, s = math.cos(rad), math.sin(rad)
-            fx, fy = fx * c + fy * s, -fx * s + fy * c
-
-        fx = ((fx / ((vw / zoom) / 2)) + 1) / 2
-        fy = ((fy / ((vh / zoom) / 2)) + 1) / 2
-
-        log_x = lx + ox + fx * lw * dx
-        log_y = ly + oy + fy * lh * dy
-
-        return (
-            int(canvas.x + log_x * self._window.logical_scale),
-            int(canvas.y + log_y * self._window.logical_scale),
-        )
+        win_x = int(canvas.x + x * self._window.physical_scale),
+        win_y = int(canvas.y + y * self._window.physical_scale),
+        return win_x, win_y
 
     # ======================================== GLOBAL CONVERSIONS ========================================
     def convert(
@@ -247,7 +223,7 @@ class CoordinatesManager(Manager):
         if rotation != 0.0:
             rad = math.radians(rotation)
             c, s = math.cos(rad), math.sin(rad)
-            fx, fy = fx * c + fy * s, -fx * s + fy * c
+            fx, fy = fx * c - fy * s, fx * s + fy * c
         return fx, fy
 
     @staticmethod
@@ -317,7 +293,7 @@ class CoordinatesManager(Manager):
         if rotation != 0.0:
             rad = math.radians(rotation)
             c, s = math.cos(rad), math.sin(rad)
-            fr_x, fr_y = fr_x * c - fr_y * s, fr_x * s + fr_y * c
+            fr_x, fr_y = fr_x * c + fr_y * s, -fr_x * s + fr_y * c
         return fr_x + cx, fr_y + cy
 
 # ======================================== REGISTER ========================================

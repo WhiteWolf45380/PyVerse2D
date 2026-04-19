@@ -340,9 +340,7 @@ class MouseManager(Manager):
     # ======================================== INTERNALS ========================================
     def _compute_position(self, x: float, y: float) -> None:
         """Convertit les coords pyglet en coords écran centrées"""
-        lx, ly = self._window.window_to_screen(x, y)
-        self._mouse_x = lx - self._window.screen.half_width
-        self._mouse_y = ly - self._window.screen.half_height
+        self._mouse_x, self._mouse_y = self._window.window_to_screen(x, y)
 
     def _check_out(self) -> None:
         """Vérifie que la souris soit en dehors du canas de la fenêtre"""
