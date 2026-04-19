@@ -145,7 +145,7 @@ class ClickBehavior(Behavior):
         self.disable_all()
 
     # ======================================== LIFE CYCLE ========================================
-    def update(self, dt: float) -> None:
+    def _update(self, dt: float) -> None:
         """Actualisation"""
         pass
 

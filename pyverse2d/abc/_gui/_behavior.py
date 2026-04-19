@@ -1,8 +1,10 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
+from ._tween import Tween
+
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Type
 
 if TYPE_CHECKING:
     from ...scene import GuiLayer
@@ -13,10 +15,12 @@ class Behavior(ABC):
     """Class abstraite des comportements UI"""
     __slots__ = ("_owner", "_enabled")
     _ID: str = "default"
+    _PRIORITY: int = 0
 
     def __init__(self):
         self._owner: Widget = None
         self._enabled: bool = True
+        self._tweens: dict[Type[Tween], Tween] = {}
 
     # ======================================== PROPERTIES ========================================
     @property
@@ -74,6 +78,19 @@ class Behavior(ABC):
         self._enabled = False
         self._on_disable()
 
+    # ======================================== TWEENS ========================================
+    def _play_tweens(self) -> None:
+        """Active les interpolations"""
+        for tween in self._tweens.values():
+            if self._owner._lock_attr(tween._attribut, self._PRIORITY):
+                tween.play()
+
+    def _reverse_tweens(self) -> None:
+        """Active les interpolations dans le sens inverse"""
+        for tween in self._tweens.values():
+            self._owner._unlock_attr(tween._attribut, self._PRIORITY)
+            tween.reverse()
+
     # ======================================== HOOKS ========================================
     @abstractmethod
     def _on_attach(self) -> None: ...
@@ -89,4 +106,9 @@ class Behavior(ABC):
 
     # ======================================== LIFE CYCLE ========================================
     @abstractmethod
-    def update(self, dt: float) -> None: ...
+    def _update(self, dt: float) -> None: ...
+
+    def update(self, dt: float) -> None:
+        """Actualisation"""
+        for tween in self._tweens.values():
+            tween.update(dt)

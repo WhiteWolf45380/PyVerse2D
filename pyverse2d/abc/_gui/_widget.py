@@ -116,7 +116,8 @@ class Widget(ABC):
         self._hide_process: list[Callable] = []
 
         # Behaviors
-        self._behaviors: set[str] = set()
+        self._attr_locks: dict[str, int] = {}
+        self._behaviors: list[str] = []
         self._click: ClickBehavior = None
         self._hover: HoverBehavior = None
         self._select: SelectBehavior = None
@@ -325,6 +326,7 @@ class Widget(ABC):
         self._active = False
         for behavior in self._behaviors:
             getattr(self, f"_{behavior}").disable()
+        self._attr_locks.clear()
         for fn in self._deactivate_process:
             fn(self)
         if propagate:
@@ -393,8 +395,8 @@ class Widget(ABC):
         if getattr(self, f"_{behavior._ID}", None) is not None:
             raise ValueError(f"This widget already has a {type(behavior).__name__}, try to remove it first")
         behavior.attach(self, _from_widget=True)
-        self._behaviors.add(behavior._ID)
         setattr(self, f"_{behavior._ID}", behavior)
+        insort(self._behaviors, behavior, key=lambda b: -b._PRIORITY)
 
     def remove_behavior(self, behavior: Behavior | Type[Behavior]) -> None:
         """Retire un comportement
@@ -407,6 +409,7 @@ class Widget(ABC):
         elif isinstance(behavior, Behavior) and getattr(self, f"_{behavior._ID}", None) != behavior:
             raise ValueError("This widget does not own that behavior")
         behavior.detach(_from_widget=True)
+        self._attr_locks = {attr: p for attr, p in self._attr_locks.items() if p != behavior._PRIORITY}
         self._behaviors.remove(behavior._ID)
         setattr(self, f"_{behavior._ID}", None)
 
@@ -456,6 +459,20 @@ class Widget(ABC):
     def focus(self) -> FocusBehavior:
         """Comportement de concentration"""
         return self._focus
+    
+    # ======================================== LOCKING ========================================
+    def _lock_attr(self, attr: str, priority: int) -> bool:
+        """Tente de verrouiller un attribut pour un behavior de priorité donnée"""
+        current = self._attr_locks.get(attr, 0)
+        if priority >= current:
+            self._attr_locks[attr] = priority
+            return True
+        return False
+
+    def _unlock_attr(self, attr: str, priority: int) -> None:
+        """Libère le verrou d'un attribut si il appartient à cette priorité"""
+        if self._attr_locks.get(attr) == priority:
+            del self._attr_locks[attr]
 
     # ======================================== CHILDREN ========================================
     def add_child(self, child: Widget, name: str = None, z: int = 1):

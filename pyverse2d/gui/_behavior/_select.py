@@ -26,6 +26,7 @@ class SelectBehavior(Behavior):
         "_listener",
     )
     _ID: str = "select"
+    _PRIORITY: int = 2
 
     def __init__(self, selection_group: SelectionGroup = None):
         # Initialisation du comportement
@@ -43,6 +44,10 @@ class SelectBehavior(Behavior):
 
         # Listeners
         self._listener: _Listener = None
+
+        # Tweens
+        self._on_select(self._play_tweens)
+        self._on_deselect(self._reverse_tweens)
 
     # ======================================== PROPERTIES ========================================
     @property
@@ -113,7 +118,6 @@ class SelectBehavior(Behavior):
         else:
             self._selection_group.click(self._owner)
 
-
     def select(self) -> None:
         """Sélectionne le widget"""
         if self._selected:
@@ -129,7 +133,7 @@ class SelectBehavior(Behavior):
         self._on_deselect.trigger()
 
     # ======================================== LIFE CYCLE ========================================
-    def update(self, dt: float) -> None:
+    def _update(self, dt: float) -> None:
         """Actualisation"""
         if self._selected:
             self.when_selected.trigger()

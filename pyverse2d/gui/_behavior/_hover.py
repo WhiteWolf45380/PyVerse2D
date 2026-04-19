@@ -16,6 +16,7 @@ class HoverBehavior(Behavior):
         "_when_hovered", "_when_unhovered",
     )
     _ID: str = "hover"
+    _PRIORITY: int = 1
 
     def __init__(self):
         # Initialisation du comportement
@@ -29,6 +30,10 @@ class HoverBehavior(Behavior):
         self._on_leave: CallbackList = CallbackList()
         self._when_hovered: CallbackList = CallbackList()
         self._when_unhovered: CallbackList = CallbackList()
+
+        # Tweens
+        self._on_enter(self._play_tweens)
+        self._on_leave(self._reverse_tweens)
         
     # ======================================== PROPERTIES ========================================
     @property
@@ -78,7 +83,7 @@ class HoverBehavior(Behavior):
             ui.unhover()
 
     # ======================================== LIFE CYCLE ========================================
-    def update(self, dt: float) -> None:
+    def _update(self, dt: float) -> None:
         """Actualisation"""
         # Détection du survol
         if ui.hovered is None and self._collides(mouse._get_world_position()):
