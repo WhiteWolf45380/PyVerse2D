@@ -4,7 +4,7 @@ from __future__ import annotations
 from .._internal import expect
 from .._flag import StackMode, SceneState
 from .._rendering import Pipeline, Camera, Viewport
-from .._managers import CoordinatesManager
+from .._managers import CoordinatesManager, MouseManager
 from ..abc import Layer
 
 from typing import Callable
@@ -152,6 +152,7 @@ class Scene:
             layer.update(dt)
         for fn in self._update_callbacks:
             fn(dt)
+        self._clear_context()
 
     def draw(self, pipeline: Pipeline):
         """Affichage"""
@@ -166,6 +167,7 @@ class Scene:
         pipeline.end()
         for fn in self._draw_callbacks:
             fn()
+        self._clear_context()
 
     # ======================================== INTERNALS ========================================
     def _set_state(self, value: SceneState) -> None:
@@ -177,3 +179,8 @@ class Scene:
         coord: CoordinatesManager = Pipeline.get_coord()
         coord.bind_viewport(self._viewport)
         coord.bind_camera(self._camera)
+
+    def _clear_context(self) -> None:
+        """Nettoie le contexte courant"""
+        mouse: MouseManager = MouseManager.get_instance()
+        mouse._clear_world_position()

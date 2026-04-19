@@ -78,7 +78,7 @@ class CoordinatesManager(Manager):
         self._temporary_camera = None
         self._temporary_camera_resolve = None
 
-    # ======================================== CONVERSIONS RAPIDES ========================================
+    # ======================================== FAST CONVERSIONS ========================================
     def world_to_logical(self, x: float, y: float, viewport: Viewport = None, camera: Camera = None) -> tuple[int, int]:
         """Conversion directe World to Logical (espace LogicalScreen)"""
         vp_r, cam_r = self._resolve(viewport, camera)
@@ -160,7 +160,7 @@ class CoordinatesManager(Manager):
             int(canvas.y + log_y * self._window.logical_scale),
         )
 
-    # ======================================== CONVERT GÉNÉRIQUE ========================================
+    # ======================================== GLOBAL CONVERSIONS ========================================
     def convert(
         self,
         x: float,
@@ -201,6 +201,15 @@ class CoordinatesManager(Manager):
             x, y = fn(x, y, *args)
 
         return x, y
+    
+    # ======================================== LIFE CYCLE ========================================
+    def update(self, dt: float) -> None:
+        """Actualisation"""
+        pass
+
+    def flush(self) -> None:
+        """Nettoyage"""
+        pass
 
     # ======================================== INTERNALS ========================================
     def _resolve(self, viewport: Viewport = None, camera: Camera = None) -> tuple[tuple, tuple]:
