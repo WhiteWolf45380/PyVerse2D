@@ -22,6 +22,7 @@ class PygletLabelRenderer:
         y: point verticale
         anchor_x: ancre relative locale
         anchor_y: ancre relative verticale
+        scale: facteur de redimensionnement
         rotation: rotation en degrés (CCW)
         weight: graisse ('bold', 'thin', '100'…'900', ou int pyglet)
         italic: italique
@@ -42,7 +43,7 @@ class PygletLabelRenderer:
     __slots__ = (
         "_text",
         "_x", "_y", "_anchor_x", "_anchor_y",
-        "_rotation",
+        "_scale", "_rotation",
         "_weight", "_italic", "_underline",
         "_color", "_opacity",
         "_width", "_height", "_multiline", "_wrap_lines", "_align",
@@ -58,6 +59,7 @@ class PygletLabelRenderer:
         y: float = 0.0,
         anchor_x: float = 0.5,
         anchor_y: float = 0.5,
+        scale: float = 1.0,
         rotation: float = 0.0,
         weight: str | int = "normal",
         italic: bool = False,
@@ -81,6 +83,7 @@ class PygletLabelRenderer:
         self._y: float = y
         self._anchor_x: float = anchor_x
         self._anchor_y: float = anchor_y
+        self._scale: float = scale
         self._rotation: float = rotation
         self._weight: str | int = weight
         self._italic: bool = italic
@@ -119,7 +122,7 @@ class PygletLabelRenderer:
         self._label = pyglet.text.Label(
             text=self._text.text,
             font_name=font.name,
-            font_size=font.size,
+            font_size=int(font.size * self._scale),
             weight=self._weight,
             italic=self._italic,
             color=(r, g, b, a),
@@ -180,6 +183,11 @@ class PygletLabelRenderer:
     def anchor_y(self) -> float:
         """Renvoie l'ancre verticale"""
         return self._anchor_y
+    
+    @property
+    def scale(self) -> float:
+        """Facteur de redimensionnement"""
+        return self._scale
 
     @property
     def rotation(self) -> float:
@@ -299,6 +307,7 @@ class PygletLabelRenderer:
             y: point verticale
             anchor_x: ancre relative locale
             anchor_y: ancre relative verticale
+            scale: facteur de redimensionnement
             rotation: rotation en degrés (CCW)
             weight: graisse ('bold', 'thin', '100'…'900', ou int pyglet)
             italic: italique
@@ -357,7 +366,7 @@ class PygletLabelRenderer:
         font = self._text.font
         self._label.text = self._text.text
         self._label.font_name = font.name
-        self._label.font_size = font.size
+        self._label.font_size = int(font.size * self._scale)
         return "refresh"
 
     def _handle_x(self) -> None:
@@ -375,6 +384,10 @@ class PygletLabelRenderer:
     def _handle_anchor_y(self) -> None:
         """Actualisation de l'ancre verticale"""
         return "refresh"
+    
+    def _handle_scale(self) -> None:
+        """Actualisation du facteur de redimensionnement"""
+        self._label.font_size = int(self._text.font.size * self._scale)
 
     def _handle_rotation(self) -> None:
         """Actualisation de la rotation"""

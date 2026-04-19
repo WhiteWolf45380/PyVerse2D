@@ -1,10 +1,12 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
+from ...abc import Widget
+
 from ...typing import BorderAlign
 
 # ======================================== WIDGET ========================================
-class Button:
+class Button(Widget):
     """Composant GUI composé: Bouton
     
     Args:

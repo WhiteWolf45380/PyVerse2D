@@ -24,6 +24,7 @@ class Label(Widget):
         text: texte à rendre
         position: position
         anchor: ancre relative locale
+        scale: facteur de redimensionnement
         rotation: rotation en degrés
         weight: graisse ('bold', 'thin', '100'…'900', ou int pyglet)
         italic: italique
@@ -41,7 +42,7 @@ class Label(Widget):
     """
     __slots__ = (
         "_text", "_text_renderer",
-        "_position", "_anchor", "_rotation",
+        "_position", "_anchor", "_scale", "_rotation",
         "_weight", "_italic", "_underline",
         "_color", "_opacity",
         "_width", "_height",
@@ -54,6 +55,7 @@ class Label(Widget):
             text: Text,
             position: Point = (0.0, 0.0),
             anchor: Point = (0.5, 0.5),
+            scale: Real = 1.0,
             rotation: Real = 0.0,
             weight: str = "normal",
             italic: bool = False,
@@ -77,7 +79,8 @@ class Label(Widget):
         self._text_renderer: PygletLabelRenderer = None
 
         # Transform
-        self._rotation: float = float(expect(rotation, Real))
+        self._scale: float = float(scale)
+        self._rotation: float = float(rotation)
 
         # Style
         self._weight: str = expect(weight, str)
@@ -121,6 +124,21 @@ class Label(Widget):
     @rotation.setter
     def rotation(self, value: Real) -> None:
         self._rotation = float(expect(value, Real))
+        self._invalidate_scissor()
+
+    @property
+    def scale(self) -> float:
+        """Facteur de redimensionnement du texte
+
+        Le facteur doit être un ``Réel`` positif non nul
+        """
+        return self._scale
+    
+    @scale.setter
+    def scale(self, value: Real) -> None:
+        value = float(value)
+        assert value > 0.0, f"scale ({value}) must be over 0.0"
+        self._scale = value
         self._invalidate_scissor()
 
     @property
@@ -271,7 +289,7 @@ class Label(Widget):
     def hitbox(self):
         """Hitbox du label"""
         return Rect(self._text_renderer.content_width, self._text_renderer.content_height)
-
+        
     # ======================================== LIFE CYCLE ========================================
     def _update(self, dt: float) -> None:
         """Actualisation"""
@@ -287,6 +305,7 @@ class Label(Widget):
                 y = context.origin.y,
                 anchor_x = self.anchor_x,
                 anchor_y = self.anchor_y,
+                scale=self._scale,
                 rotation = self._rotation,
                 weight = self._weight,
                 italic = self._italic,
@@ -313,6 +332,7 @@ class Label(Widget):
                 y = context.origin.y,
                 anchor_x = self.anchor_x,
                 anchor_y = self.anchor_y,
+                scale=self._scale,
                 rotation = self._rotation,
                 weight = self._weight,
                 italic = self._italic,

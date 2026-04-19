@@ -1,6 +1,13 @@
 # ======================================== IMPORTS ========================================
 from ._context import RenderContext
 
+from ._tween import (
+    PositionTween,
+    ScaleTween,
+    RotationTween,
+    ColorTween,
+)
+
 from ._widget import (
     Surface,
     Border,
@@ -20,6 +27,11 @@ from ._selection_group import SelectionGroup
 # ======================================== EXPORTS ========================================
 __all__ = [
     "RenderContext",
+
+    "PositionTween",
+    "ScaleTween",
+    "RotationTween",
+    "ColorTween",
 
     "Surface",
     "Border",
