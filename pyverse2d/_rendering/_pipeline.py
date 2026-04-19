@@ -418,7 +418,7 @@ class Pipeline:
         viewport: viewport à utiliser (par défaut le viewport courant)
         camera: camera à utiliser (par défaut la camera courante)
         """
-        self.get_coord().convert(x, y, from_space, to_space, viewport=viewport, camera=camera)
+        return self.get_coord().convert(x, y, from_space, to_space, viewport=viewport, camera=camera)
 
     def world_to_framebuffer(self, x: float, y: float, viewport: Viewport = None, camera: Camera = None) -> tuple[int, int]:
         """Convertit un point monde en pixel framebuffer
@@ -429,7 +429,7 @@ class Pipeline:
             viewport: Viewport à utiliser (par défaut le viewport courant)
             camera: Camera à utiliser (par défaut la caméra courante)
         """
-        self.get_coord().world_to_logical(x, y, viewport=viewport, camera=camera)
+        return self.get_coord().world_to_logical(x, y, viewport=viewport, camera=camera)
 
     def framebuffer_to_world(self, x: int, y: int, viewport: Viewport =  None, camera: Camera = None) -> tuple[float, float]:
         """Convertit un pixel framebuffer en point monde
@@ -440,7 +440,7 @@ class Pipeline:
             viewport: Viewport à utiliser (par défaut le viewport courant)
             camera: Camera à utiliser (par défaut la caméra courante)
         """
-        self.get_coord().logical_to_world(x, y, viewport=viewport, camera=camera)
+        return self.get_coord().logical_to_world(x, y, viewport=viewport, camera=camera)
     
     def world_to_framebuffer_dir(self, dx: float, dy: float) -> tuple[float, float]:
         """Convertit un vecteur directionnel monde en vecteur framebuffer
