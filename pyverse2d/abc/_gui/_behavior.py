@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from ...scene import GuiLayer
     from ._widget import Widget
 
-# ======================================== IMPORTS ========================================
+# ======================================== BEHAVIOR ========================================
 class Behavior(ABC):
     """Class abstraite des comportements UI"""
     __slots__ = ("_owner", "_enabled", "_tweens")
@@ -51,13 +51,15 @@ class Behavior(ABC):
         if self._owner is not None:
             raise ValueError("This behavior is already attached")
         self._owner = widget
+        for tween in self._tweens.values():
+            tween.bind(widget)
         self._on_attach()
 
     def detach(self, _from_widget: bool = False) -> None:
         """Supprime l'assignation au ``Widget`` possesseur
 
         Args:
-        _from_widget: origine de l'appel
+            _from_widget: origine de l'appel
         """
         if not _from_widget:
             return self._owner.remove_behavior(self)
@@ -79,6 +81,41 @@ class Behavior(ABC):
         self._on_disable()
 
     # ======================================== TWEENS ========================================
+    def add_tween(self, tween: Tween) -> None:
+        """Ajoute une interpolation au behavior
+
+        Un seul tween par type est autorisé — ajouter un tween du même type remplace l'existant.
+        Le tween est automatiquement lié au widget possesseur si celui-ci est déjà assigné.
+
+        Args:
+            tween: interpolation à associer
+        """
+        if self._owner is not None:
+            tween.bind(self._owner)
+        self._tweens[type(tween)] = tween
+
+    def remove_tween(self, tween_type: Type[Tween]) -> None:
+        """Retire une interpolation par type
+
+        Args:
+            tween_type: type de l'interpolation à retirer
+        """
+        if tween_type not in self._tweens:
+            raise ValueError(f"This behavior has no tween of type {tween_type.__name__}")
+        del self._tweens[tween_type]
+
+    def get_tween(self, tween_type: Type[Tween]) -> Tween | None:
+        """Renvoie une interpolation par type, ou ``None`` si absente
+
+        Args:
+            tween_type: type de l'interpolation à récupérer
+        """
+        return self._tweens.get(tween_type)
+
+    def clear_tweens(self) -> None:
+        """Retire toutes les interpolations"""
+        self._tweens.clear()
+
     def _play_tweens(self) -> None:
         """Active les interpolations"""
         for tween in self._tweens.values():
