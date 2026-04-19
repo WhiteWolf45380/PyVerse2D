@@ -24,8 +24,6 @@ class SystemMouseCursor(MouseCursor):
     """
     __slots__ = ("_cursor",)
 
-    _ID: str = "mouse"
-
     def __init__(self, cursor: str = PygletWindow.CURSOR_DEFAULT):
         self._cursor: str = cursor
 
@@ -81,6 +79,8 @@ class MouseManager(Manager):
         "_scroll_dx", "_scroll_dy",
         "_step", "_pressed", "_released_this_frame",
     )
+
+    _ID: str = "mouse"
 
     # Alias
     Button: TypeAlias = int
