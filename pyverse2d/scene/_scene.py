@@ -4,6 +4,7 @@ from __future__ import annotations
 from .._internal import expect
 from .._flag import StackMode, SceneState
 from .._rendering import Pipeline, Camera, Viewport
+from .._managers import CoordinatesManager
 from ..abc import Layer
 
 from typing import Callable
@@ -144,6 +145,7 @@ class Scene:
     def update(self, dt: float):
         """Actualisation"""
         self._camera.update(dt)
+        self._apply_context()
         for layer in reversed(self._layers):
             if not layer.is_active():
                 continue
@@ -153,6 +155,7 @@ class Scene:
 
     def draw(self, pipeline: Pipeline):
         """Affichage"""
+        self._apply_context()
         pipeline.bind_scene(self)
         for layer in self._layers:
             if not layer.is_visible():
@@ -168,3 +171,9 @@ class Scene:
     def _set_state(self, value: SceneState) -> None:
         """Fixe l'état de la scène"""
         self._state = value
+
+    def _apply_context(self) -> None:
+        """Applique le contexte de la scène"""
+        coord: CoordinatesManager = Pipeline.get_coord()
+        coord.bind_viewport(self._viewport)
+        coord.bind_camera(self._camera)

@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from .._managers import CoordinatesManager
     from .._rendering import Pipeline
     from ..scene import Camera
 
@@ -98,6 +99,7 @@ class Layer(ABC):
         """Actualisation"""
         if self._camera is not None:
             self._camera.update(dt)
+            self._apply_context()
         self._update(dt)
 
     @abstractmethod
@@ -105,6 +107,12 @@ class Layer(ABC):
 
     def draw(self, pipeline: Pipeline) -> None:
         """Affichage global"""
-        from pyverse2d import mouse
-        mouse._set_world_position(*pipeline.framebuffer_to_world(*mouse.raw_position))
+        if self._camera is not None:
+            self._apply_context()
         self._draw(pipeline)
+
+    # ======================================== INTERNALS ========================================
+    def _apply_context(self) -> None:
+        """Applique le contexte du layer"""
+        from pyverse2d import coordinates
+        coordinates.bind_temporary_camera(self._camera)

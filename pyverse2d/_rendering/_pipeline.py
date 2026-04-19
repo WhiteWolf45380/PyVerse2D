@@ -52,10 +52,10 @@ class Pipeline:
 
     @classmethod
     def get_coord(cls) -> CoordinatesManager:
-        """Renvoie le gestionnaire des coordonnées"""
+        """Renvoie l'instance du gestionnaire de coordonnées"""
         if cls._COORD is None:
-            from pyverse2d import coordinates
-            cls._COORD = coordinates
+            from .._managers import CoordinatesManager
+            cls._COORD = CoordinatesManager.get_instance()
         return cls._COORD
 
     def __init__(self, window: Window):

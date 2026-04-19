@@ -25,7 +25,7 @@ class ContextManager:
 
     def __init__(self):
         self.time: TimeManager = None
-        self._coordinates: CoordinatesManager = None
+        self.coordinates: CoordinatesManager = None
         self.event: EventManager = None
         self.key: KeyManager = None
         self.mouse: MouseManager = None

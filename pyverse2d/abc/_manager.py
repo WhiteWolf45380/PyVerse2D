@@ -13,6 +13,17 @@ class Manager(ABC):
     """Classe abstraite des managers"""
     __slots__ = ("_ctx", "_window")
 
+    _ID: str = "default"
+    _INSTANCE: Manager = None
+
+    @classmethod
+    def get_instance(cls) -> Manager:
+        """Renvoie l'instance du gestionnaire"""
+        if cls._INSTANCE is None:
+            from pyverse2d import _context_manager
+            cls._INSTANCE = getattr(_context_manager, cls._ID)
+        return cls._INSTANCE
+
     def __init__(self, context_manager: ContextManager):
         # Manager des gestionnaires
         self._ctx: ContextManager = context_manager

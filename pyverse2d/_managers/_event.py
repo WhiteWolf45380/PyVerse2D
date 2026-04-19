@@ -39,6 +39,8 @@ class EventManager(Manager):
         "_on_move",
     )
 
+    _ID: str = "event"
+
     ConsumeFlag = object()
 
     def __init__(self, context_manager: ContextManager):

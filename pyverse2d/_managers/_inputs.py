@@ -15,6 +15,8 @@ class InputsManager(Manager):
         "_triggered_combos",
     )
 
+    _ID: str = "inputs"
+
     Input: TypeAlias = int
 
     def __init__(self, context_manager: ContextManager):

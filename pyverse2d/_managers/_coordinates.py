@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 from .._flag import CoordSpace
-from .._rendering._spaces import Window, Viewport, Camera
+from .._rendering import Window, Viewport, Camera
+from ..abc import Manager
 
 from typing import Callable
 import math
@@ -20,13 +21,16 @@ _PIPELINE = [
 ]
 
 # ======================================== MANAGER ========================================
-class CoordinatesManager:
+class CoordinatesManager(Manager):
     """Gestionnaire global des conversions de coordonnées"""
     __slots__ = (
         "_window",
         "_viewport", "_viewport_resolve",
         "_camera", "_camera_resolve",
+        "_temporary_camera", "_temporary_camera_resolve",
     )
+
+    _ID: str = "coordinates"
 
     def __init__(self, window: Window) -> None:
         self._window: Window = window
@@ -34,21 +38,45 @@ class CoordinatesManager:
         self._viewport_resolve: tuple = None
         self._camera: Camera = None
         self._camera_resolve: tuple = None
+        self._temporary_camera: Camera = None
+        self._temporary_camera_resolve: tuple = None
 
     # ======================================== BIND ========================================
     def bind_viewport(self, viewport: Viewport) -> None:
-        """Résout et met en cache le viewport courant"""
+        """Résout et met en cache le viewport courant.
+        Appelé par Scene avant de boucler sur les temporarys.
+        """
         screen = self._window.screen
         self._viewport = viewport
         self._viewport_resolve = viewport.resolve(screen.width, screen.height)
         self._camera = None
         self._camera_resolve = None
+        self._temporary_camera = None
+        self._temporary_camera_resolve = None
 
     def bind_camera(self, camera: Camera) -> None:
-        """Résout et met en cache la camera courante."""
+        """Résout et met en cache la caméra principale de la scène.
+        Appelé par Scene après bind_viewport.
+        """
         _, _, lw, lh, _, _ = self._viewport_resolve
         self._camera = camera
         self._camera_resolve = camera.resolve(lw, lh)
+
+    def bind_temporary_camera(self, camera: Camera) -> None:
+        """Résout et met en cache la caméra locale d'un temporary.
+        Appelé par temporary si celui-ci possède sa propre caméra.
+        Prend le dessus sur la caméra de scène pour la durée du temporary.
+        """
+        _, _, lw, lh, _, _ = self._viewport_resolve
+        self._temporary_camera = camera
+        self._temporary_camera_resolve = camera.resolve(lw, lh)
+
+    def unbind_temporary_camera(self) -> None:
+        """Restaure la caméra de scène comme caméra active.
+        Appelé par temporary en fin d'update/render.
+        """
+        self._temporary_camera = None
+        self._temporary_camera_resolve = None
 
     # ======================================== CONVERSIONS RAPIDES ========================================
     def world_to_logical(self, x: float, y: float, viewport: Viewport = None, camera: Camera = None) -> tuple[int, int]:
@@ -176,7 +204,10 @@ class CoordinatesManager:
 
     # ======================================== INTERNALS ========================================
     def _resolve(self, viewport: Viewport = None, camera: Camera = None) -> tuple[tuple, tuple]:
-        """Renvoie (viewport_resolve, camera_resolve) en combinant overrides et contexte courant"""
+        """Renvoie (viewport_resolve, camera_resolve) en combinant overrides et contexte courant.
+        
+        Priorité caméra : override explicite > caméra temporary > caméra scène
+        """
         if viewport is not None:
             screen = self._window.screen
             vp_r = viewport.resolve(screen.width, screen.height)
@@ -185,14 +216,18 @@ class CoordinatesManager:
         else:
             raise RuntimeError(
                 "CoordinatesManager : no viewport available")
+
         if camera is not None:
             _, _, lw, lh, _, _ = vp_r
             cam_r = camera.resolve(lw, lh)
+        elif self._temporary_camera_resolve is not None:
+            cam_r = self._temporary_camera_resolve
         elif self._camera_resolve is not None:
             cam_r = self._camera_resolve
         else:
             raise RuntimeError(
                 "CoordinatesManager : no camera available")
+
         return vp_r, cam_r
 
     # ======================================== WORLD to WINDOW ========================================

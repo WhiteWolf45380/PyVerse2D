@@ -27,6 +27,8 @@ class TimeManager(Manager):
         "_scheduling", "_timers",
     )
 
+    _ID: str = "time"
+
     def __init__(self, context_manager: ContextManager):
         # Initialisation du gestionnaire
         super().__init__(context_manager)

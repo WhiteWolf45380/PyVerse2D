@@ -18,6 +18,8 @@ class UiManager(Manager):
         "_hovered", "_focused",
     )
 
+    _ID: str = "ui"
+
     def __init__(self, context_manager: ContextManager):
         # Contexte de managers
         self._ctx: ContextManager = context_manager

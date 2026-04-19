@@ -55,6 +55,8 @@ class KeyManager(Manager):
     """Gestionnaire de la souris"""
     __slots__ = ("_step", "_pressed", "_released_this_frame")
 
+    _ID: str = "key"
+
     # Alias
     Key: TypeAlias = int
 

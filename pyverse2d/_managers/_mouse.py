@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 from .._internal import expect, clamped
+from .._rendering import Camera, Viewport
 from ..abc import Manager, MouseCursor
-from ..math import Point
 from ..asset import Image
 
 from ._context import ContextManager
@@ -23,6 +23,8 @@ class SystemMouseCursor(MouseCursor):
         cursor: constante ``SystemCursor``
     """
     __slots__ = ("_cursor",)
+
+    _ID: str = "mouse"
 
     def __init__(self, cursor: str = PygletWindow.CURSOR_DEFAULT):
         self._cursor: str = cursor
@@ -123,7 +125,7 @@ class MouseManager(Manager):
         self._mouse_x: float = 0.0
         self._mouse_y: float = 0.0
         self._mouse_out: bool = False
-        self._world_position: tuple[float, float] = (0.0, 0.0)
+        self._world_position: tuple[float, float] = None
 
         # Deltas
         self._mouse_dx: float = 0.0
@@ -233,6 +235,18 @@ class MouseManager(Manager):
         """Défilement vertical de la molette cette frame"""
         return self._scroll_dy
     
+    # ======================================== GETTERS ========================================
+    def get_world_position(self, viewport: Viewport = None, camera: Camera = None) -> tuple[float, float]:
+        """Renvoie la position monde du curseur
+        
+        Args:
+            viewport: viewport du monde
+            camera: camera du monde
+        """
+        if self._world_position is None:
+            return self._ctx.coordinates.logical_to_world(self._mouse_x, self._mouse_y, viewport=viewport, camera=camera)
+        return self._world_position
+    
     # ======================================== SETTERS ========================================
     def set_exclusive(self, value: bool) -> None:
         """Active ou désactive le mode exclusif de la souris"""
@@ -335,10 +349,10 @@ class MouseManager(Manager):
         hw, hh = self._window.screen.half_width, self._window.screen.half_height
         self._mouse_out = not (-hw <= self._mouse_x <= hw and -hh <= self._mouse_y <= hh)
 
-    def _set_world_position(self, x: float, y: float) -> None:
-        """Fixe la position monde du curseur"""
-        self._world_position = (x, y)
-    
-    def _get_world_position(self) -> tuple[float, float]:
-        """Renvoie la position monde du curseur"""
-        return self._world_position
+    def _refresh_world_position(self) -> None:
+        """Actualise la position monde"""
+        self._world_position = self._ctx.coordinates.logical_to_world(self._mouse_x, self._mouse_y)
+
+    def _clear_world_position(self) -> None:
+        """Nettoie la position monde"""
+        self._world_position = None
