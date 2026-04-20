@@ -529,20 +529,22 @@ class Widget(ABC):
             del self._attr_locks[attr]
 
     # ======================================== CHILDREN ========================================
-    def add_child(self, child: Widget, name: str = None, z: int = 1):
+    def add_child(self, child: Widget, name: str = None, z: int = 1, share_scale: bool = True, share_rotation: bool = True):
         """
         Ajoute un composant enfant
 
         Args:
-            child(Widget): composant à associer
-            name(str, optional): identifiant local du composant
-            z(int, optional): ordre de rendu local
+            child: composant à associer
+            name: identifiant local du composant
+            z: ordre de rendu local
+            share_scale: l'enfant suit le redimensionnement du parent
+            share_rotaiton: l'enfant suit la rotation du parent
         """
         if child._layer is not None and child._layer != self._layer:
             raise ValueError(f"{child} is in another layer")
         if child.parent is not None:
             raise ValueError(f"{child} has already a parent")
-        wrapper = WidgetWrapper(expect(child, Widget), expect(name, (str, None)), expect(z, int))
+        wrapper = WidgetWrapper(expect(child, Widget), expect(name, (str, None)), expect(z, int), share_scale, share_rotation)
         child._layer = self._layer
         child._parent = self
         insort(self._children, wrapper)
@@ -653,7 +655,7 @@ class Widget(ABC):
     @abstractmethod
     def _draw(self, pipeline: Pipeline, context: RenderContext): ...
 
-    def draw(self, pipeline: Pipeline, context: RenderContext) -> Super:
+    def draw(self, pipeline: Pipeline, context: RenderContext, share_scale: bool = True, share_rotation: bool = True) -> Super:
         """Affichage"""
         if not self._visible:
             return Super.STOP
@@ -666,7 +668,7 @@ class Widget(ABC):
         group = context.group
 
         # Actualisation du contexte de rendu
-        self._update_render_context(context)
+        self._update_render_context(context, share_scale, share_rotation)
 
         # Affichage personnel
         self._draw(pipeline, context)
@@ -677,7 +679,7 @@ class Widget(ABC):
 
         # Affichage des enfants
         for child in self._children:
-            child.widget.draw(pipeline, context)
+            child.widget.draw(pipeline, context, share_scale=child._share_scale, share_rotation=child._share_rotation)
 
         # Restauration du contexte de rendu
         context.origin = origin
@@ -715,11 +717,11 @@ class Widget(ABC):
                 return wrapper
         raise ValueError(f"{child} is not a child of this widget")
     
-    def _update_render_context(self, context: RenderContext) -> None:
+    def _update_render_context(self, context: RenderContext, share_scale: bool = True, share_rotation: bool = True) -> None:
         """Actualise le contexte de rendu avec les paramètres courants"""
         context.origin += self._position
-        context.scale *= self._scale
-        context.rotation += self._rotation
+        context.scale = (context.scale if share_scale else 1.0) * self._scale
+        context.rotation = (context.rotation if share_rotation else 0.0) + self._rotation
         context.opacity *= self._opacity
         context.z += 1
         context.group = WidgetGroup.get_group(order=context.z, parent=context.group, scissor=self._compute_scissor(context) if self._clipping else None)
@@ -759,10 +761,12 @@ class WidgetWrapper:
     """Wrapper des composants UI"""
     __slots__ = ("_widget", "name", "z")
 
-    def __init__(self, widget: Widget, name: str, z: int):
+    def __init__(self, widget: Widget, name: str, z: int, share_scale: bool, share_rotation: bool):
         self._widget: Widget = widget
         self.name: str = name
         self.z: int = z
+        self._share_scale: bool = share_scale
+        self._share_rotation: bool = share_rotation
     
     @property
     def widget(self) -> Widget:
