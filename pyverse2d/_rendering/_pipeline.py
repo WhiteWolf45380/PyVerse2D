@@ -513,10 +513,10 @@ class Pipeline:
         x0, y0 = self.world_to_framebuffer(wx, wy, viewport=viewport, camera=camera)
         x1, y1 = self.world_to_framebuffer(wx + ww, wy + wh, viewport=viewport, camera=camera)
 
-        left = min(x0, x1)
-        top = min(y0, y1)
-        width = abs(x0 - x1)
-        height = abs(y0 - y1)
+        left = int(min(x0, x1))
+        top = int(min(y0, y1))
+        width = int(abs(x0 - x1))
+        height = int(abs(y0 - y1))
 
         was_enabled = (gl.GLboolean * 1)()
         prev_box = (c_int * 4)()
