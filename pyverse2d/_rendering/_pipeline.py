@@ -394,7 +394,7 @@ class Pipeline:
         """
         view = view.translate((-cx, -cy, 0))
         if rotation != 0.0:
-            view = view.rotate(math.radians(rotation), (0, 0, 1))
+            view = view.rotate(-math.radians(rotation), (0, 0, 1))
         return view
     
     def compute_viewport(self, view: Mat4, ox: float, oy: float) -> Mat4:
