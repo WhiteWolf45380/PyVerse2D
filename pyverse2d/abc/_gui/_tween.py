@@ -157,7 +157,7 @@ class Tween(ABC):
             self._direction = 0
         else:
             self._t = max(0.0, min(self._t + self._direction * dt, self._duration))
-            p = self._easing(self._t / self._duration)
+            p = max(0.0, min(self._easing(self._t / self._duration), 1.0))
             value = self.interpolate(self._base_value, self._target_value, p)
             if self._t >= self._duration:
                 self._direction = 0
