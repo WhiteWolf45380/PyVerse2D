@@ -464,8 +464,8 @@ class PygletLabelRenderer:
     # ======================================== HELPERS ========================================
     def _refresh_position(self) -> None:
         """Recalcule x/y pyglet à partir de l'ancre et des dimensions réelles"""
-        self._label.x = self._x - self._anchor_x * self._label.content_width
-        self._label.y = self._y - self._anchor_y * self._label.content_height
+        self._label.x = self._x - self._anchor_x * self._label.content_width * self._scale
+        self._label.y = self._y - self._anchor_y * self._label.content_height * self._scale
 
     def _rebuild(self) -> None:
         """Reconstruit le label avec les paramètres courants"""

@@ -43,6 +43,12 @@ class WidgetGroup(Group):
             else None
         )
 
+    def __hash__(self) -> int:
+        return hash((self.order, self.parent, self.resolved))
+
+    def __eq__(self, other: WidgetGroup) -> bool:
+        return super().__eq__(other) and self.resolved == other.resolved
+
     def set_state(self):
         if self.resolved is not None:
             gl.glEnable(gl.GL_SCISSOR_TEST)
@@ -724,7 +730,7 @@ class Widget(ABC):
         context.z += 1
         context.group = WidgetGroup.get_group(order=context.z, parent=context.group, scissor=self._compute_scissor(context) if self._clipping else None)
 
-    def _compute_scissor(self, context: RenderContext) -> tuple | None:
+    def _compute_scissor(self, context: RenderContext = None) -> tuple | None:
         """Calcule le scissor résolu en coordonnées framebuffer"""
         if not self._scissor_dirty:
             return self._cached_scissor
