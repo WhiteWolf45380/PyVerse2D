@@ -20,6 +20,8 @@ class Surface(Widget):
         shape: forme de la surface
         position: position
         anchor: ancre locale relative
+        scale: facteur de redimensionnement
+        rotation: angle de rotation
         color: couleur de remplissage
         opacité: opacité [0; 1]
         clipping: rendu des widgets enfants strictement dans le AABB de la hitbox
@@ -34,12 +36,14 @@ class Surface(Widget):
             shape: Shape,
             position: Point = (0.0, 0.0),
             anchor: Point = (0.5, 0.5),
+            scale: Real = 1.0,
+            rotation: Real = 1.0,
             color: Color = (125, 125, 125),
             opacity: Real = 1.0,
             clipping: bool = False,
         ):
         # Initialisation du widget
-        super().__init__(position, anchor, opacity, clipping=clipping)
+        super().__init__(position, anchor, scale, rotation, opacity, clipping=clipping)
 
         # Forme
         self._shape: Shape = expect(shape, Shape)
