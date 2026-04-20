@@ -388,6 +388,7 @@ class PygletLabelRenderer:
     def _handle_scale(self) -> None:
         """Actualisation du facteur de redimensionnement"""
         self._label.font_size = int(self._text.font.size * self._scale)
+        return "refresh"
 
     def _handle_rotation(self) -> None:
         """Actualisation de la rotation"""
