@@ -17,6 +17,7 @@ class ColorTween(Tween):
         super().__init__("color", target_value, duration, easing)
 
     def interpolate(self, base: Color, target: Color, p: float):
+        p = max(0.0, min(p, 1.0))
         r = base.r + (target.r - base.r) * p
         g = base.g + (target.g - base.g) * p
         b = base.b + (target.b - base.g) * p
