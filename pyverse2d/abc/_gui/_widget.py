@@ -533,7 +533,7 @@ class Widget(ABC):
             del self._attr_locks[attr]
 
     # ======================================== CHILDREN ========================================
-    def add_child(self, child: Widget, name: str = None, z: int = 1, share_scale: bool = True, share_rotation: bool = True):
+    def add_child(self, child: Widget, name: str = None, z: int = 1, share_scale: bool = True, share_rotation: bool = True) -> Widget:
         """
         Ajoute un composant enfant
 
@@ -543,6 +543,9 @@ class Widget(ABC):
             z: ordre de rendu local
             share_scale: l'enfant suit le redimensionnement du parent
             share_rotaiton: l'enfant suit la rotation du parent
+
+        Returns:
+            child: widget enfant associé
         """
         if child._layer is not None and child._layer != self._layer:
             raise ValueError(f"{child} is in another layer")
@@ -552,18 +555,23 @@ class Widget(ABC):
         child._layer = self._layer
         child._parent = self
         insort(self._children, wrapper)
+        return child
 
-    def remove_child(self, child: Widget) -> None:
+    def remove_child(self, child: Widget) -> Widget:
         """
         Retire un composant enfant
 
         Args:
             child(Widget): composant à dissocier
+
+        Returns:
+            child: widget enfant dissocié
         """
         if expect(child, Widget) in self._children:
             child._layer = None
             child._parent = None
             self._children.remove(child)
+        return child
 
     def remove_child_by_name(self, name: str) -> None:
         """
@@ -703,6 +711,8 @@ class Widget(ABC):
         self._destroy()
         if self._parent is not None:
             self._parent.remove_child(self)
+        for behavior in self._behaviors:
+            behavior.delete()
         for child in self._children:
             child.widget.destroy()
         return Super.NONE

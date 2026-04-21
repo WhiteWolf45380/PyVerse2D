@@ -8,12 +8,7 @@ from ._tween import (
     ColorTween,
 )
 
-from ._widget import (
-    Surface,
-    Border,
-    Label,
-    Sprite,
-)
+from ._selection_group import SelectionGroup
 
 from ._behavior import (
     ClickBehavior,
@@ -22,7 +17,12 @@ from ._behavior import (
     FocusBehavior,
 )
 
-from ._selection_group import SelectionGroup
+from ._widget import (
+    Surface,
+    Border,
+    Label,
+    Sprite,
+)
 
 # ======================================== EXPORTS ========================================
 __all__ = [
@@ -33,15 +33,15 @@ __all__ = [
     "RotationTween",
     "ColorTween",
 
-    "Surface",
-    "Border",
-    "Label",
-    "Sprite",
+    "SelectionGroup",
 
     "ClickBehavior",
     "HoverBehavior",
     "SelectBehavior",
     "FocusBehavior",
 
-    "SelectionGroup",
+    "Surface",
+    "Border",
+    "Label",
+    "Sprite",
 ]

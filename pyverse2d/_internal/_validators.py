@@ -149,6 +149,21 @@ def expect(value: object, types: type | Tuple[type, ...]):
 
     raise TypeError(f"unsupported type annotation: {types!r}")
 
+def expect_callable(value: object, include_none: bool = False, arg: str = "Argument") -> object:
+    """Vérifie que l'objet soit appelable
+
+    Args:
+        value: objet à vérifier
+        include_none: accepte que la valeur soit ``None``
+        arg: nom de l'argument
+    """
+    if callable(value):
+        return value
+    if include_none and value is None:
+        return value
+    raise TypeError(f"{arg} ({value}) must be a callable{' or None' if include_none else ''}")
+    
+
 # ======================================== VALUE CHECK ========================================
 def not_null(value: object, arg: str = "Argument"):
     """

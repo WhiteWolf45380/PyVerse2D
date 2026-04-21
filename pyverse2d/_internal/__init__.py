@@ -2,6 +2,7 @@
 from ._validators import (
     typename,
     expect,
+    expect_callable,
     not_null,
     not_in,
     positive,
@@ -25,6 +26,7 @@ from ._callbacks import CallbackList
 __all__ = [
     "typename",
     "expect",
+    "expect_callable",
     "not_null",
     "not_in",
     "positive",

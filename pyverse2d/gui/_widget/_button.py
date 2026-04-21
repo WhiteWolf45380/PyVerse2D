@@ -1,15 +1,21 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from ..._internal import expect, positive
-from ..._rendering import PygletShapeRenderer, PygletSpriteRenderer, PygletLabelRenderer
+from ..._internal import expect, expect_callable
+from ..._rendering import Pipeline
 from ...abc import Widget, Shape
-from ...math import Point, Vector
-from ...typing import BorderAlign
-from ...asset import Image, Text, Color
-from ...shape import Rect
+from ...math import Point
+
+from .._context import RenderContext
+from .._behavior import HoverBehavior, ClickBehavior
+
+from ._surface import Surface
+from ._sprite import Sprite
+from ._label import Label
+from ._border import Border
 
 from numbers import Real
+from typing import Callable, Any
 
 # ======================================== WIDGET ========================================
 class Button(Widget):
@@ -17,254 +23,222 @@ class Button(Widget):
     
     Args:
         position: positionnement
+        background: Surface ou Sprite de fond
+        label: texte du bouton
+        border: bordure du bouton
         anchor: ancre relative locale
         scale: facteur de redimensionnement
-        rotation: angle de rotation
-        background: forme ou image du fond
-        background_color: couleur de fond
-        text: texte du bouton
-        text_offset: décalage du texte par rapport au centre
-        text_color: couleur du texte
-        text_weight: graisse ('bold', 'thin', '100'…'900', ou int pyglet)
-        text_italic: italique
-        text_underline: couleur de soulignement
-        border_width: épaisseur de la bordure
-        border_align: alignement de la bordure
-        border_color: couleur de la bordure
+        rotation: angle de rotation        
         opacity: opacité [0, 1]
         clipping: rendu des widgets enfants strictement dans le AABB de la hitbox
     """
     __slots__ = (
-        "_background", "_background_color",
-        "_text", "_text_color", "_text_weight", "_text_italic", "_text_underline",
-        "_border_width", "_border_align", "_border_color",
-        "_opacity", "_clipping",
+        "_background", "_label", "_border"
+        "_callback", "_condition", "_id", "_give_id",
     )
+
+    _ACTION_NAME: str = "_default"
 
     def __init__(
             self,
+            background: Surface | Sprite,
+            label: Label | None = None,
+            border: Border | None = None,
             position: Point = (0.0, 0.0),
             anchor: Point = (0.5, 0.5),
             scale: Real = 1.0,
             rotation: Real = 0.0,
-            background: Shape | Image = None,
-            background_color: Color = (255, 255, 255),
-            text: Text = None,
-            text_offset: Vector = (0.0, 0.0),
-            text_color: Color = (0, 0, 0),
-            text_weight: str = "normal",
-            text_italic: bool = False,
-            text_underline: Color = None,
-            border_width: int = 0,
-            border_align: BorderAlign = "center",
-            border_color: Color = (0, 0, 0),
             opacity: Real = 1.0,
             clipping: bool = False,
+            callback: Callable | None = None,
+            condition: Callable | None = None,
+            id: Any = None,
+            give_id: bool = False,
         ):
         # Initialisation du widget
         super().__init__(position, anchor, scale, rotation, opacity, clipping=clipping)
 
         # Attributs publiques
-        self._background: Shape | Image | None = background
-        self._background_color: Color = Color(background_color)
-        self._text: Text = text
-        self._text_offset: Vector = Vector(text_offset)
-        self._text_color: Color = Color(text_color)
-        self._text_weight: str = text_weight
-        self._text_italic: bool = text_italic
-        self._text_underline: Color = Color(text_underline) if text_underline is not None else None
-        self._border_width: int = border_width
-        self._border_align: BorderAlign = border_align
+        self._callback: Callable = callback
+        self._condition: Callable = condition
+        self._id: Any = id
+        self._give_id: bool = give_id
 
         if __debug__:
-            expect(self._background, (Shape, Image, None))
-            expect(self._text, Text)
-            expect(self._text_weight, str)
-            expect(self._text_italic, bool)
-            positive(expect(self._border_width, int))
-            expect(self._border_align, str)
+            expect(background, (Surface, Sprite))
+            expect(label, (Label, None))
+            expect(border, (Border, None))
+            expect_callable(callback, include_none=True, arg="callback")
+            expect_callable(condition, include_none=True, arg="condition")
+            expect(give_id, bool)
 
-        # Attributs internes
-        self._has_background: bool = False
-        self._background_is_shape: bool = False
-        self._has_text: bool = False
-        self._hitbox: Shape = None
-        self._resolved: bool = False
-    
-        self._shape_renderer: PygletShapeRenderer | None = None
-        self._sprite_renderer: PygletSpriteRenderer | None = None
-        self._text_renderer: PygletLabelRenderer | None = None
+        # Composants
+        self._background: Surface | Sprite = self.add_child(background, name="background", z=0)
+        self._label: Label | None = self.add_child(label, name="label", z=10) if label is not None else None
+        self._border: Border | None = self.add_child(border, name="border", z=20) if border is not None else None
+
+        # Comportements prédéfinis
+        self.add_behavior(HoverBehavior())
+        self.add_behavior(ClickBehavior())
+
+        # Application du callback
+        self._apply_callback()
     
     # ======================================== PROPERTIES ========================================
     @property
-    def background(self) -> Shape | Image | None:
+    def background(self) -> Surface | Sprite:
         """Fond
 
-        Le fond peut être un objet ``Shape``, ``Image`` ou ``None``.
+        Le fond peut être un widget ``Surface`` ou ``Sprite``.
         """
         return self._background
     
     @background.setter
-    def background(self, value: Shape | Image | None) -> None:
-        assert value is None or isinstance(value, (Shape, Image)), f"background ({value}) must be a Shape, an Image, or None"
-        self._background = value
-        self._background_is_shape: bool = isinstance(self._background, Shape)
+    def background(self, value: Surface | Sprite) -> None:
+        assert isinstance(value, (Surface, Sprite)), f"background ({value}) must be a Surface or a Sprite widget"
+        self.remove_child(self._background)
+        self._background = self.add_child(value, name="background", z=0)
         self._invalidate_scissor()
 
     @property
-    def background_color(self) -> Color:
-        """Couleur du fond
-
-        La couleur peut être un objet ``Color`` ou n'importe quel tuple ``(r, g, b, a)``.
-        """
-        return self._background_color
-    
-    @background_color.setter
-    def background_color(self, value: Color) -> None:
-        self._background_color = Color(value)
-
-    @property
-    def text(self) -> Text:
+    def label(self) -> Label | None:
         """Texte
 
-        Le texte doit être un objet ``Texte``.
+        Le texte doit être un widget ``Label``.
         """
-        return self._text
+        return self._label
     
-    @text.setter
-    def text(self, value: Text) -> None:
-        assert isinstance(value, Text), f"text ({value}) must be a Text object"
-        self._text = value
-        self._invalidate_scissor()
+    @label.setter
+    def label(self, value: Label | None) -> None:
+        assert value is None or isinstance(value, Label), f"label ({value}) must be a Label widget or None"
+        if self._label is not None:
+            self.remove_child(self._label)
+        self._label = value
+        if value is not None:
+            self.add_child(value, name="label", z=10)
 
     @property
-    def text_offset(self) -> Vector:
-        """Décalage du texte
+    def border(self) -> Border | None:
+        """Bordure
 
-        Le décalage peut être un objet ``Vector`` ou n'importe quel tuple ``(dx, dy)``.
-        Les composantes sont en coordonnée monde.
+        La bordure doit être un widget ``Border``.
         """
-        return self._text_offset
-    
-    @text_offset.setter
-    def text_offset(self, value: Vector) -> None:
-        self._text_offset.x, self._text_offset.y = value
-    
-    @property
-    def text_color(self) -> Color:
-        """Couleur du texte
+        return self._border
 
-        La couleur peut être un objet ``Color`` ou n'importque quel tuple ``(r, g, b, a)``.
-        """
-        return self._text_color
-    
-    @text_color.setter
-    def text_color(self, value: Color) -> None:
-        self._text_color = Color(value)
-
-    @property
-    def text_weight(self) -> str:
-        """Graisse de la police
-
-        La graisse doit être un string conforme à la norme CSS.
-        """
-        return self._text_weight
-    
-    @text_weight.setter
-    def text_weight(self, value: str) -> None:
-        assert isinstance(value, str), f"text_weight ({value}) must be a string"
-        self._text_weight = value
-
-    @property
-    def text_italic(self) -> bool:
-        """Mise en italique de la police
-
-        Cette propriété fixe l'utilisation ou non de l'italique.
-        """
-        return self._text_italic
-    
-    @text_italic.setter
-    def text_italic(self, value: bool) -> None:
-        assert isinstance(value, bool), f"text_italic ({value}) must be a boolean"
-        self._text_italic = value
-
-    @property
-    def text_underline(self) -> Color | None:
-        """Couleur de soulignage du texte
-
-        La couleur de soulignage peut être un asset ``Color`` ou un tuple ``(r, g, b, a)``.
-        Mettre à ``None`` pour ne pas souligner le texte.
-        """
-        return self._text_underline
-    
-    @text_underline.setter
-    def text_underline(self, value: Color | None) -> None:
-        self._text_underline = Color(value) if value is not None else None
-
-    @property
-    def border_width(self) -> int:
-        """Largeur de la bordure
-
-        La largeur doit être un ``int`` positif.
-        La bordure n'est affichée que si un background est défini.
-        """
-        return self._border_width
-
-    @border_width.setter
-    def border_width(self, value: int) -> None:
-        assert isinstance(value, int) and value >= 0.0, f"border_width ({value}) must be a positive integer"
-        self._border_width = value
-
-    @property
-    def border_align(self) -> BorderAlign:
-        """Alignement de la bordure
-
-        L'alignement doit être un ``BorderAlign``.
-        """
-        return self._border_align
-    
-    @border_align.setter
-    def border_align(self, value: BorderAlign) -> None:
-        assert isinstance(value, str), f"border_align ({value}) must be a BorderAlign"
-        self._border_align = value
+    @border.setter
+    def border(self, value: Border | None) -> None:
+        assert value is None or isinstance(value, Border), f"border ({value}) must be a Border widget"
+        if self._border is not None:
+            self.remove_child(self._border)
+        self._border = value
+        if value is not None:
+            self.add_child(value, name="border", z=20)
 
     @property
     def hitbox(self) -> Shape:
-        return self._hitbox
+        """AABB du bouton"""
+        return self._background.hitbox
+    
+    @property
+    def callback(self) -> Callable | None:
+        """Action au clique
+
+        L'action doit être un objet pouvant être appelé.
+        Mettre cette propriété à ``None`` pour ne pas assigner d'action.
+        """
+        return self._callback
+    
+    @callback.setter
+    def callback(self, value: Callable | None) -> None:
+        assert value is None or callable(value), f"callback ({value}) must be a callable"
+        if value == self._callback:
+            return
+        with self._refresh:
+            self._callback = value
+
+    @property
+    def condition(self) -> Callable | None:
+        """Condition d'action
+
+        Cette propriété ajoute une condition à l'appel de l'action lors du clique.
+        La condition doit être un objet pouvant être appelé.
+        Mettre à ``None`` pour ne pas avoir de condition.
+        """
+        return self._condition
+    
+    @condition.setter
+    def condition(self, value: Callable | None) -> None:
+        assert value is None or callable(value), f"condition ({value}) must be a callable"
+        if value == self._condition:
+            return
+        with self._refresh:
+            self._condition = value
+
+    @property
+    def id(self) -> Any:
+        """Identifiant du bouton
+
+        L'indentifiant peut être n'importe quoi.
+        """
+        return self._id
+    
+    @id.setter
+    def id(self, value: Any) -> None:
+        with self._refresh:
+            self._id = value
+    
+    @property
+    def give_id(self) -> bool:
+        """Donne l'identifiant à l'action
+
+        Activer cette propriété passera un kwarg ``id`` au callback.
+        """
+        return self._give_id
+    
+    @give_id.setter
+    def give_id(self, value: bool) -> None:
+        assert isinstance(value, bool), f"give_id ({value}) must be a boolean"
+        with self._refresh:
+            self._give_id = value
+
+    # ======================================== PREDICATES ========================================
+    def is_hovered(self) -> bool:
+        """Vérifie que le widget soit survolé"""
+        return self.hover.is_hovered()
+
+    # ======================================== INTERFACE ========================================
+    def copy(self) -> Button:
+        """Renvoie une copie du widget"""
+        pass
     
     # ======================================== LIFE CYCLE ========================================
-    def _update(self, dt):
+    def _update(self, dt: float):
         """Actualisation"""
         ...
     
-    def _draw(self, pipeline, context, share_scale = True, share_rotation = True):
+    def _draw(self, pipeline: Pipeline, context: RenderContext):
         """Affichage"""
         ...
     
     def _destroy(self):
-        """Lièbre les ressources pyglet"""
-        if self._shape_renderer:
-            self._shape_renderer.delete()
-        if self._sprite_renderer:
-            self._sprite_renderer.delete()
-        if self._text_renderer:
-            self._text_renderer.delete()
-    
+        """Libère les ressources pyglet"""
+        ...
+
     # ======================================== INTERNALS ========================================
-    def _resolve(self) -> None:
-        """Résolution du bouton"""
-        if self._background is not None:
-            self._has_background = True
-            if isinstance(self._background, Shape):
-                self._background_is_shape = True
-                self._hitbox = self._background
-            else:
-                self._background_is_shape = False
-                self._hitbox = Rect(self._background.width, self._background.height)
-            self._has_text = self._text is not None
-        else:
-            self._has_background = False
-            if self._text is not None:
-                self.hitbox = Rect(self._text_renderer.content_width, self._text_renderer.content_height)
-            else:
-                self._has_text = False
+    def _apply_callback(self) -> None:
+        """Applique le callback"""
+        if self._callback is not None:
+            self.click.add(name=self._ACTION_NAME, callback=self._callback, kwargs={"id": self._id} if self._give_id else None, condition=self._condition)
+
+    def _remove_callback(self) -> None:
+        """Retire le callback"""
+        if self.click.has(self._ACTION_NAME):
+            self.click.remove(self._ACTION_NAME)
+
+    def _refresh(self):
+        """Contexte d'actualisation de l'action"""
+        self._remove_callback()
+        try:
+            yield
+        finally:
+            self._apply_callback()

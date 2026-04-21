@@ -152,3 +152,8 @@ class Behavior(ABC):
         self._update(dt)
         for tween in self._tweens.values():
             tween.update(dt)
+
+    def delete(self) -> None:
+        """Suppression du comportement"""
+        self.clear_tweens()
+        self.detach()

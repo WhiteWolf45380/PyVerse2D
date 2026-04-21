@@ -25,6 +25,7 @@ class ClickBehavior(Behavior):
         self._down_listeners: dict[str, _Listener] = {}
         self._up_listeners: dict[str, _Listener] = {}
 
+    # ======================================== INTERFACE ========================================
     def add(
         self,
         name: str = None,
@@ -79,7 +80,6 @@ class ClickBehavior(Behavior):
             )
             self._up_listeners[name] = up_listener
 
-    # ======================================== LISTENERS ========================================
     def remove(self, name: str) -> None:
         """Supprime une action
 
@@ -108,10 +108,18 @@ class ClickBehavior(Behavior):
                 continue
             self.remove(name)
 
-    def remove_all(self) -> None:
+    def clear(self) -> None:
         """Supprime toutes les actions"""
         for name in list(self._down_listeners.keys()):
             self.remove(name)
+
+    def has(self, name: str) -> bool:
+        """Vérifie que le comportement possède une action
+        
+        Args:
+            name: nom de l'action
+        """
+        return name in self._down_listeners
     
     def enable_all(self) -> None:
         """Active toutes les actions"""
@@ -134,7 +142,7 @@ class ClickBehavior(Behavior):
 
     def _on_detach(self) -> None:
         """Hook de détachement"""
-        self.remove_all()
+        self.clear()
 
     def _on_enable(self) -> None:
         """Hook d'activation"""
