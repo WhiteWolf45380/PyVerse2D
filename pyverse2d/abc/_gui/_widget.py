@@ -704,7 +704,7 @@ class Widget(ABC):
         self._update_render_context(context, share_scale, share_rotation)
 
         # Affichage personnel
-        self._draw(pipeline, context)
+        self._draw(pipeline, self_context)
 
         # Passage au zorder des enfants
         z = self._context.z
