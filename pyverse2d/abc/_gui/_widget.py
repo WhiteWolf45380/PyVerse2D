@@ -89,6 +89,16 @@ class Widget(ABC):
         "_cached_scissor", "_scissor_dirty",
     )
 
+    _RENDER_CONTEXT_CLS: RenderContext = None
+
+    @classmethod
+    def _get_render_context(cls) -> RenderContext:
+        """Renvoie la class RenderContext"""
+        if cls._RENDER_CONTEXT_CLS is None:
+            from ...gui import RenderContext
+            cls._RENDER_CONTEXT_CLS = RenderContext
+        return cls._RENDER_CONTEXT_CLS
+
     def __init__(
             self,
             position: Point = (0, 0),
@@ -141,7 +151,7 @@ class Widget(ABC):
         self._scissor_dirty: bool = True
 
         # Contexte courant
-        self._context: RenderContext = RenderContext(
+        self._context: RenderContext = self._get_render_context()(
             pipeline = None,
             x = self._position.x,
             y = self._position.y,
@@ -808,6 +818,7 @@ class WidgetWrapper:
     
 # ======================================== HELPERS ========================================
 def intersect(a: tuple[int, int, int, int], b: tuple[int, int, int, int]) -> tuple[int, int, int, int]:
+    """Renvoie l'intersection de deux Rectangles"""
     ax, ay, aw, ah = a
     bx, by, bw, bh = b
     x = max(ax, bx)
