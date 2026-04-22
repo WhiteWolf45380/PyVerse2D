@@ -210,6 +210,10 @@ class Button(Widget):
         """Vérifie que le widget soit survolé"""
         return self.hover.is_hovered()
 
+    def collidespoint(self, point):
+        """Vérifie la collision avec un point"""
+        return self.background.collidespoint(point)
+
     # ======================================== INTERFACE ========================================
     def copy(self) -> Button:
         """Renvoie une copie du widget"""
