@@ -13,8 +13,7 @@ from numbers import Real
 
 # ======================================== WIDGET ========================================
 class Surface(Widget):
-    """
-    Composant GUI simple: Surface
+    """Composant GUI simple: Surface
 
     Args:
         shape: forme de la surface
@@ -51,6 +50,10 @@ class Surface(Widget):
 
         # Affichage
         self._color: Color = Color(color)
+
+        # Hooks
+        self.on_show(self._on_show)
+        self.on_hide(self._on_hide)
 
     # ======================================== GETTERS ========================================
     @property
@@ -93,6 +96,19 @@ class Surface(Widget):
             opacity = self._opacity,
             clipping = self._clipping,
         )
+    
+    # ======================================== HOOKS ========================================
+    def _on_show(self) -> None:
+        """Devient visible"""
+        if self._shape_renderer is None:
+            return
+        self._shape_renderer.visible = True
+
+    def _on_hide(self) -> None:
+        """Devient invisible"""
+        if self._shape_renderer is None:
+            return
+        self._shape_renderer.visible = False
 
     # ======================================== LIFE CYCLE ========================================
     def _update(self, dt: float) -> None:

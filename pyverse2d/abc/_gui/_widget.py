@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from ..._internal import expect, clamped, over
-from ..._flag import Super
 from ...math import Point
 
 from .._shape import Shape
@@ -597,6 +596,7 @@ class Widget(ABC):
         if expect(child, Widget) in self._children:
             child._layer = None
             child._parent = None
+            child.sleep()
             self._children.remove(child)
         return child
 
@@ -614,6 +614,7 @@ class Widget(ABC):
         for wrapper in to_remove:
             wrapper.widget._layer = None
             wrapper.widget._parent = None
+            wrapper.widget.sleep()
             self._children.remove(wrapper)
 
     def clear_children(self) -> None:
@@ -621,6 +622,7 @@ class Widget(ABC):
         for child in self._children:
             child.widget._layer = None
             child.widget._parent = None
+            child.widget.sleep()
         self._children.clear()
     
     def reorder(self, child: Widget, z: int) -> None:
@@ -675,10 +677,10 @@ class Widget(ABC):
     @abstractmethod
     def _update(self, dt: float) -> None: ...
 
-    def update(self, dt: float) -> Super:
+    def update(self, dt: float) -> None:
         """Actualisation"""
         if not self._active:
-            return Super.STOP
+            return
         
         # Actualisation personnel
         self._update(dt)
@@ -689,15 +691,15 @@ class Widget(ABC):
         for child in reversed(self._children):
             child.widget.update(dt)
 
-        return Super.NONE
+        return
     
     @abstractmethod
     def _draw(self, pipeline: Pipeline, context: RenderContext): ...
 
-    def draw(self, pipeline: Pipeline, context: RenderContext, share_scale: bool = True, share_rotation: bool = True) -> Super:
+    def draw(self, pipeline: Pipeline, context: RenderContext, share_scale: bool = True, share_rotation: bool = True) -> None:
         """Affichage"""
         if not self._visible:
-            return Super.STOP
+            return
         self_context = self._context
 
         # Actualisation du contexte de rendu
@@ -716,13 +718,11 @@ class Widget(ABC):
 
         # Restauration du zorder
         self_context.z = z
-
-        return Super.NONE
     
     @abstractmethod
     def _destroy(self) -> None: ...
 
-    def destroy(self) -> Super:
+    def destroy(self) -> None:
         """Destruction"""
         self._destroy()
         if self._parent is not None:
@@ -731,7 +731,12 @@ class Widget(ABC):
             behavior.delete()
         for child in self._children:
             child.widget.destroy()
-        return Super.NONE
+    
+    def sleep(self) -> None:
+        """Nettoie les ressources"""
+        self._destroy()
+        for child in self._children:
+            child.widget.sleep()
     
     # ======================================== INTERNALS ========================================
     def _switch_layer(self, layer: GuiLayer | None) -> None:

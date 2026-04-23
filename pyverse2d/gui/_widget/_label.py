@@ -98,6 +98,10 @@ class Label(Widget):
         # Cache du AABB
         self._hitbox_key: bool = True
         self._hitbox_cache: Rect = None
+
+        # Hooks
+        self.on_show(self._on_show)
+        self.on_hide(self._on_hide)
     
     # ======================================== PROPERTIES ========================================
     @property
@@ -290,6 +294,19 @@ class Label(Widget):
             margin = self._margin,
             clipping = self._clipping,
         )
+    
+    # ======================================== HOOKS ========================================
+    def _on_show(self) -> None:
+        """Devient visible"""
+        if self._text_renderer is None:
+            return
+        self._text_renderer.visible = True
+
+    def _on_hide(self) -> None:
+        """Devient invisible"""
+        if self._text_renderer is None:
+            return
+        self._text_renderer.visible = False
         
     # ======================================== LIFE CYCLE ========================================
     def _update(self, dt: float) -> None:

@@ -66,6 +66,10 @@ class Sprite(Widget):
         self._hitbox_key: tuple = None
         self._hitbox_cache: Rect = None
 
+        # Hooks
+        self.on_show(self._on_show)
+        self.on_hide(self._on_hide)
+
     # ======================================== PROPERTIES ========================================
     @property
     def image(self) -> Image:
@@ -149,6 +153,19 @@ class Sprite(Widget):
         """
         self._flip_x ^= horizontal
         self._flip_y ^= vertical
+
+    # ======================================== HOOKS ========================================
+    def _on_show(self) -> None:
+        """Devient visible"""
+        if self._image_renderer is None:
+            return
+        self._image_renderer.visible = True
+
+    def _on_hide(self) -> None:
+        """Devient invisible"""
+        if self._image_renderer is None:
+            return
+        self._image_renderer.visible = False
 
     # ======================================== LIFE CYCLE ========================================
     def _update(self, dt: float) -> None:

@@ -61,6 +61,10 @@ class Border(Widget):
         # Attributs privés
         self._shape_renderer: PygletShapeRenderer = None
 
+        # Hooks
+        self.on_show(self._on_show)
+        self.on_hide(self._on_hide)
+
     # ======================================== GETTERS ========================================
     @property
     def shape(self) -> Shape:
@@ -120,6 +124,19 @@ class Border(Widget):
             opacity = self._opacity,
             clipping = self._clipping,
         )
+    
+    # ======================================== HOOKS ========================================
+    def _on_show(self) -> None:
+        """Devient visible"""
+        if self._shape_renderer is None:
+            return
+        self._shape_renderer.visible = True
+
+    def _on_hide(self) -> None:
+        """Devient invisible"""
+        if self._shape_renderer is None:
+            return
+        self._shape_renderer.visible = False
 
     # ======================================== LIFE CYCLE ========================================
     def _update(self, dt: float) -> None:
