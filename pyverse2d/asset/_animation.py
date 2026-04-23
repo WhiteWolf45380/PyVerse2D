@@ -59,12 +59,6 @@ class Animation(Asset):
     def duration(self) -> float:
         """Renvoie la durée de l'animation en secondes"""
         return len(self._frames) / self._framerate
-    
-    # ======================================== SETTERS ========================================
-    @framerate.setter
-    def framerate(self, value: Real) -> None:
-        """Fixe le taux d'images par seconde"""
-        self._framerate = float(positive(not_null(expect(value, Real))))
 
     # ======================================== FACTORY ========================================
     @classmethod

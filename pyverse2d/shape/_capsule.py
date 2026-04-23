@@ -13,7 +13,7 @@ from numpy.typing import NDArray
 
 # ======================================== SHAPE ========================================
 class Capsule(Shape):
-    """Forme géométrique 2D : Capsule
+    """Forme géométrique 2D immuable : Capsule
 
     Args:
         radius: rayon des demi-cercles
@@ -54,11 +54,6 @@ class Capsule(Shape):
         Le rayon doit être un *réel positif non nul*.
         """
         return self._radius
-    
-    @radius.setter
-    def radius(self, value: Real) -> None:
-        self._radius = min(self._height * 0.5, float(positive(not_null(expect(value, Real)))))
-        self._invalidate_geometry()
 
     @property
     def height(self) -> float:
@@ -67,12 +62,6 @@ class Capsule(Shape):
         La hauteut doit être un *réel positif non nul*.
         """
         return self._height
-
-    @height.setter
-    def height(self, value: Real) -> None:
-        self._height = float(positive(not_null(expect(value, Real))))
-        self._radius = min(self._height * 0.5, self._radius)
-        self._invalidate_geometry()
 
     @property
     def width(self) -> float:
@@ -141,14 +130,3 @@ class Capsule(Shape):
     def copy(self) -> Capsule:
         """Renvoie une copie de la capsule"""
         return Capsule(self._radius, self._height)
-
-    def scale(self, factor: Real) -> None:
-        """Redimensionne la capsule
-
-        Args:
-            factor: facteur de redimensionnement
-        """
-        f = float(positive(not_null(expect(factor, Real))))
-        self._radius *= f
-        self._height *= f
-        self._invalidate_geometry()

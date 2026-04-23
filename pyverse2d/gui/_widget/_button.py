@@ -22,10 +22,10 @@ class Button(Widget):
     """Composant GUI composé: Bouton
     
     Args:
-        position: positionnement
         background: Surface ou Sprite de fond
         label: texte du bouton
         border: bordure du bouton
+        position: positionnement
         anchor: ancre relative locale
         scale: facteur de redimensionnement
         rotation: angle de rotation        
@@ -62,12 +62,6 @@ class Button(Widget):
         # Initialisation du widget
         super().__init__(position, anchor, scale, rotation, opacity, clipping=clipping)
 
-        # Attributs publiques
-        self._callback: Callable = callback
-        self._condition: Callable = condition
-        self._id: Any = id
-        self._give_id: bool = give_id
-
         if __debug__:
             expect(background, (Surface, Sprite))
             expect(label, (Label, None))
@@ -76,10 +70,14 @@ class Button(Widget):
             expect_callable(condition, include_none=True, arg="condition")
             expect(give_id, bool)
 
-        # Composants
-        self._background: Surface | Sprite = self.add_child(background, name="background", z=0)
-        self._label: Label | None = self.add_child(label, name="label", z=10) if label is not None else None
-        self._border: Border | None = self.add_child(border, name="border", z=20) if border is not None else None
+        # Attributs publiques
+        self._background: Surface | Sprite = self.add_child(background.copy(), name="background", z=0)
+        self._label: Label | None = self.add_child(label.copy(), name="label", z=10) if label is not None else None
+        self._border: Border | None = self.add_child(border.copy(), name="border", z=20) if border is not None else None
+        self._callback: Callable = callback
+        self._condition: Callable = condition
+        self._id: Any = id
+        self._give_id: bool = give_id
 
         # Comportements prédéfinis
         self.add_behavior(HoverBehavior())
@@ -101,7 +99,7 @@ class Button(Widget):
     def background(self, value: Surface | Sprite) -> None:
         assert isinstance(value, (Surface, Sprite)), f"background ({value}) must be a Surface or a Sprite widget"
         self.remove_child(self._background)
-        self._background = self.add_child(value, name="background", z=0)
+        self._background = self.add_child(value.copy(), name="background", z=0)
         self._invalidate_scissor()
 
     @property
@@ -117,9 +115,7 @@ class Button(Widget):
         assert value is None or isinstance(value, Label), f"label ({value}) must be a Label widget or None"
         if self._label is not None:
             self.remove_child(self._label)
-        self._label = value
-        if value is not None:
-            self.add_child(value, name="label", z=10)
+        self._label = self.add_child(value.copy(), name="label", z=10) if value is not None else None            
 
     @property
     def border(self) -> Border | None:
@@ -134,9 +130,7 @@ class Button(Widget):
         assert value is None or isinstance(value, Border), f"border ({value}) must be a Border widget"
         if self._border is not None:
             self.remove_child(self._border)
-        self._border = value
-        if value is not None:
-            self.add_child(value, name="border", z=20)
+        self._border = self.add_child(value.copy(), name="border", z=20) if value is not None else None            
 
     @property
     def hitbox(self) -> Shape:
@@ -218,11 +212,11 @@ class Button(Widget):
     def copy(self) -> Button:
         """Renvoie une copie du widget"""
         return Button(
-            background = self._background.copy(),
-            label = self._label.copy() if self._label is not None else None,
-            border = self._border.copy() if self._border is not None else None,
-            position = self._position.copy(),
-            anchor = self._anchor.copy(),
+            background = self._background,
+            label = self._label,
+            border = self._border,
+            position = self._position,
+            anchor = self._anchor,
             scale = self._scale,
             rotation = self._rotation,
             opacity = self._opacity,

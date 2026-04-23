@@ -13,7 +13,7 @@ from numpy.typing import NDArray
 
 # ======================================== SHAPE ========================================
 class RoundedRect(Shape):
-    """Forme géométrique 2D : Rectangle à coins arrondis
+    """Forme géométrique 2D immuable : Rectangle à coins arrondis
 
     Args:
         width:  largeur totale du rectangle
@@ -54,12 +54,6 @@ class RoundedRect(Shape):
         La largeur doit être un *réel positif non nul*.
         """
         return self._width
-    
-    @width.setter
-    def width(self, value: Real) -> None:
-        self._width  = float(positive(not_null(expect(value, Real))))
-        self._radius = min(min(self._width, self._height) * 0.5, self._radius)
-        self._invalidate_geometry()
 
     @property
     def height(self) -> float:
@@ -68,12 +62,6 @@ class RoundedRect(Shape):
         La hauteur doit être un *réel positif non nul*.
         """
         return self._height
-    
-    @height.setter
-    def height(self, value: Real) -> None:
-        self._height = float(positive(not_null(expect(value, Real))))
-        self._radius = min(min(self._width, self._height) * 0.5, self._radius)
-        self._invalidate_geometry()
 
     @property
     def radius(self) -> float:
@@ -82,12 +70,6 @@ class RoundedRect(Shape):
         Le rayon doit être un *réel positif non nul*.
         """
         return self._radius
-
-    @radius.setter
-    def radius(self, value: Real) -> None:
-        max_r = min(self._width, self._height) * 0.5
-        self._radius = min(max_r, float(positive(not_null(expect(value, Real)))))
-        self._invalidate_geometry()
 
     @property
     def inner_width(self) -> float:
@@ -171,15 +153,3 @@ class RoundedRect(Shape):
     def copy(self) -> RoundedRect:
         """Renvoie une copie du rectangle arrondi"""
         return RoundedRect(self._width, self._height, self._radius)
-
-    def scale(self, factor: Real) -> None:
-        """Redimensionne le rectangle arrondi
-
-        Args:
-            factor: facteur de redimensionnement
-        """
-        f = float(positive(not_null(expect(factor, Real))))
-        self._width  *= f
-        self._height *= f
-        self._radius *= f
-        self._invalidate_geometry()

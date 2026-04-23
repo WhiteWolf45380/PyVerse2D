@@ -61,9 +61,6 @@ class Shape(ABC):
     @abstractmethod
     def copy(self) -> Self: ...
 
-    @abstractmethod
-    def scale(self, factor: float) -> None: ...
-
     # ======================================== GPU SIDE ========================================
     def get_vertices(self) -> NDArray[np.float32]:
         """Renvoie les vertices locaux de la forme"""

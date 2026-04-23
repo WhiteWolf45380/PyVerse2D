@@ -12,7 +12,7 @@ from numpy.typing import NDArray
 
 # ======================================== SHAPE ========================================
 class Rect(Shape):
-    """Forme géométrique 2D : Rectangle
+    """Forme géométrique 2D immuable : Rectangle
 
     Args:
         width:  largeur du rectangle
@@ -51,11 +51,6 @@ class Rect(Shape):
         La largeur doit être un *réel positif non nul*.
         """
         return self._width
-    
-    @width.setter
-    def width(self, value: Real) -> None:
-        self._width = float(positive(not_null(expect(value, Real))))
-        self._invalidate_geometry()
 
     @property
     def height(self) -> float:
@@ -64,11 +59,6 @@ class Rect(Shape):
         La hauteur doit être un *réel positif non nul*.
         """
         return self._height
-
-    @height.setter
-    def height(self, value: Real) -> None:
-        self._height = float(positive(not_null(expect(value, Real))))
-        self._invalidate_geometry()
 
     @property
     def half_width(self) -> float:
@@ -138,14 +128,3 @@ class Rect(Shape):
     def copy(self) -> Rect:
         """Renvoie une copie du rectangle"""
         return Rect(self._width, self._height)
-
-    def scale(self, factor: Real) -> None:
-        """Redimensionne le rectangle
-
-        Args:
-            factor: facteur de redimensionnement
-        """
-        f = float(positive(not_null(expect(factor, Real))))
-        self._width  *= f
-        self._height *= f
-        self._invalidate_geometry()

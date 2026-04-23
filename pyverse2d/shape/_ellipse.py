@@ -13,7 +13,7 @@ from numpy.typing import NDArray
 
 # ======================================== SHAPE ========================================
 class Ellipse(Shape):
-    """Forme géométrique 2D : Ellipse
+    """Forme géométrique 2D immuable : Ellipse
 
     Args:
         rx: rayon horizontal de l'ellipse
@@ -54,11 +54,6 @@ class Ellipse(Shape):
         Le rayon doit être un *réel positif non nul*.
         """
         return self._rx
-    
-    @rx.setter
-    def rx(self, value: Real) -> None:
-        self._rx = float(positive(not_null(expect(value, Real))))
-        self._invalidate_geometry()
 
     @property
     def ry(self) -> float:
@@ -67,11 +62,6 @@ class Ellipse(Shape):
         Le rayon doit être un *réel positif non nul*.
         """
         return self._ry
-
-    @ry.setter
-    def ry(self, value: Real) -> None:
-        self._ry = float(positive(not_null(expect(value, Real))))
-        self._invalidate_geometry()
 
     # ======================================== GEOMETRY ========================================
     def get_perimeter(self) -> float:
@@ -117,14 +107,3 @@ class Ellipse(Shape):
     def copy(self) -> Ellipse:
         """Renvoie une copie de l'ellipse"""
         return Ellipse(self._rx, self._ry)
-
-    def scale(self, factor: Real) -> None:
-        """Redimensionne l'ellipse
-
-        Args:
-            factor: facteur de redimensionnement
-        """
-        f = float(positive(not_null(expect(factor, Real))))
-        self._rx *= f
-        self._ry *= f
-        self._invalidate_geometry()

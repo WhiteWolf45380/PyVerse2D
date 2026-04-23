@@ -84,9 +84,9 @@ class Surface(Widget):
     def copy(self) -> Surface:
         """Renvoie une copie du widget"""
         return Surface(
-            shape = self._shape.copy(),
-            position = self._position.copy(),
-            anchor = self._anchor.copy(),
+            shape = self._shape,
+            position = self._position,
+            anchor = self._anchor,
             scale = self._scale,
             rotation = self._rotation,
             opacity = self._opacity,

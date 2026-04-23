@@ -47,14 +47,19 @@ class Border(Widget):
         # Initialisation du widget
         super().__init__(position, anchor, scale, rotation, opacity, clipping=clipping)
 
-        # Forme
-        self._shape: Shape = expect(shape, Shape)
-        self._shape_renderer: PygletShapeRenderer = None
-
-        # Affichage
-        self._width: int = expect(width, int)
-        self._align: BorderAlign = expect(align, str)
+        # Attributs publiques
+        self._shape: Shape = shape
+        self._width: int = width
+        self._align: BorderAlign = align
         self._color: Color = Color(color)
+
+        if __debug__:
+            expect(self._shape, Shape)
+            expect(self._width, int)
+            expect(self._align, str)
+
+        # Attributs privés
+        self._shape_renderer: PygletShapeRenderer = None
 
     # ======================================== GETTERS ========================================
     @property
@@ -64,7 +69,8 @@ class Border(Widget):
     
     @shape.setter
     def shape(self, value: Shape) -> None:
-        self._shape = expect(value, Shape)
+        assert isinstance(value, Shape), f"shape ({value}) must be a Shape object"
+        self._shape = value.copy()
         self._invalidate_scissor()
     
     @property
@@ -103,9 +109,9 @@ class Border(Widget):
     def copy(self) -> Border:
         """Renvoie une copie du widget"""
         return Border(
-            shape = self._shape.copy(),
-            position = self._position.copy(),
-            anchor = self._anchor.copy(),
+            shape = self._shape,
+            position = self._position,
+            anchor = self._anchor,
             scale = self._scale,
             rotation = self._rotation,
             width = self._width,

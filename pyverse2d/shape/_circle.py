@@ -13,7 +13,7 @@ from numpy.typing import NDArray
 
 # ======================================== SHAPE ========================================
 class Circle(Shape):
-    """Forme géométrique 2D : Cercle
+    """Forme géométrique 2D immuable : Cercle
 
     Args:
         radius: rayon du cercle
@@ -51,11 +51,6 @@ class Circle(Shape):
         Le rayon doit être un *réel positif non nul*.
         """
         return self._radius
-    
-    @radius.setter
-    def radius(self, value: Real) -> None:
-        self._radius = float(positive(not_null(expect(value, Real))))
-        self._invalidate_geometry()
 
     @property
     def diameter(self) -> float:
@@ -105,12 +100,3 @@ class Circle(Shape):
     def copy(self) -> Circle:
         """Renvoie une copie du cercle"""
         return Circle(self._radius)
-
-    def scale(self, factor: Real) -> None:
-        """Redimensionne le cercle
-
-        Args:
-            factor: facteur de redimensionnement
-        """
-        self._radius *= float(positive(not_null(expect(factor, Real))))
-        self._invalidate_geometry()

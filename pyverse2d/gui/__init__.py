@@ -24,6 +24,7 @@ from ._widget import (
     Sprite,
 
     Button,
+    ToggleButton,
 )
 
 # ======================================== EXPORTS ========================================
@@ -48,4 +49,5 @@ __all__ = [
     "Sprite",
 
     "Button",
+    "ToggleButton",
 ]

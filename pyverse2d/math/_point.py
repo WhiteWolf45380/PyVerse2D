@@ -15,23 +15,18 @@ class Point(MathObject):
     """Objet mathématique 2D abstrait : Point
 
     Args:
-        x(Real): coordonnée horizontale, ou Point/tuple à coercer
-        y(Real): coordonnée verticale (optionnel si x est un Point ou tuple)
+        x: coordonnée horizontale, ou Point/tuple à coercer
+        y: coordonnée verticale
     """
     __slots__ = ("_x", "_y")
     PRECISION = 8
 
-    def __new__(cls, x, y=None):
-        """Création d'un nouvel objet uniquement si l'argument n'est pas un point"""
-        if isinstance(x, cls) and y is None:
-            return x
-        return super().__new__(cls)
-
     def __init__(self, x, y=None):
-        if y is None and isinstance(x, Point):
-            return
-        if y is None and isinstance(x, (tuple, list)):
-            x, y = x[0], x[1]
+        if y is None:
+            try:
+                x, y = x
+            except (TypeError, ValueError):
+                raise TypeError("Expected Point or iterable of length 2")
         self._x: float = round(float(x), self.PRECISION)
         self._y: float = round(float(y), self.PRECISION)
 

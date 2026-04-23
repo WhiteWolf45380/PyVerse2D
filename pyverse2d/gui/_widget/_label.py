@@ -47,6 +47,7 @@ class Label(Widget):
         "_width", "_height",
         "_multiline", "_line_spacing", "_wrap_lines",
         "_align", "_margin",
+        "_hitbox_key", "_hitbox_cache",
     )
     
     def __init__(
@@ -74,7 +75,7 @@ class Label(Widget):
         super().__init__(position, anchor, scale, rotation, opacity, clipping=clipping)
 
         # Texte
-        self._text: Text = expect(text, Text)
+        self._text: Text = text
         self._text_renderer: PygletLabelRenderer = None
 
         # Style
@@ -93,6 +94,10 @@ class Label(Widget):
         self._wrap_lines: bool = expect(wrap_lines, bool)
         self._align: HorizontalAlign = expect(align, HorizontalAlign)
         self._margin: int = positive(expect(margin, int))
+
+        # Cache du AABB
+        self._hitbox_key: bool = True
+        self._hitbox_cache: Rect = None
     
     # ======================================== PROPERTIES ========================================
     @property
@@ -255,15 +260,20 @@ class Label(Widget):
     @property
     def hitbox(self):
         """Hitbox du label"""
-        return Rect(self._text_renderer.content_width, self._text_renderer.content_height)
+        if self._text_renderer is None:
+            return Rect(1, 1)
+        key = (self._text_renderer.content_width, self._text_renderer.content_height)
+        if key != self._hitbox_key:
+            self._hitbox_cache = Rect(*key)
+        return self._hitbox_cache
     
     # ======================================== INTERFACE ========================================
     def copy(self) -> Label:
         """Renvoie une copie du widget"""
         return Label(
-            text = self._text.copy(),
-            position = self._position.copy(),
-            anchor = self._anchor.copy(),
+            text = self._text,
+            position = self._position,
+            anchor = self._anchor,
             scale = self._scale,
             rotation = self._rotation,
             weight = self._weight,

@@ -1,18 +1,16 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from .._internal import expect
 from ..abc import Shape
 from ..math import Point
 from ..math.vertices import is_convex, order_ccw, center_vertices
 
-from numbers import Real
 import numpy as np
 from numpy.typing import NDArray
 
 # ======================================== SHAPE ========================================
 class Polygon(Shape):
-    """Forme géométrique 2D : Polygone quelconque
+    """Forme géométrique 2D immuable : Polygone quelconque
 
     Args:
         points: sommets du polygone (minimum 3, sans doublons)
@@ -107,15 +105,3 @@ class Polygon(Shape):
     def copy(self) -> Polygon:
         """Renvoie une copie du polygone"""
         return Polygon(*[Point(float(v[0]), float(v[1])) for v in self._source_vertices])
-
-    def scale(self, factor: Real) -> None:
-        """Redimensionne le polygone
-
-        Args:
-            factor: facteur de redimensionnement
-        """
-        f = float(expect(factor, Real))
-        if f <= 0:
-            raise ValueError("factor must be strictly positive")
-        self._source_vertices *= f
-        self._invalidate_geometry()

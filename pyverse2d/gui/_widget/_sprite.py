@@ -32,6 +32,7 @@ class Sprite(Widget):
         "_image",  "_image_renderer",
         "_flip_x", "_flip_y",
         "_color",
+        "_hitbox_key", "_hitbox_cache",
     )
 
     def __init__(
@@ -60,6 +61,10 @@ class Sprite(Widget):
 
         # Affichage
         self._color: Color = Color(color)
+
+        # Cache du AABB
+        self._hitbox_key: tuple = None
+        self._hitbox_cache: Rect = None
 
     # ======================================== PROPERTIES ========================================
     @property
@@ -118,15 +123,18 @@ class Sprite(Widget):
         """Hitbox du sprite"""
         if self._image_renderer is None:
             return Rect(1, 1)
-        return Rect(self._image_renderer.width, self._image_renderer.height)
+        key = (self._image_renderer.width, self._image_renderer.height)
+        if key != self._hitbox_key:
+            self._hitbox_cache = Rect(*key)
+        return self._hitbox_cache
     
     # ======================================== INTERFACE ========================================
     def copy(self) -> Sprite:
         """Renvoie une copie du widget"""
         return Sprite(
-            image = self._image.copy(),
-            position = self._position.copy(),
-            anchor = self._anchor.copy(),
+            image = self._image,
+            position = self._position,
+            anchor = self._anchor,
             scale = self._scale,
             rotation = self._rotation,
             color = self._color,

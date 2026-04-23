@@ -14,15 +14,18 @@ class Text(Asset):
     Descripteur de texte
 
     Args:
-        text(str): contenu du texte
-        font(Font, optional): police à utiliser
+        text: contenu
+        font: police
     """
-    __slots__ = ("_original_text", "_text", "_font")
+    __slots__ = ("_text", "_font")
 
     def __init__(self, text: str, font: Font = None):
-        self._original_text: str = expect(text, str)
-        self._text: str = self._original_text
-        self._font: Font = expect(font, Font) if font is not None else Font()
+        self._text: str = text
+        self._font: Font = font if font is not None else Font()
+
+        if __debug__:
+            expect(text, str)
+            expect(font, Font)
 
     # ======================================== CONVERSIONS ========================================
     def __repr__(self) -> str:
@@ -39,16 +42,10 @@ class Text(Asset):
         """Renvoie la police"""
         return self._font
 
-    # ======================================== INTERFACE ========================================
-    def __copy__(self) -> Text:
-        """Renvoie une copie du texte"""
-        t = Text(self._original_text, self._font)
-        t.text = self._text
-        return t
-
-    def copy(self) -> Text:
-        """Renvoie une copie du texte"""
-        return self.__copy__()
+    # ======================================== INTERFACE ========================================    
+    def get_width(self) -> int:
+        """Renvoie la largeur théorique du texte"""
+        return self._font.text_width(self._text)
 
     def with_text(self, text: str) -> Text:
         """
@@ -57,7 +54,7 @@ class Text(Asset):
         Args:
             text(str): nouveau texte
         """
-        return Text(expect(text, str), self._font)
+        return Text(text, self._font)
  
     def with_font(self, font: Font) -> Text:
         """
@@ -66,21 +63,14 @@ class Text(Asset):
         Args:
             font(Font): nouvelle font
         """
-        return Text(self._original_text, expect(font, Font))
+        return Text(self._text, font)
+
     
-    def get_width(self) -> int:
-        """Renvoie la largeur théorique du texte"""
-        return self._font.text_width(self._text)
-    
-    def clip(self, width: Real = 0.0, suffix: str = ""):
+    def with_clip(self, width: Real = 0.0, suffix: str = "") -> Text:
         """
         Limite le texte à une certaine largeur
 
         Args:
             width(Real): largeur maximale (0.0 pour largeur illimitée)
         """
-        self._text = self._font.clip_text(self._original_text, max_width=width, suffix=suffix)
-    
-    def reset_clip(self):
-        """Rétablit le texte original."""
-        self._text = self._original_text
+        self._text = Text(self._font.clip_text(self._text, max_width=width, suffix=suffix), font=self._font)

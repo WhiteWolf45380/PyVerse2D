@@ -12,7 +12,7 @@ import math
 
 # ======================================== SHAPE ========================================
 class RegularPolygon(Shape):
-    """Forme géométrique 2D : Polygone régulier
+    """Forme géométrique 2D immuable : Polygone régulier
 
     Args:
         sides: nombre de côtés (minimum 3)
@@ -53,11 +53,6 @@ class RegularPolygon(Shape):
         Le rayon doit être un *réel positif non nul*.
         """
         return self._radius
-    
-    @radius.setter
-    def radius(self, value: Real) -> None:
-        self._radius = float(positive(not_null(expect(value, Real))))
-        self._invalidate_geometry()
 
     @property
     def sides(self) -> int:
@@ -126,16 +121,6 @@ class RegularPolygon(Shape):
     def copy(self) -> RegularPolygon:
         """Renvoie une copie du polygone régulier"""
         return RegularPolygon(self._sides, self._radius)
-
-    def scale(self, factor: Real) -> None:
-        """Redimensionne le polygone régulier
-
-        Args:
-            factor: facteur de redimensionnement
-        """
-        self._radius *= float(positive(not_null(expect(factor, Real))))
-        self._invalidate_geometry()
-
 
 # ======================================== FAÇADES ========================================
 class RegularTriangle(RegularPolygon):

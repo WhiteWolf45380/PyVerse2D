@@ -19,18 +19,12 @@ class Vector(MathObject):
     __slots__ = ("_x", "_y")
     PRECISION = 9
 
-    def __new__(cls, x, y=None):
-        """Création d'un nouvel objet uniquement si l'argument n'est pas un vecteur"""
-        if isinstance(x, cls) and y is None:
-            return x
-        return super().__new__(cls)
-
     def __init__(self, x, y=None):
-        if y is None and isinstance(x, Vector):
-            return
-        super().__init__()
-        if y is None and isinstance(x, (tuple, list)):
-            x, y = x[0], x[1]
+        if y is None:
+            try:
+                x, y = x
+            except (TypeError, ValueError):
+                raise TypeError("Expected Vector or iterable of length 2")
         self._x: float = round(float(x), self.PRECISION)
         self._y: float = round(float(y), self.PRECISION)
 
