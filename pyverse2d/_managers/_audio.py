@@ -9,8 +9,8 @@ from ._context import ContextManager
 
 import pyglet.media as _media
 
-import random
 import os
+import random
 from dataclasses import dataclass
 from numbers import Real
 from typing import ClassVar, Type
@@ -27,7 +27,7 @@ class SoundGroup:
         volume: volume du groupe [0, 1]
     """
     __slots__ = (
-        "volume", "pool_max",
+        "_volume", "_pool_max",
         "_players",
     )
 
@@ -270,7 +270,36 @@ class AudioManager(Manager):
         Args:
             sound: son à jouer
         """
-        ...
+        if not sound.is_ready():
+            return
+
+        group = sound._group
+        if group is not None:
+            player = group._get_free_player()
+            if player is None:
+                return
+        else:
+            player = _media.Player()
+
+        group_vol = group.volume if group is not None else 1.0
+        player.volume = self._master_volume * group_vol * sound.volume
+
+        source = random.choice(sound._sources)
+        player.queue(source)
+        player.play()
+
+        def _on_eos() -> None:
+            sound._remove_player(player)
+            if not sound._players:
+                sound._set_playing(False)
+
+        player.push_handlers(on_player_eos=_on_eos)
+
+        sound._add_player(player)
+        sound._set_playing(True)
+        sound._set_pause(False)
+        sound._apply_cooldown()
+        self._active_sounds.add(sound)
 
     def resume_sound(self, sound: Sound) -> None:
         """Reprend un ``Sound`` asset
@@ -278,7 +307,12 @@ class AudioManager(Manager):
         Args:
             sound: son à reprendre
         """
-        ...
+        if not sound.is_paused():
+            return
+        for player in sound._players:
+            player.play()
+        sound._set_pause(False)
+        sound._set_playing(True)
 
     def pause_sound(self, sound: Sound) -> None:
         """Met en ``Sound`` asset en pause
@@ -286,7 +320,12 @@ class AudioManager(Manager):
         Args:
             sound: son à mettre en pause
         """
-        ...
+        if not sound.is_playing() or sound.is_paused():
+            return
+        for player in sound._players:
+            player.pause()
+        sound._set_pause(True)
+        sound._set_playing(False)
 
     def stop_sound(self, sound: Sound) -> None:
         """Arrête un ``Sound`` asset
@@ -294,16 +333,33 @@ class AudioManager(Manager):
         Args:
             sound: son à arrêter
         """
-        ...
+        for player in sound._players:
+            player.pause()
+        sound._clear_players()
+        sound._set_playing(False)
+        sound._set_pause(False)
+        self._active_sounds.discard(sound)
 
     # ======================================== GROUPS ========================================
+    def resume_sounds(self, group: SoundGroup = None) -> None:
+        """Reprend les SFX en cours
+
+        Args:
+            group: si fourni, reprend uniquement ce groupe
+        """
+        for sound in list(self._active_sounds):
+            if group is None or sound._group is group:
+                self.resume_sound(sound)
+
     def pause_sounds(self, group: SoundGroup = None) -> None:
         """Met en pause les SFX en cours
 
         Args:
             group: si fourni, met en pause uniquement ce groupe
         """
-        ...
+        for sound in list(self._active_sounds):
+            if group is None or sound._group is group:
+                self.pause_sound(sound)
 
     def stop_sounds(self, group: SoundGroup = None) -> None:
         """Arrête les SFX en cours.
@@ -311,7 +367,14 @@ class AudioManager(Manager):
         Args:
             group: si fourni, arrête uniquement ce groupe
         """
-        ...
+        targets = {s for s in self._active_sounds if group is None or s._group is group}
+        for sound in targets:
+            for player in sound._players:
+                player.pause()
+            sound._clear_players()
+            sound._set_playing(False)
+            sound._set_pause(False)
+        self._active_sounds -= targets
 
     # ======================================== MUSICS ========================================
     def play_music(self, music: Music, loop: bool = True, fade_s: float = 0.0) -> None:
@@ -322,7 +385,57 @@ class AudioManager(Manager):
             loop: boucle si True
             fade_s: fade-in en secondes
         """
-        ...
+        self._stop_music_immediate()
+
+        source = _media.load(music.path, streaming=True)
+        player = _media.Player()
+        player.loop = loop
+        player.queue(source)
+
+        if fade_s > 0.0:
+            player.volume = 0.0
+            player.play()
+            music._set_player(player)
+            music._loop = loop
+            music._set_playing(True)
+            music._set_pause(False)
+            self._current_music = music
+            self._crossfade = _CrossfadeRequest(
+                music_out=None,
+                music_in=music,
+                steps=_CROSSFADE_STEPS,
+                step_dt=fade_s / _CROSSFADE_STEPS,
+                step=0,
+                elapsed=0.0,
+                vol_out=0.0,
+                vol_in=self._master_volume * self._music_volume * music.volume,
+                master=self._master_volume,
+                music_vol=self._music_volume,
+            )
+        else:
+            player.volume = self._master_volume * self._music_volume * music.volume
+            player.play()
+            music._set_player(player)
+            music._loop = loop
+            music._set_playing(True)
+            music._set_pause(False)
+            self._current_music = music
+
+    def resume_music(self) -> None:
+        """Reprend la musique en cours"""
+        if self._current_music is None or not self._current_music.is_paused():
+            return
+        self._current_music._player.play()
+        self._current_music._set_pause(False)
+        self._current_music._set_playing(True)
+
+    def pause_music(self) -> None:
+        """Met en pause la musique en cours"""
+        if self._current_music is None or not self._current_music.is_playing():
+            return
+        self._current_music._player.pause()
+        self._current_music._set_pause(True)
+        self._current_music._set_playing(False)
 
     def stop_music(self, fade_s: float = 0.0) -> None:
         """Arrête la musique en cours
@@ -330,7 +443,27 @@ class AudioManager(Manager):
         Args:
             fade_s: fade-out en secondes
         """
-        ...
+        if self._current_music is None:
+            return
+        self._cancel_crossfade()
+
+        if fade_s <= 0.0:
+            self._stop_music_immediate()
+        else:
+            music = self._current_music
+            self._current_music = None
+            self._crossfade = _CrossfadeRequest(
+                music_out=music,
+                music_in=None,
+                steps=_CROSSFADE_STEPS,
+                step_dt=fade_s / _CROSSFADE_STEPS,
+                step=0,
+                elapsed=0.0,
+                vol_out=self._master_volume * self._music_volume * music.volume,
+                vol_in=0.0,
+                master=self._master_volume,
+                music_vol=self._music_volume,
+            )
 
     def switch_music(self, music: Music, fade_s: float = 1.0, loop: bool = True) -> None:
         """Crossfade vers une nouvelle musique
@@ -340,25 +473,114 @@ class AudioManager(Manager):
             fade_s: durée totale du crossfade en secondes
             loop: boucle la nouvelle musique
         """
-        ...
+        if fade_s <= 0.0:
+            self.play_music(music, loop=loop)
+            return
+
+        self._cancel_crossfade()
+        music_out = self._current_music
+
+        source = _media.load(music.path, streaming=True)
+        player = _media.Player()
+        player.loop = loop
+        player.volume = 0.0
+        player.queue(source)
+        player.play()
+        music._set_player(player)
+        music._loop = loop
+        music._set_playing(True)
+        music._set_pause(False)
+        self._current_music = music
+
+        self._crossfade = _CrossfadeRequest(
+            music_out=music_out,
+            music_in=music,
+            steps=_CROSSFADE_STEPS,
+            step_dt=fade_s / _CROSSFADE_STEPS,
+            step=0,
+            elapsed=0.0,
+            vol_out=self._master_volume * self._music_volume * music_out.volume if music_out else 0.0,
+            vol_in=self._master_volume * self._music_volume * music.volume,
+            master=self._master_volume,
+            music_vol=self._music_volume,
+        )
+
+    @property
+    def current_music(self) -> Music:
+        """Renvoie le musique courante"""
+        return self._current_music
 
     # ======================================== CYCLE DE VIE ========================================
     def update(self, dt: float) -> None:
         """Actualisation"""
-        ...
+        done: set[Sound] = set()
+        for sound in self._active_sounds:
+            if sound._tick(dt) and not sound.is_playing():
+                done.add(sound)
+        self._active_sounds -= done
+
+        if self._crossfade is None:
+            return
+
+        cf = self._crossfade
+        cf.elapsed += dt
+
+        while cf.elapsed >= cf.step_dt and cf.step < cf.steps:
+            cf.step += 1
+            cf.elapsed -= cf.step_dt
+            t = cf.step / cf.steps
+            if cf.music_out is not None:
+                cf.music_out._set_volume(cf.vol_out * (1.0 - t))
+            if cf.music_in is not None:
+                cf.music_in._set_volume(cf.vol_in * t)
+
+        if cf.step >= cf.steps:
+            if cf.music_out is not None:
+                cf.music_out._set_volume(0.0)
+                if cf.music_out._player:
+                    cf.music_out._player.pause()
+                cf.music_out._set_playing(False)
+                cf.music_out._set_player(None)
+            if cf.music_in is not None:
+                cf.music_in._set_volume(cf.vol_in)
+            self._crossfade = None
 
     def flush(self) -> None:
         """Nettoyage"""
         pass
 
+    def clear(self) -> None:
+        """Nettoyage complet"""
+        self.stop_sounds()
+        self._stop_music_immediate()
+
     # ======================================== INTERNALS ========================================
+    def _stop_music_immediate(self) -> None:
+        self._cancel_crossfade()
+        if self._current_music is not None:
+            if self._current_music._player:
+                self._current_music._player.pause()
+            self._current_music._set_playing(False)
+            self._current_music._set_pause(False)
+            self._current_music._set_player(None)
+            self._current_music = None
+
     def _cancel_crossfade(self) -> None:
         """Annule le cross-fade"""
         self._crossfade = None
 
-    def _refrehs_volumes(self) -> None:
+    def _refresh_volumes(self) -> None:
         """Actualise les volumes"""
-        if self._current_music:
+        if self._crossfade is not None:
+            cf = self._crossfade
+            cf.master = self._master_volume
+            cf.music_vol = self._music_volume
+            t = cf.step / cf.steps if cf.steps else 1.0
+            if cf.music_out is not None:
+                cf.music_out._set_volume(cf.vol_out * (1.0 - t))
+            if cf.music_in is not None:
+                cf.music_in._set_volume(cf.vol_in * t)
+        elif self._current_music is not None:
             self._current_music._set_volume(self._master_volume * self._music_volume * self._current_music.volume)
 
 # ======================================== EXPORTS ========================================

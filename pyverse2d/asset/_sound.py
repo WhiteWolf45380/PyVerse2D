@@ -71,6 +71,10 @@ class Sound(Asset):
         self._playing: bool = False
         self._paused: bool = False
 
+    def __hash__(self) -> int:
+        """Renvoie le hash du son"""
+        return hash((self._path, self._volume, self._cooldown, self._group))
+
     # ======================================== PROPERTIES ========================================
     @property
     def path(self) -> str:
@@ -125,6 +129,16 @@ class Sound(Asset):
         self._group = value
 
     # ======================================== PREDICATES ========================================
+    def __eq__(self, other: object) -> bool:
+        """Vérifie la correspondance de deux sons"""
+        if isinstance(other, Sound):
+            return (self._path == other.path
+                and self._volume == other.volume
+                and self._cooldown == other.cooldown
+                and self._group == other.group
+            )
+        return NotImplemented
+
     def is_ready(self) -> bool:
         """Vérifie que le son soit prêt à être joué"""
         return self._cooldown_timer == 0.0

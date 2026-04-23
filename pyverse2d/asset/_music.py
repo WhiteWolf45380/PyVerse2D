@@ -22,7 +22,7 @@ class Music(Asset):
     """
     __slots__ = (
         "_path", "_volume",
-        "_player", "_playing", "_loop",
+        "_player", "_playing", "_paused", "_loop",
     )
 
     _AUDIO_MANAGER: AudioManager = None
@@ -46,7 +46,12 @@ class Music(Asset):
         # Attributs internes
         self._player: _media.Player | None = None
         self._playing: bool = False
+        self._paused: bool = False
         self._loop: bool = True
+
+    def __hash__(self) -> int:
+        """Renvoie le hash de la musique"""
+        return hash((self._path, self._volume))
 
     # ======================================== PROPERTIES ========================================
     @property
@@ -75,9 +80,21 @@ class Music(Asset):
             self._player.volume = self._volume
 
     # ======================================== PREDICATES ========================================
+    def __eq__(self, other: object) -> bool:
+        """Vérifie la correspondance de deux musiques"""
+        if isinstance(other, Music):
+            return (self._path == other.path
+                and self._volume == other.volume
+            )
+        return NotImplemented
+
     def is_playing(self) -> bool:
         """Vérifie que la musique soit en cours de lecture"""
         return self._playing
+    
+    def is_paused(self) -> bool:
+        """Vérifie que la musique soit en pause"""
+        return self._paused
 
     # ======================================== INTERFACE ========================================
     def play(self, loop: bool = True, fade_s: Real = 0.0) -> None:
@@ -95,9 +112,23 @@ class Music(Asset):
         Args:
             fade_s: durée du fade-out (géré par le manager)
         """
-        self._get_audio_manager().stop_music(self, fade_s=fade_s)
+        if self._get_audio_manager().current_music == self:
+            self._get_audio_manager().stop_music(fade_s=fade_s)
 
+    # ======================================== INTERNALS ========================================
     def _set_volume(self, value: float) -> None:
         """Volume brut sur le player"""
         if self._player:
             self._player.volume = value
+
+    def _set_playing(self, value: bool) -> None:
+        """Fixe l'état"""
+        self._playing = value
+
+    def _set_pause(self, value: bool) -> None:
+        """Fixe la pause"""
+        self._paused = value
+
+    def _set_player(self, value: _media.player) -> None:
+        """Fixe le lecteur"""
+        self._player = value
