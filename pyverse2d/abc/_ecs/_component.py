@@ -16,11 +16,13 @@ class Component(ABC):
     @abstractmethod
     def __repr__(self) -> str: ...
 
-    @abstractmethod
-    def __iter__(self) -> Iterator: ...
-
-    @abstractmethod
-    def __hash__(self) -> int: ...
+    def __iter__(self) -> Iterator:
+        """Renvoie le composant dans un itérateur"""
+        return iter(self.get_attributes())
+    
+    def __hash__(self) -> int:
+        """Renvoie l'entier hashé du composant"""
+        return hash(self.get_attributes())
 
     @abstractmethod
     def get_attributes(self) -> tuple: ...

@@ -5,7 +5,6 @@ from ...asset import Color
 from ...math import Vector
 from ...typing import BorderAlign
 
-from typing import Iterator
 from numbers import Real
 
 # ======================================== COMPONENT ========================================
@@ -56,14 +55,6 @@ class ShapeRenderer(Component):
     def __repr__(self) -> str:
         """Renvoie une représentation du composant"""
         return f"ShapeRenderer(shape={self._shape}, z={self._z}, visible={self._visible})"
-    
-    def __iter__(self) -> Iterator:
-        """Renvoie le composant dans un itérateur"""
-        return iter(self.get_attributes())
-    
-    def __hash__(self) -> int:
-        """Renvoie l'entier hashé du composant"""
-        return hash(self.get_attributes())
     
     def get_attributes(self) -> tuple:
         """Renvoie les attributs du composant"""

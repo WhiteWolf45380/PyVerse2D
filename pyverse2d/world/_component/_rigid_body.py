@@ -6,7 +6,6 @@ from ...abc import Component
 from ...math import Vector
 
 from numbers import Real
-from typing import Iterator
 from math import exp
 
 # ======================================== CONSTANTES ========================================
@@ -56,14 +55,6 @@ class RigidBody(Component):
     def __repr__(self) -> str:
         """Renvoie une représentation du composant"""
         return f"RigidBody(mass={self._mass}, friction={self._friction}, restitution={self._restitution})"
-
-    def __iter__(self) -> Iterator:
-        """Renvoie les attributs dans un itérateur"""
-        return iter(self.get_attributes())
-
-    def __hash__(self) -> int:
-        """Renvoie le hash du composant"""
-        return hash(self.get_attributes())
 
     def get_attributes(self) -> tuple:
         """Renvoie les attributs du composant"""

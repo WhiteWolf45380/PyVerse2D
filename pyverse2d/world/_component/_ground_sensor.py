@@ -7,7 +7,6 @@ from ...math import Vector
 
 from math import cos, radians
 from numbers import Real
-from typing import Iterator
 
 # ======================================== COMPONENT ========================================
 class GroundSensor(Component):
@@ -39,14 +38,6 @@ class GroundSensor(Component):
     def __repr__(self) -> str:
         """Renvoie une représentation du composant"""
         return f"GroundSensor(grounded={self._grounded}, threshold={self._threshold}, stability_angle={self._stability_angle})"
-
-    def __iter__(self) -> Iterator:
-        """Renvoie le composant dans un itérateur"""
-        return iter(self.get_attributes())
-
-    def __hash__(self) -> int:
-        """Renvoie l'entier hashé du composant"""
-        return hash(self.get_attributes())
     
     def get_attributes(self) -> tuple:
         """Renvoie les attributs du composant"""

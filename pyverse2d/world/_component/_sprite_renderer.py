@@ -4,7 +4,6 @@ from ...abc import Component
 from ...asset import Image, Color
 from ...math import Vector
 
-from typing import Iterator
 from numbers import Real
 
 # ======================================== COMPONENT ========================================
@@ -51,14 +50,6 @@ class SpriteRenderer(Component):
     def __repr__(self) -> str:
         """Renvoie une représentation du composant"""
         return f"SpriteRenderer(image={self._image}, z={self._z}, visible={self._visible})"
-    
-    def __iter__(self) -> Iterator:
-        """Renvoie le composant dans un itérateur"""
-        return iter(self.get_attributes())
-    
-    def __hash__(self) -> int:
-        """Renvoie l'entier hashé du composant"""
-        return hash(self.get_attributes())
     
     def get_attributes(self) -> tuple:
         """Renvoie les attributs du composant"""

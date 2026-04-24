@@ -5,7 +5,10 @@ from typing import Callable
 
 # ======================================== TOOL ========================================
 class CallbackList:
-    """Stockage des hooks"""
+    """Stockage des hooks
+    
+    Cette objet est un ``Callable`` permettant de stocker des fonctions à appeler.
+    """
     __slots__ = ("_callbacks",)
 
     def __init__(self):

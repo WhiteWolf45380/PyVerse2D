@@ -5,7 +5,7 @@ from ..._internal import expect, clamped, over, inferior_to, superior_to
 from ...abc import Component
 from ...math import Vector
 
-from typing import TYPE_CHECKING, Iterator
+from typing import TYPE_CHECKING
 from numbers import Real
 
 if TYPE_CHECKING:
@@ -92,14 +92,6 @@ class Follow(Component):
     def __repr__(self) -> str:
         """Renvoie une représentation du composant"""
         return f"Follow(entity={self._entity.id[:8]}..., offset={self._offset})"
-
-    def __iter__(self) -> Iterator:
-        """Renvoie les attributs dans un itérateur"""
-        return iter(self.get_attributes())
-
-    def __hash__(self) -> int:
-        """Renvoie le hash du composant"""
-        return hash(self.get_attributes())
 
     def get_attributes(self) -> tuple:
         """Renvoie les attributs du composant"""

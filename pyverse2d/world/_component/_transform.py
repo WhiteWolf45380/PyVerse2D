@@ -1,11 +1,9 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from ..._internal import expect, positive, not_null
 from ...abc import Component
 from ...math import Point, Vector
 
-from typing import Iterator
 from numbers import Real
 
 # ======================================== COMPONENT ========================================
@@ -39,14 +37,6 @@ class Transform(Component):
     def __repr__(self) -> str:
         """Renvoie une représentation du composant"""
         return f"Transform(x={self._position.x}, y={self._position.y}, anchor={self._anchor}, rotation={self._rotation}, scale={self._scale})"
-    
-    def __iter__(self) -> Iterator:
-        """Renvoie le composant dans un itérateur"""
-        return iter(self.get_attributes())
-    
-    def __hash__(self) -> int:
-        """Renvoie l'entier hashé du composant"""
-        return hash(self.get_attributes())
     
     def get_attributes(self) -> tuple:
         """Renvoie les attributs du composant"""
