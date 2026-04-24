@@ -33,7 +33,7 @@ class ContextManager:
         self.mouse: MouseManager = None
         self.inputs: InputsManager = None
         self.ui: UIManager = None
-        self._audio: AudioManager = None
+        self.audio: AudioManager = None
 
     def __iter__(self) -> Iterator:
         """Itère sur les itérateurs"""
