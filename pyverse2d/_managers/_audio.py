@@ -4,7 +4,7 @@ from __future__ import annotations
 from .._internal import expect, positive
 from ..abc import Manager, Request
 from ..asset import Sound, Music
-from ..math.easing import EasingFunc, is_easing, linear
+from ..math.easing import EasingFunc, linear
 
 from ._context import ContextManager
 

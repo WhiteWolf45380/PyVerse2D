@@ -12,6 +12,7 @@ from ._component import (
     SpriteRenderer,
     TextRenderer,
     Animator,
+    SoundEmitter,
 )
 
 from ._system import (
@@ -44,4 +45,6 @@ __all__ = [
     "CollisionSystem",
     "RenderSystem",
     "AnimationSystem",
+
+    "SoundEmitter",
 ]

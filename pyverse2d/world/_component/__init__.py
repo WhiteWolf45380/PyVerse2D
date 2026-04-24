@@ -11,6 +11,8 @@ from ._sprite_renderer import SpriteRenderer
 from ._text_renderer import TextRenderer
 from ._animator import Animator
 
+from ._sound_emitter import SoundEmitter
+
 # ======================================== EXPORTS ========================================
 __all__ = [
     "Transform",
@@ -24,4 +26,6 @@ __all__ = [
     "SpriteRenderer",
     "TextRenderer",
     "Animator",
+
+    "SoundEmitter",
 ]
