@@ -4,6 +4,7 @@ from __future__ import annotations
 from .._internal import expect, positive
 from ..abc import Manager, Request
 from ..asset import Sound, Music
+from ..math.easing import EasingFunc, is_easing, linear
 
 from ._context import ContextManager
 
@@ -97,6 +98,7 @@ class _CrossfadeRequest(Request):
     elapsed: float
     vol_out: float
     vol_in: float
+    easing: EasingFunc
     master: float
     music_vol: float
 
@@ -375,15 +377,21 @@ class AudioManager(Manager):
             sound._set_playing(False)
             sound._set_pause(False)
         self._active_sounds -= targets
+    
+    @property
+    def active_sounds(self) -> frozenset[Sound]:
+        """Renvoie l'ensemble des sons en cours de lecture (lecture seule)"""
+        return self._active_sounds
 
     # ======================================== MUSICS ========================================
-    def play_music(self, music: Music, loop: bool = True, fade_s: float = 0.0) -> None:
+    def play_music(self, music: Music, loop: bool = True, fade_s: float = 0.0, fade_easing: EasingFunc = linear) -> None:
         """Joue un ``Music`` asset en remplaçant l'éventuel en cours.
 
         Args:
             music: musique à jouer
             loop: boucle si True
             fade_s: fade-in en secondes
+            fade_easing: fonction d'atténuation du fade-in
         """
         self._stop_music_immediate()
 
@@ -409,6 +417,7 @@ class AudioManager(Manager):
                 elapsed=0.0,
                 vol_out=0.0,
                 vol_in=self._master_volume * self._music_volume * music.volume,
+                easing=fade_easing,
                 master=self._master_volume,
                 music_vol=self._music_volume,
             )
@@ -437,11 +446,12 @@ class AudioManager(Manager):
         self._current_music._set_pause(True)
         self._current_music._set_playing(False)
 
-    def stop_music(self, fade_s: float = 0.0) -> None:
+    def stop_music(self, fade_s: float = 0.0, fade_easing: EasingFunc = linear) -> None:
         """Arrête la musique en cours
 
         Args:
             fade_s: fade-out en secondes
+            fade_easing: fonction d'atténuation du fade-out
         """
         if self._current_music is None:
             return
@@ -461,16 +471,18 @@ class AudioManager(Manager):
                 elapsed=0.0,
                 vol_out=self._master_volume * self._music_volume * music.volume,
                 vol_in=0.0,
+                easing=fade_easing,
                 master=self._master_volume,
                 music_vol=self._music_volume,
             )
 
-    def switch_music(self, music: Music, fade_s: float = 1.0, loop: bool = True) -> None:
+    def switch_music(self, music: Music, fade_s: float = 1.0, fade_easing: EasingFunc = linear, loop: bool = True) -> None:
         """Crossfade vers une nouvelle musique
 
         Args:
             music: musique cible
             fade_s: durée totale du crossfade en secondes
+            fade_easing: fonction d'atténuation du cross-fade
             loop: boucle la nouvelle musique
         """
         if fade_s <= 0.0:
@@ -501,6 +513,7 @@ class AudioManager(Manager):
             elapsed=0.0,
             vol_out=self._master_volume * self._music_volume * music_out.volume if music_out else 0.0,
             vol_in=self._master_volume * self._music_volume * music.volume,
+            easing=fade_easing,
             master=self._master_volume,
             music_vol=self._music_volume,
         )
@@ -513,12 +526,16 @@ class AudioManager(Manager):
     # ======================================== CYCLE DE VIE ========================================
     def update(self, dt: float) -> None:
         """Actualisation"""
+        # Mise à jour des cooldowns
         done: set[Sound] = set()
         for sound in self._active_sounds:
+            if sound.is_paused():
+                continue
             if sound._tick(dt) and not sound.is_playing():
                 done.add(sound)
         self._active_sounds -= done
 
+        # Fade musical
         if self._crossfade is None:
             return
 
@@ -528,7 +545,7 @@ class AudioManager(Manager):
         while cf.elapsed >= cf.step_dt and cf.step < cf.steps:
             cf.step += 1
             cf.elapsed -= cf.step_dt
-            t = cf.step / cf.steps
+            t = cf.easing(cf.step / cf.steps)
             if cf.music_out is not None:
                 cf.music_out._set_volume(cf.vol_out * (1.0 - t))
             if cf.music_in is not None:
@@ -556,6 +573,7 @@ class AudioManager(Manager):
 
     # ======================================== INTERNALS ========================================
     def _stop_music_immediate(self) -> None:
+        """Arrête la musique brutalement"""
         self._cancel_crossfade()
         if self._current_music is not None:
             if self._current_music._player:
