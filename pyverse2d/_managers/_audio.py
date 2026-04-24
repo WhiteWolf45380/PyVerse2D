@@ -281,12 +281,12 @@ class AudioManager(Manager):
         else:
             player = _media.Player()
 
-        group_vol = group.volume if group is not None else 1.0
-        player.volume = self._master_volume * group_vol * sound.volume
-
         source = random.choice(sound._sources)
         player.queue(source)
         player.play()
+
+        group_vol = group.volume if group is not None else 1.0
+        player.volume = self._master_volume * group_vol * sound.volume
 
         def _on_eos() -> None:
             sound._remove_player(player)
@@ -393,8 +393,8 @@ class AudioManager(Manager):
         player.queue(source)
 
         if fade_s > 0.0:
-            player.volume = 0.0
             player.play()
+            player.volume = 0.0
             music._set_player(player)
             music._loop = loop
             music._set_playing(True)
@@ -413,8 +413,8 @@ class AudioManager(Manager):
                 music_vol=self._music_volume,
             )
         else:
-            player.volume = self._master_volume * self._music_volume * music.volume
             player.play()
+            player.volume = self._master_volume * self._music_volume * music.volume
             music._set_player(player)
             music._loop = loop
             music._set_playing(True)
