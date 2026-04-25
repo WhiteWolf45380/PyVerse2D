@@ -33,7 +33,7 @@ class MusicBundle(Bundle):
         self._volume = value
 
     # ======================================== INTERFACE ========================================
-    def get(self, key: str) -> Music:
+    def get(self, key: str, volume: Real | None = None) -> Music:
         """Renvoie le chemin d'accès à une musique du bundle
 
         Args:

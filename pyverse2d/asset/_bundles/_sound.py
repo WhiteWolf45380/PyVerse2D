@@ -67,7 +67,7 @@ class SoundBundle(Bundle):
         self._group = value
 
     # ======================================== INTERFACE ========================================
-    def get(self, key: str, volume: Real = None, cooldown: Real = None, group: SoundGroup = None) -> Sound:
+    def get(self, key: str, volume: Real | None = None, cooldown: Real | None = None, group: SoundGroup | None = None) -> Sound:
         """Renvoie le chemin d'accès à un son du bundle
 
         Args:
