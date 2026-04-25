@@ -691,7 +691,7 @@ class AudioManager(Manager):
                 cf.music_in._set_volume(cf.vol_in * t)
 
         if cf.step >= cf.steps:
-            if cf.music_out is not None:
+            if cf.music_out is not None and cf.music_out != cf.music_in:
                 cf.music_out._set_volume(0.0)
                 if cf.music_out._handle:
                     cf.music_out._handle.stop()
