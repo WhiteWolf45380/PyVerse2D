@@ -88,7 +88,7 @@ class Follow(Component):
         # Attributs internes        
         self._arrived: bool = False
         
-    # ======================================== CONVERSIONS ========================================
+    # ======================================== CONTRACT ========================================
     def __repr__(self) -> str:
         """Renvoie une représentation du composant"""
         return f"Follow(entity={self._entity.id[:8]}..., offset={self._offset})"
@@ -102,6 +102,18 @@ class Follow(Component):
             self._angle, self._cone, self._cone_gap,
             self._axis_x, self._axis_y,
         )
+    
+    def copy(self) -> Follow:
+        """Renvoie une copie du composant"""
+        new = Follow(
+            self._entity, self._offset,
+            self._smoothing, self._force, self._damping,
+            self._radius_min, self._radius_max,
+            self._angle, self._cone, self._cone_gap,
+            self._axis_x, self._axis_y,
+        )
+        new._arrived = self._arrived
+        return new
 
     # ======================================== PROPERTIES ========================================
     @property

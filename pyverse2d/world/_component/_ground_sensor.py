@@ -34,7 +34,7 @@ class GroundSensor(Component):
         self._grounded: bool = False
         self._compute()
 
-    # ======================================== CONVERSIONS ========================================
+    # ======================================== CONTRACT ========================================
     def __repr__(self) -> str:
         """Renvoie une représentation du composant"""
         return f"GroundSensor(grounded={self._grounded}, threshold={self._threshold}, stability_angle={self._stability_angle})"
@@ -42,6 +42,15 @@ class GroundSensor(Component):
     def get_attributes(self) -> tuple:
         """Renvoie les attributs du composant"""
         return (self._threshold, self._stability_angle, self._ground_damping, self.max_step_height, self._coyote_time)
+    
+    def copy(self) -> GroundSensor:
+        """Renvoie une copie du composant"""
+        new = GroundSensor(self._threshold, self._stability_angle, self._ground_damping, self._max_step_height, self._coyote_time)
+        new._coyote_elapsed = self._coyote_elapsed
+        new._grounded = self._grounded
+        new._stability_ny_min = self._stability_ny_min
+        new._ground_normal = self._ground_normal
+        return new
     
     # ======================================== GETTERS ========================================
     @property

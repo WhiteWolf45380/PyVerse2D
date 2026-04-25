@@ -56,7 +56,7 @@ class TextRenderer(Component):
         self._z: int = expect(z, int)
         self._visible: bool = expect(visible, bool)
 
-    # ======================================== CONVERSIONS ========================================
+    # ======================================== CONTRACT ========================================
     def __repr__(self) -> str:
         """Renvoie une représentation du composant"""
         return (f"TextRenderer(text={self._text}, z={self._z}, visible={self._visible})")
@@ -64,6 +64,11 @@ class TextRenderer(Component):
     def get_attributes(self) -> tuple:
         """Renvoie les attributs du composant"""
         return (self._text, self._offset, self._color, self._opacity, self._weight, self._italic, self._multiline, self._align, self._width, self._z)
+    
+    def copy(self) -> TextRenderer:
+        """Renvoie une copie du composant"""
+        new = TextRenderer(self._text, self._offset, self._color, self._opacity, self._weight, self._italic, self._multiline, self._align, self._width, self._z, self._visible)
+        return new
 
     # ======================================== GETTERS ========================================
     @property

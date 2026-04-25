@@ -1,4 +1,6 @@
 # ======================================== IMPORTS ========================================
+from __future__ import annotations
+
 from ..._internal import expect, clamped
 from ...abc import Component, Shape
 from ...asset import Color
@@ -51,7 +53,7 @@ class ShapeRenderer(Component):
         self._z: int = expect(z, int)
         self._visible: bool = expect(visible, bool)
     
-    # ======================================== CONVERSIONS ========================================
+    # ======================================== CONTRACT ========================================
     def __repr__(self) -> str:
         """Renvoie une représentation du composant"""
         return f"ShapeRenderer(shape={self._shape}, z={self._z}, visible={self._visible})"
@@ -59,6 +61,11 @@ class ShapeRenderer(Component):
     def get_attributes(self) -> tuple:
         """Renvoie les attributs du composant"""
         return (self._shape, self._offset, self._filling, self._filling_color, self._border_width, self._border_align, self._border_color, self._opacity, self._z)
+    
+    def copy(self) -> ShapeRenderer:
+        """Renvoie une copie du composant"""
+        new = ShapeRenderer(self._shape, self._offset, self._filling, self._filling_color, self._border_width, self._border_align, self._border_color, self._opacity, self._z, self._visible)
+        return new
     
     # ======================================== GETTERS ========================================
     @property

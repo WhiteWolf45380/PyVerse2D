@@ -15,6 +15,12 @@ class CallbackList:
         self._callbacks: list[Callable] = []
 
     # ======================================== INTERFACE ========================================
+    def copy(self) -> CallbackList:
+        """Renvoie une copie du CallbackList"""
+        new = CallbackList()
+        new._inject(self._exctract())
+        return new
+
     def __call__(self, callback: Callable) -> Callable:
         """Ajoute une fonction"""
         self._callbacks.append(callback)

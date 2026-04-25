@@ -33,7 +33,7 @@ class Transform(Component):
         self._scale: float = float(scale)
         assert self._scale != 0, ValueError("Scale cannot be null")
 
-    # ======================================== CONVERSIONS ========================================
+    # ======================================== CONTRACT ========================================
     def __repr__(self) -> str:
         """Renvoie une représentation du composant"""
         return f"Transform(x={self._position.x}, y={self._position.y}, anchor={self._anchor}, rotation={self._rotation}, scale={self._scale})"
@@ -41,6 +41,10 @@ class Transform(Component):
     def get_attributes(self) -> tuple:
         """Renvoie les attributs du composant"""
         return (self._position, self._anchor, self._rotation, self._scale)
+    
+    def copy(self) -> Transform:
+        """Renvoie une copie du composant"""
+        return Transform(self._position.copy(), self._anchor.copy(), self._rotation, self._scale)
 
     # ======================================== PROPERTIES ========================================
     @property

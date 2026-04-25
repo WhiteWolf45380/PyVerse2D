@@ -53,7 +53,7 @@ class Animator(Component):
         self._frame: int = 0
         self._elapsed: float = 0.0
     
-    # ======================================== CONVERSIONS ========================================
+    # ======================================== CONTRACT ========================================
     def __repr__(self) -> str:
         """Renvoie une représentation de l'animateur"""
         return f"Animator(current={self._current_animation}, frame={self._frame})"
@@ -61,6 +61,16 @@ class Animator(Component):
     def get_attributes(self) -> tuple:
         """Renvoie les attributs du composant"""
         return (self._idle, self._requests, self._current_request, self._current_animation, self._frame, self._elapsed)
+    
+    def copy(self) -> Animator:
+        """Renvoie une copie du composant"""
+        new = Animator(self._idle)
+        new._requests = self._requests.copy()
+        new._current_request = self._current_request
+        new._current_animation = self._current_animation
+        new._frame = self._frame
+        new._elapsed = self._elapsed
+        return new
 
     # ======================================== GETTERS ========================================
     @property

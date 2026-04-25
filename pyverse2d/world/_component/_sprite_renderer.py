@@ -1,4 +1,6 @@
 # ======================================== IMPORTS ========================================
+from __future__ import annotations
+
 from ..._internal import expect, clamped
 from ...abc import Component
 from ...asset import Image, Color
@@ -46,7 +48,7 @@ class SpriteRenderer(Component):
         self._z: int = expect(z, int)
         self._visible: bool = expect(visible, bool)
     
-    # ======================================== CONVERSIONS ========================================
+    # ======================================== CONTRACT ========================================
     def __repr__(self) -> str:
         """Renvoie une représentation du composant"""
         return f"SpriteRenderer(image={self._image}, z={self._z}, visible={self._visible})"
@@ -54,6 +56,12 @@ class SpriteRenderer(Component):
     def get_attributes(self) -> tuple:
         """Renvoie les attributs du composant"""
         return (self._image, self._offset, self._tint, self._opacity, self._flip_x, self._flip_y, self._z)
+    
+    def copy(self) -> SpriteRenderer:
+        """Renvoie une copie du composant"""
+        new = SpriteRenderer(self._default_image, self._offset, self._tint, self._opacity, self._flip_x, self._flip_y, self._z, self._visible)
+        new._image = self._image
+        return new
     
     # ======================================== GETTERS ========================================
     @property

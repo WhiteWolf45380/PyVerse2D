@@ -41,14 +41,21 @@ class Collider(Component):
         self._contacts: dict[Collider, Vector] = {}
         self._coyote_elapsed: float = 0.0
     
-    # ======================================== CONVERSIONS ========================================
+    # ======================================== CONTRACT ========================================
     def __repr__(self) -> str:
         """Renvoie une représentation du composant"""
         return f"Collider(category={self._category}, mask={self._mask}, trigger={self._trigger}, active={self._active})"
     
     def get_attributes(self) -> tuple:
         """Renvoie les attributs du composant"""
-        return (self._shape, self._offset, self._category, self._mask, self._trigger)
+        return (self._shape, self._offset, self._category, self._mask, self._trigger, self._active)
+    
+    def copy(self) -> Collider:
+        """Renvoie une copie du composant"""
+        new = Collider(self._shape, self._offset, self._category, self._mask, self._trigger, self._active)
+        new._contacts = self._contacts.copy()
+        new._coyote_elapsed = self._coyote_elapsed
+        return new
     
     # ======================================== GETTERS ========================================
     @property

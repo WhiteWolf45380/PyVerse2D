@@ -60,15 +60,15 @@ class SoundEmitter(Component):
     
     def copy(self) -> SoundEmitter:
         """Renvoie une copie du composant"""
-        component = SoundEmitter(
+        new = SoundEmitter(
             volume = self._volume,
             inner_radius = self._inner_radius,
             outer_radius = self._outer_radius,
             falloff = self._falloff,
         )
-        component.on_start._inject(self._on_start._exctract())
-        component.on_end._inject(self._on_end._exctract())
-        return component
+        new._on_start._inject(self._on_start._exctract())
+        new._on_end._inject(self._on_end._exctract())
+        return new
 
     # ======================================== PROPERTIES ========================================
     @property

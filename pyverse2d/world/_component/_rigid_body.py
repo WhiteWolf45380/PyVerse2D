@@ -51,7 +51,7 @@ class RigidBody(Component):
         self._sleeping = False
         self._sleep_timer = 0.0
 
-    # ======================================== CONVERSIONS ========================================
+    # ======================================== CONTRACT ========================================
     def __repr__(self) -> str:
         """Renvoie une représentation du composant"""
         return f"RigidBody(mass={self._mass}, friction={self._friction}, restitution={self._restitution})"
@@ -59,6 +59,17 @@ class RigidBody(Component):
     def get_attributes(self) -> tuple:
         """Renvoie les attributs du composant"""
         return (self._mass, self._friction, self._restitution, self._gravity, self._gravity_scale, self._linear_damping)
+    
+    def copy(self) -> RigidBody:
+        """Renvoie une copie du composant"""
+        new = RigidBody(self._mass, self._friction, self._restitution, self._gravity, self._gravity_scale, self._linear_damping)
+        new._velocity = self._velocity
+        new._acceleration = self._acceleration
+        new._prev_x = self._prev_x
+        new._prev_y = self._prev_y
+        new._sleeping = self._sleeping
+        new._sleep_timer = self._sleep_timer
+        return new
 
     # ======================================== GETTERS ========================================
     @property
