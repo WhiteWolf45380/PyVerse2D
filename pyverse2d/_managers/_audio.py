@@ -23,7 +23,11 @@ _CROSSFADE_STEPS = 20
 # ======================================== HANDLES ========================================
 class SoundHandle:
     """Handle de son en cours de lecture"""
-    __slots__ = ("sound", "player", "on_stop", "_active")
+    __slots__ = (
+        "sound", "player", "on_stop",
+        "_active",
+        "__weakref__",
+    )
 
     def __init__(self, sound: Sound, player: _media.Player, on_stop: Callable[[SoundHandle], Any] = None):
         # Attributs publiques
@@ -70,7 +74,11 @@ class SoundHandle:
 
 class MusicHandle:
     """Handle de musique en cours de lecture"""
-    __slots__ = ("music", "player", "on_stop", "_active")
+    __slots__ = (
+        "music", "player", "on_stop",
+        "_active",
+        "__weakref__",
+    )
 
     def __init__(self, music: Music, player: _media.Player, on_stop: Callable[[MusicHandle], Any] = None):
         # Attributs publiques
