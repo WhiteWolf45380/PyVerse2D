@@ -6,6 +6,7 @@ from ..abc import Asset
 
 from typing import TYPE_CHECKING, Type
 from numbers import Real
+import os
 
 if TYPE_CHECKING:
     from .._managers._audio import AudioManager, SoundGroup, SoundHandle
@@ -68,6 +69,45 @@ class Sound(Asset):
     def __hash__(self) -> int:
         """Renvoie le hash du son"""
         return hash((self._path, self._volume, self._cooldown, self._group))
+    
+    # ======================================== FACTORY ========================================
+    @classmethod
+    def from_variations(
+        cls,
+        folder_path: str,
+        prefix: str = "",
+        extensions: list[str] = None,
+        volume: Real = 1.0,
+        cooldown: float = 0.0,
+        group: SoundGroup | None = None,
+    ) -> Sound:
+        """Crée un son avec ses variations à partir d'un dossier.
+
+        Le premier fichier trouvé (ordre alphabétique) devient le son principal.
+        les suivants sont ajoutés comme variations.
+
+        Args:
+            folder_path: chemin vers le dossier contenant les fichiers audio
+            prefix: ne retenir que les fichiers dont le nom commence par ce préfixe
+            extensions: liste des extensions à inclure
+            volume: volume propre [0, 1]
+            cooldown: délai minimal entre deux lectures *(secondes)*
+            group: groupe auquel appartient ce son
+        """
+        paths: list[str] = []
+        for filename in sorted(os.listdir(folder_path)):
+            name, ext = os.path.splitext(filename)
+            if extensions is not None and ext.lower() not in extensions:
+                continue
+            if prefix and not name.startswith(prefix):
+                continue
+            paths.append(os.path.join(folder_path, filename))
+        if not paths:
+            raise FileNotFoundError(f"No sound found in '{folder_path}'" + (f" with prefix '{prefix}'" if prefix else "") + (f" and extensions {extensions}" if extensions else ""))
+        sound = cls(path=paths[0], volume=volume, cooldown=cooldown, group=group)
+        for path in paths[1:]:
+            sound.add_variation(path)
+        return sound
 
     # ======================================== PROPERTIES ========================================
     @property

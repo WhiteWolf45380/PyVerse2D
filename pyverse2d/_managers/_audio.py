@@ -11,7 +11,6 @@ from ._context import ContextManager
 
 import pyglet.media as _media
 
-import os
 import random
 from dataclasses import dataclass
 from numbers import Real
