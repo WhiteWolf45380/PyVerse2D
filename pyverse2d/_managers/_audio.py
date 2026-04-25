@@ -423,7 +423,6 @@ class AudioManager(Manager):
         handle = group._get_free_handle(sound)
         if handle is None:
             return None
-        handle.on_stop = lambda h: self._active_sounds.discard(h.sound)
 
         # Lecture du son
         path = random.choice(sound._paths)
