@@ -6,6 +6,7 @@ from ..typing import DictKeys, DictValues
 from abc import ABC, abstractmethod
 from typing import Any, TypeAlias
 import os
+import random
 
 # ======================================== ALIASES ========================================
 CacheKey: TypeAlias = tuple | str
@@ -13,11 +14,12 @@ CacheKey: TypeAlias = tuple | str
 # ======================================== ABSTRACT CLASS ========================================
 class Bundle(ABC):
     """Classe abstraite des paquets d'assets"""
-    __slots__ = ("_paths", "_cache")
+    __slots__ = ("_paths", "_cache", "_keys_list")
 
     def __init__(self, paths: dict[str, str]):
         self._paths: dict[str, str] = paths
         self._cache: dict[CacheKey, Any] = {}
+        self._keys_list: list[str] = list(paths.keys())
 
     # ======================================== PROPERTIES ========================================
     @property
@@ -68,6 +70,10 @@ class Bundle(ABC):
         """Renvoie une vue des clés du bundle"""
         return self._paths.keys()
     
+    def keys_list(self) -> list[str]:
+        """Renvoie une liste des clés du bundle"""
+        return self._keys_list
+    
     def values(self) -> DictValues[Any]:
         """Renvoie une vue des valeurs du bundle"""
         return self._paths.values()
@@ -91,3 +97,8 @@ class Bundle(ABC):
     def __len__(self) -> int:
         """Renvoie le nombre d'entrées du bundle"""
         return len(self._paths)
+    
+    def random(self) -> Any:
+        """Renvoie une entrée aléatoire du bundle"""
+        key = random.choice(self._keys_list)
+        return self.get(key)
