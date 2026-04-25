@@ -5,6 +5,7 @@ from ._scene_state import SceneState
 from ._stack_mode import StackMode
 from ._super import Super
 from ._activity import Activity
+from ._audio_state import AudioState
 
 # ======================================== EXPORTS ========================================
 __all__ = [
@@ -15,4 +16,5 @@ __all__ = [
     "StackMode",
     "Super",
     "Activity",
+    "AudioState",
 ]

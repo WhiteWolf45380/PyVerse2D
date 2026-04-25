@@ -1,18 +1,15 @@
-# ======================================== IMPORTS ========================================
 from __future__ import annotations
 
 from .._internal import expect, positive
+from .._flag import AudioState
 from ..abc import Asset
-
-from pyglet import media as _media
 
 from typing import TYPE_CHECKING, Type
 from numbers import Real
 
 if TYPE_CHECKING:
-    from .._managers._audio import AudioManager, SoundGroup
+    from .._managers._audio import AudioManager, SoundGroup, SoundHandle
 
-# ======================================== ASSET ========================================
 class Sound(Asset):
     """Son court chargé en mémoire *(SFX)*
 
@@ -24,12 +21,12 @@ class Sound(Asset):
     """
     __slots__ = (
         "_path", "_volume", "_cooldown", "_group",
-        "_sources", "_players", "_cooldown_timer", "_playing", "_paused",
-        )
-    
+        "_paths", "_handles", "_cooldown_timer", "_state",
+    )
+
     _GROUP_CLASS: Type[SoundGroup] = None
     _AUDIO_MANAGER: AudioManager = None
-    
+
     @classmethod
     def _get_group_class(cls) -> Type[SoundGroup]:
         """Renvoie la class ``SoundGroup``"""
@@ -37,7 +34,7 @@ class Sound(Asset):
             from .._managers._audio import SoundGroup
             cls._GROUP_CLASS = SoundGroup
         return cls._GROUP_CLASS
-    
+
     @classmethod
     def _get_audio_manager(cls) -> AudioManager:
         """Renvoie le gestionnaire audio"""
@@ -53,7 +50,6 @@ class Sound(Asset):
         cooldown: float = 0.0,
         group: SoundGroup | None = None,
     ):
-        # Attributs publiques
         self._path: str = path
         self._volume: float = float(volume)
         self._cooldown: float = float(cooldown)
@@ -64,12 +60,10 @@ class Sound(Asset):
             positive(self._cooldown)
             expect(self._group, (self._get_group_class(), None))
 
-        # Attributs internes
-        self._sources: list[_media.Source] = [_media.load(path, streaming=False)]
-        self._players: set[_media.Player] = set()
+        self._paths: list[str] = [path]
+        self._handles: set[SoundHandle] = set()
         self._cooldown_timer: float = 0.0
-        self._playing: bool = False
-        self._paused: bool = False
+        self._state: AudioState = AudioState.SLEEPING
 
     def __hash__(self) -> int:
         """Renvoie le hash du son"""
@@ -80,10 +74,11 @@ class Sound(Asset):
     def path(self) -> str:
         """Chemin du fichier audio"""
         return self._path
-    
+
     @path.setter
     def path(self, value: str) -> None:
         self._path = value
+        self._refresh_paths()
 
     @property
     def volume(self) -> float:
@@ -135,21 +130,20 @@ class Sound(Asset):
             return (self._path == other.path
                 and self._volume == other.volume
                 and self._cooldown == other.cooldown
-                and self._group == other.group
-            )
+                and self._group == other.group)
         return NotImplemented
 
     def is_ready(self) -> bool:
         """Vérifie que le son soit prêt à être joué"""
         return self._cooldown_timer == 0.0
-    
+
     def is_playing(self) -> bool:
         """Vérifie que le son soit entrain d'être joué"""
-        return self._playing
-    
+        return self._state == AudioState.PLAYING
+
     def is_paused(self) -> bool:
         """Vérifie que le son soit en pause"""
-        return self._paused
+        return self._state == AudioState.PAUSED
 
     # ======================================== VARIATIONS ========================================
     def add_variation(self, path: str) -> None:
@@ -158,21 +152,38 @@ class Sound(Asset):
         Args:
             path: chemin vers le fichier de variation
         """
-        self._sources.append(_media.load(path, streaming=False))
+        self._paths.append(path)
+
+    def remove_variation(self, path: str) -> None:
+        """Retire une variation audio de ce son.
+
+        Args:
+            path: chemin vers le fichier de variation
+        """
+        if path == self._paths[0]:
+            raise ValueError("cannot remove the main path")
+        self._paths.remove(path)
+    
+    def get_variations(self) -> list[str]:
+        """Renvoie la liste des chemins de variation de ce son (lecture seule)"""
+        return self._paths[1:]
+    
+    def has_variation(self, path: str) -> bool:
+        """Vérifie que ce son possède une variation audio.
+
+        Args:
+            path: chemin vers le fichier de variation
+        """
+        return path in self._paths[1:]
 
     # ======================================== INTERFACE ========================================
     def copy(self) -> Sound:
         """Renvoie une copie du son"""
-        return Sound(
-            path = self._path,
-            volume = self._volume,
-            cooldown = self._cooldown,
-            group = self._group,
-        )
+        return Sound(path=self._path, volume=self._volume, cooldown=self._cooldown, group=self._group)
 
-    def play(self) -> None:
+    def play(self) -> SoundHandle | None:
         """Joue le son si disponible"""
-        self._get_audio_manager().play_sound(self)
+        return self._get_audio_manager().play_sound(self)
 
     def resume(self) -> None:
         """Reprend le son"""
@@ -190,31 +201,35 @@ class Sound(Asset):
     def _apply_cooldown(self) -> None:
         """Initialise le délai"""
         self._cooldown_timer = self._cooldown
-    
-    def _tick(self, dt: float) -> None:
+
+    def _refresh_paths(self) -> None:
+        """Actualise les chemins de variation"""
+        self._paths[0] = self._path
+
+    def _tick(self, dt: float) -> bool:
         """Actualise le délai"""
         self._cooldown_timer -= dt
         if self._cooldown_timer <= 0.0:
             self._cooldown_timer = 0.0
             return True
         return False
-    
-    def _set_playing(self, value: bool) -> None:
+
+    def _set_state(self, value: AudioState) -> None:
         """Fixe l'état"""
-        self._playing = value
+        self._state = value
 
-    def _set_pause(self, value: bool) -> None:
-        """Fixe la pause"""
-        self._paused = value
+    def _add_handle(self, handle: SoundHandle) -> None:
+        """Ajoute un handle"""
+        self._handles.add(handle)
 
-    def _add_player(self, player: _media.Player) -> None:
-        """Ajoute un lecteur"""
-        self._players.add(player)
+    def _remove_handle(self, handle: SoundHandle) -> None:
+        """Retire un handle"""
+        self._handles.discard(handle)
 
-    def _remove_player(self, player: _media.Player) -> None:
-        """Retire un lecteur"""
-        self._players.remove(player)
-    
-    def _clear_players(self) -> None:
-        """Retire tous les lecteurs"""
-        self._players = set()
+    def _clear_handles(self) -> None:
+        """Retire tous les handles"""
+        self._handles = set()
+
+    def _get_handles(self) -> frozenset[SoundHandle]:
+        """Renvoie les handles (lecture seule)"""
+        return self._handles
