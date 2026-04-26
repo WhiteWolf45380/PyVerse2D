@@ -57,6 +57,7 @@ class SoundSystem(System):
                 volume = 0.0
             else:
                 volume = 1.0 - (distance - se.inner_radius) / (se.outer_radius - se.inner_radius)
+            volume *= se.volume
             
             # Actualisation des sons en cours de lecture
             for handle in se._playing:
