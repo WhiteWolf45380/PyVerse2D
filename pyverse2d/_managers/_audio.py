@@ -722,7 +722,6 @@ class AudioManager(Manager):
         base_musics_volume = self.master_volume * self.music_volume
         if self._crossfade is not None:
             cf = self._crossfade
-            t = cf.step / cf.steps if cf.steps else 1.0
             if cf.handle_out is not None:
                 cf.handle_out.base_volume = base_musics_volume * cf.handle_in.music.volume
             if cf.handle_in is not None:

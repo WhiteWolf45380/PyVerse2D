@@ -38,7 +38,7 @@ class AudioHandle(ABC):
     @base_volume.setter
     def base_volume(self, value: float) -> None:
         self._base_volume = value
-        self._refresh_volume
+        self._refresh_volume()
     
     @property
     def play_volume(self) -> float:
@@ -48,7 +48,7 @@ class AudioHandle(ABC):
     @play_volume.setter
     def play_volume(self, value: float) -> None:
         self._play_volume = value
-        self._refresh_volume
+        self._refresh_volume()
 
     # ======================================== GETTERS ========================================
     def get_volume(self) -> float:
