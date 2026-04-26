@@ -21,7 +21,7 @@ class SoundSystem(System):
     Args:
         origin: référentiel de position pour les sons (généralement la caméra)
     """
-    __slots__ = ()
+    __slots__ = ("_origin")
 
     order = 110
     exclusive = False
