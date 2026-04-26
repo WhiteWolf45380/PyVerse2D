@@ -1,7 +1,8 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from .._internal import expect, positive, not_null
+from .._internal import positive, not_null, over
+from ..math.vertices import center_vertices
 from ..abc import Shape
 from ..math import Point
 
@@ -21,11 +22,14 @@ class RegularPolygon(Shape):
     __slots__ = ("_sides", "_radius")
 
     def __init__(self, sides: Integral, radius: Real):
-        if __debug__:
-            if int(sides) < 3:
-                raise ValueError("RegularPolygon must have at least 3 sides")
+        # Attributs publiques
         self._sides: int = int(sides)
-        self._radius: float = float(positive(not_null(expect(radius, Real))))
+        self._radius: float = float(radius)
+
+        if __debug__:
+            over(self._sides, 3)
+            positive(not_null(self._radius))
+
         super().__init__()
 
     # ======================================== CONVERSIONS ========================================
@@ -76,14 +80,12 @@ class RegularPolygon(Shape):
     def get_bounding_box(self) -> tuple[float, float, float, float]:
         """Renvoie ``(x_min, y_min, x_max, y_max)`` en espace local"""
         v = self.get_vertices()
-        return (float(v[:, 0].min()), float(v[:, 1].min()),
-                float(v[:, 0].max()), float(v[:, 1].max()))
+        return (float(v[:, 0].min()), float(v[:, 1].min()), float(v[:, 0].max()), float(v[:, 1].max()))
 
     def compute_vertices(self) -> NDArray[np.float32]:
         """Renvoie les N sommets du polygone régulier"""
         angles = np.linspace(0.0, 2.0 * math.pi, self._sides, endpoint=False, dtype=np.float32)
-        return np.stack([np.cos(angles) * self._radius,
-                         np.sin(angles) * self._radius], axis=1)
+        return center_vertices(np.stack([np.cos(angles) * self._radius, np.sin(angles) * self._radius], axis=1))
 
     # ======================================== COMPARATORS ========================================
     def __eq__(self, other: object) -> bool:
