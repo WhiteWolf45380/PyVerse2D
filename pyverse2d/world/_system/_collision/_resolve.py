@@ -168,8 +168,7 @@ def _normal_impulse(ctx: ResolveContext):
         t = min((-ctx.vel_along - ctx.C.RESTITUTION_THRESHOLD) / (ctx.C.RESTITUTION_MAX_VEL - ctx.C.RESTITUTION_THRESHOLD), 1.0)
         j_delta_n = -(1.0 + restitution * t) * ctx.vel_along / ctx.inv_sum
     elif ctx.vel_along < 0:
-        bias = ctx.C.BAUMGARTE * max(ctx.depth - ctx.C.SLOP, 0.0)
-        j_delta_n = -(ctx.vel_along + bias) / ctx.inv_sum
+        j_delta_n = -ctx.vel_along / ctx.inv_sum
     else:
         j_delta_n = 0.0
 
