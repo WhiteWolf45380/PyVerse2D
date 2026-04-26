@@ -5,7 +5,7 @@ from pyverse2d._managers._audio import SoundHandle
 
 from ..._internal import CallbackList, positive
 from ...abc import Component, Request
-from ...asset import Sound
+from ...asset import Sound, Music
 from ...math.easing import EasingFunc, is_easing, linear
 
 from numbers import Real
@@ -13,7 +13,7 @@ from dataclasses import dataclass
 
 # ======================================== COMPONENT ========================================
 class SoundEmitter(Component):
-    """Composant permettant d'émettre des sons
+    """Composant permettant d'émettre des sons et musiques
 
     Ce composant est manipulé par ``SoundSystem``.
 
@@ -49,7 +49,7 @@ class SoundEmitter(Component):
         self._on_end: CallbackList = CallbackList()
 
         # Buffer
-        self._to_play: list[SoundRequest] = []
+        self._to_play: list[AudioRequest] = []
         self._playing: set[SoundHandle] = set()
 
     # ======================================== CONTRACT ========================================
@@ -139,17 +139,16 @@ class SoundEmitter(Component):
         return self._on_end
 
     # ======================================== INTERFACE ========================================
-    def play(self, sound: Sound, repeat: bool = False, limit: int | None = None) -> None:
-        """Joue un ``Sound`` asset
+    def play(self, asset: Sound | Music, loop: bool = False) -> None:
+        """Joue un asset assez audio
 
         Args:
-            sound: son à jouer
+            asset: asset à jouer
         """
         self._to_play.append(
-            SoundRequest(
-                sound = sound,
-                repeat = repeat,
-                limit = limit
+            AudioRequest(
+                asset = asset,
+                loop = loop,
             )
         )
 
@@ -186,8 +185,7 @@ class SoundEmitter(Component):
 
 # ======================================== REQUESTS ========================================
 @dataclass(slots=True, frozen=True)
-class SoundRequest(Request):
+class AudioRequest(Request):
     """Reqûete de lecture d'un son"""
-    sound: Sound
-    repeat: bool = False
-    limit: int | None = None
+    asset: Sound | Music
+    loop: bool = False

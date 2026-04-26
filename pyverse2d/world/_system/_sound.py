@@ -64,7 +64,7 @@ class SoundSystem(System):
 
             # Lecture des sons à jouer
             for request in se._to_play:
-                handle = request.sound.play(volume=volume, repeat=request.repeat, limit=request.limit, on_end=se._remove_handle)
+                handle = request.asset.play(volume=volume, loop=request.loop, on_end=se._remove_handle)
                 if handle is not None:
                     se._add_handle(handle)
             se._to_play.clear()

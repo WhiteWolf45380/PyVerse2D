@@ -24,22 +24,22 @@ class SoundHandle(AudioHandle):
     """Handle de son en cours de lecture"""
     __slots__ = (
         "sound",
-        "repeat", "iterations_left",
+        "loop", "iterations_left",
     )
 
     def __init__(self, sound: Sound, source: _media.StaticSource, player: _media.Player, on_stop: Callable[[SoundHandle], Any] = None):
         # Attributs publiques
         self.sound: Sound = sound
         
-        self.repeat: bool = False
+        self.loop: bool = False
         self.iterations_left = None
 
         # Configuration du token
         super().__init__(source, player, on_stop=on_stop)
 
     def on_eos(self) -> None:
-        """Fin de lecture avec boûcle si repeat activé"""
-        if not self.repeat:
+        """Fin de lecture avec boûcle si loop activé"""
+        if not self.loop:
             self.stop()
             return
         if self.iterations_left is None:
@@ -428,13 +428,13 @@ class AudioManager(Manager):
         self._stop_music_immediate()
 
     # ======================================== SOUNDS ========================================
-    def play_sound(self, sound: Sound, volume: Real = 1.0, repeat: bool = False, limit: int | None = None, on_end: Callable[[SoundHandle], Any] = None) -> SoundHandle | None:
+    def play_sound(self, sound: Sound, volume: Real = 1.0, loop: bool = False, limit: int | None = None, on_end: Callable[[SoundHandle], Any] = None) -> SoundHandle | None:
         """Joue un ``Sound`` asset
 
         Args:
             sound: son à jouer
             volume: volume ponctuel
-            repeat: active le loop
+            loop: active le loop
             limit: limite de répétitions
             on_end: callback de fin de son
 
@@ -455,7 +455,7 @@ class AudioManager(Manager):
         handle.on_stop = on_end
 
         # Lecture du son
-        handle.repeat = repeat
+        handle.loop = loop
         handle.iterations_left = limit
         handle.player.queue(source)
         handle.player.play()
