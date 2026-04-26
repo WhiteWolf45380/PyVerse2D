@@ -7,6 +7,8 @@ from ..abc import Asset
 from typing import TYPE_CHECKING
 from numbers import Real
 
+from pyglet import media as _media
+
 if TYPE_CHECKING:
     from .._managers._audio import AudioManager, MusicHandle
 
@@ -20,6 +22,7 @@ class Music(Asset):
     __slots__ = (
         "_path", "_volume",
         "_handle", "_state", "_loop",
+        "_source",
     )
 
     _AUDIO_MANAGER: AudioManager = None
@@ -42,6 +45,7 @@ class Music(Asset):
         self._handle: MusicHandle | None = None
         self._state: AudioState = AudioState.SLEEPING
         self._loop: bool = True
+        self._source: _media.Source | None = None
 
     def __hash__(self) -> int:
         """Renvoie le hash de la musique"""
@@ -89,6 +93,11 @@ class Music(Asset):
         return self._state == AudioState.PAUSED
 
     # ======================================== INTERFACE ========================================
+    def preload(self) -> None:
+        """Précharge la source audio pour éviter le freeze au premier play"""
+        if self._source is None:
+            self._source = _media.load(self._path, streaming=True)
+
     def copy(self) -> Music:
         """Renvoie une copie de la musique"""
         return Music(path=self._path, volume=self._volume)

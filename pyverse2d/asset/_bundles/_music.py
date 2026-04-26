@@ -46,9 +46,11 @@ class MusicBundle(Bundle):
         # Génération de la clé de cache
         cache_key  = (key, volume)
         if cache_key not in self._cache:
-            self._cache[cache_key] = Music(
+            music = Music(
                 path = self._paths[key],
                 volume = volume,
             )
+            music.preload()
+            self._cache[cache_key] = music
 
         return self._cache[cache_key]

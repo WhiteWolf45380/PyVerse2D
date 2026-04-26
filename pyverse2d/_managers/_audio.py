@@ -537,7 +537,7 @@ class AudioManager(Manager):
         self._stop_music_immediate()
 
         # Génération du handle
-        source = _media.load(music.path, streaming=True)
+        source = music._source or _media.load(music.path, streaming=True)
         player = _media.Player()
         player.loop = loop
         player.queue(source)
@@ -636,7 +636,7 @@ class AudioManager(Manager):
         music_out = self._current_music
 
         # Génération du handle
-        source = _media.load(music.path, streaming=True)
+        source = music._source or _media.load(music.path, streaming=True)
         player = _media.Player()
         player.loop = loop
         player.volume = 0.0
