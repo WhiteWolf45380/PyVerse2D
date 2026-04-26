@@ -23,22 +23,25 @@ _CROSSFADE_STEPS = 20
 class SoundHandle:
     """Handle de son en cours de lecture"""
     __slots__ = (
-        "sound", "player", "on_stop",
+        "sound", "source", "player", "on_stop",
+        "iterations_left",
         "_active",
         "__weakref__",
     )
 
-    def __init__(self, sound: Sound, player: _media.Player, on_stop: Callable[[SoundHandle], Any] = None):
+    def __init__(self, sound: Sound, source: _media.StaticSource, player: _media.Player, on_stop: Callable[[SoundHandle], Any] = None):
         # Attributs publiques
         self.sound: Sound = sound
+        self.source: _media.StreamingSource = source
         self.player: _media.Player = player
         self.on_stop: Callable[[SoundHandle], Any] = on_stop
+        self.iterations_left = None
 
         # Attributs internes
         self._active: bool = True
 
         # Configuration du player
-        self.player.push_handlers(on_player_eos=self.stop)
+        self.player.push_handlers(on_player_eos=self.on_eos)
     
     def is_active(self) -> bool:
         """Vérifie que le handle soit actif"""
@@ -58,6 +61,25 @@ class SoundHandle:
         if self._active:
             self.player.pause()
 
+    def on_eos(self) -> None:
+        """Fin de lecture avec boûcle si repeat activé"""
+        if self.iterations_left is None:
+            self.player.queue(self.source)
+            self.player.play()
+        elif self.iterations_left > 1:
+            self.iterations_left -= 1
+            self.player.queue(self.source)
+            self.player.play()
+        else:
+            self.stop()
+
+    def delete(self) -> None:
+        """Supprime le player sans déclencher les événements d'arrêt"""
+        if self._active:
+            self.player.pause()
+            self.player.delete()
+            self._active = False
+
     def stop(self) -> None:
         """Arrête le son"""
         if self._active:
@@ -68,25 +90,19 @@ class SoundHandle:
             if self.on_stop:
                 self.on_stop(self)
 
-    def delete(self) -> None:
-        """Supprime le player sans déclencher les événements d'arrêt"""
-        if self._active:
-            self.player.pause()
-            self.player.delete()
-            self._active = False
-
 
 class MusicHandle:
     """Handle de musique en cours de lecture"""
     __slots__ = (
-        "music", "player", "on_stop",
+        "music", "source", "player", "on_stop",
         "_active",
         "__weakref__",
     )
 
-    def __init__(self, music: Music, player: _media.Player, on_stop: Callable[[MusicHandle], Any] = None):
+    def __init__(self, music: Music, source: _media.StreamingSource, player: _media.Player, on_stop: Callable[[MusicHandle], Any] = None):
         # Attributs publiques
         self.music: Music = music
+        self.source: _media.StreamingSource = source
         self.player: _media.Player = player
         self.on_stop: Callable[[MusicHandle], Any] = on_stop
 
@@ -224,12 +240,17 @@ class SoundGroup:
             h.stop()
         self._handles.clear()
 
-    def _get_free_handle(self, sound: Sound) -> SoundHandle | None:
-        """Renvoie un cannal libre si possible"""
+    def _get_free_handle(self, sound: Sound, source: _media.StaticSource) -> SoundHandle | None:
+        """Renvoie un cannal libre si possible
+
+        Args:
+            sound: son à jouer
+            source: source statique du son
+        """
         self._handles = {h for h in self._handles if h.is_active()}
         if self._pool_max is not None and len(self._handles) >= self._pool_max:
             return None
-        handle = SoundHandle(sound, _media.Player())
+        handle = SoundHandle(sound, source, _media.Player())
         self._handles.add(handle)
         return handle
 
@@ -414,12 +435,14 @@ class AudioManager(Manager):
         self._stop_music_immediate()
 
     # ======================================== SOUNDS ========================================
-    def play_sound(self, sound: Sound, volume: Real = 1.0, on_end: Callable[[SoundHandle], Any] = None) -> SoundHandle | None:
+    def play_sound(self, sound: Sound, volume: Real = 1.0, repeat: bool = False, limit: int | None = None, on_end: Callable[[SoundHandle], Any] = None) -> SoundHandle | None:
         """Joue un ``Sound`` asset
 
         Args:
             sound: son à jouer
             volume: volume ponctuel
+            repeat: active le loop
+            limit: limite de répétitions
             on_end: callback de fin de son
 
         Returns:
@@ -430,15 +453,16 @@ class AudioManager(Manager):
             return None
 
         # Récupération d'un player
+        path = random.choice(sound._paths)
+        source = self._load_source(path)
         group = sound._group or self.get_default_sound_group()
-        handle = group._get_free_handle(sound)
+        handle = group._get_free_handle(sound, source)
         if handle is None:
             return None
         handle.on_stop = on_end
 
         # Lecture du son
-        path = random.choice(sound._paths)
-        source = self._load_source(path)
+        handle.iterations_left = limit
         handle.player.queue(source)
         handle.player.play()
 
@@ -543,7 +567,7 @@ class AudioManager(Manager):
         player = _media.Player()
         player.loop = loop
         player.queue(source)
-        handle = MusicHandle(music, player, on_stop=lambda h: self._clear_current_music(h.music))
+        handle = MusicHandle(music, source, player, on_stop=lambda h: self._clear_current_music(h.music))
 
         # Lecture de la musique
         handle.player.play()
@@ -646,7 +670,7 @@ class AudioManager(Manager):
         player.loop = loop
         player.volume = 0.0
         player.queue(source)
-        handle = MusicHandle(music, player, on_stop=lambda h: self._clear_current_music(h.music))
+        handle = MusicHandle(music, source, player, on_stop=lambda h: self._clear_current_music(h.music))
 
         # Création du cross-fade
         self._crossfade = _CrossfadeRequest(
