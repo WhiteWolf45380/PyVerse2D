@@ -23,7 +23,7 @@ class SoundEmitter(Component):
         falloff: fonction d'atténuation du son
     """
     __slots__ = (
-        "_inner_radius", "_outer_radius",
+        "_volume", "_inner_radius", "_outer_radius",
         "_falloff",
     )
 
