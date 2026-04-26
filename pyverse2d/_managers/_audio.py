@@ -35,6 +35,8 @@ class SoundHandle:
         self.source: _media.StreamingSource = source
         self.player: _media.Player = player
         self.on_stop: Callable[[SoundHandle], Any] = on_stop
+        
+        self.repeat: bool = False
         self.iterations_left = None
 
         # Attributs internes
@@ -63,6 +65,9 @@ class SoundHandle:
 
     def on_eos(self) -> None:
         """Fin de lecture avec boûcle si repeat activé"""
+        if not self.repeat:
+            self.stop()
+            return
         if self.iterations_left is None:
             self.player.queue(self.source)
             self.player.play()
@@ -462,6 +467,7 @@ class AudioManager(Manager):
         handle.on_stop = on_end
 
         # Lecture du son
+        handle.repeat = repeat
         handle.iterations_left = limit
         handle.player.queue(source)
         handle.player.play()

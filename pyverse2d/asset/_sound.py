@@ -221,13 +221,13 @@ class Sound(Asset):
         """Renvoie une copie du son"""
         return Sound(path=self._path, volume=self._volume, cooldown=self._cooldown, group=self._group)
 
-    def play(self, volume: Real = 1.0, on_end: Callable[[SoundHandle], Any] = None) -> SoundHandle | None:
+    def play(self, volume: Real = 1.0, repeat: bool = False, limit: int | None = None, on_end: Callable[[SoundHandle], Any] = None) -> SoundHandle | None:
         """Joue le son si disponible
         
         Args:
             volume: volume ponctuel *[0, 1]*
         """
-        return self._get_audio_manager().play_sound(self, volume=volume)
+        return self._get_audio_manager().play_sound(self, volume=volume, on_end=on_end)
 
     def resume(self) -> None:
         """Reprend le son"""
