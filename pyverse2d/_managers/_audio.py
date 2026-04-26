@@ -4,7 +4,7 @@ from __future__ import annotations
 from .._internal import expect, positive
 from .._flag import AudioState
 from ..abc import Manager, Request, AudioHandle
-from ..asset import Sound, Music, SoundBundle, MusicBundle
+from ..asset import Sound, Music, Playlist, SoundBundle, MusicBundle
 from ..math.easing import EasingFunc, linear
 
 from ._context import ContextManager
@@ -85,6 +85,27 @@ class MusicHandle(AudioHandle):
 
         # Configuration du token
         super().__init__(source, player, on_stop=on_stop)
+
+    @property
+    def duration(self) -> float | None:
+        """Durée totale de la musique en secondes"""
+        if self._active and self.source.duration is not None:
+            return self.source.duration
+        return None
+
+    @property
+    def time(self) -> float:
+        """Temps écoulé en secondes"""
+        if self._active:
+            return self.player.time
+        return 0.0
+
+    @property
+    def time_remaining(self) -> float | None:
+        """Temps restant en secondes"""
+        if self._active and self.source.duration is not None:
+            return max(0.0, self.source.duration - self.player.time)
+        return None
 
     def on_eos(self):
         """Fin de lecture"""
@@ -225,12 +246,27 @@ class _CrossfadeRequest(Request):
     vol_in: float
     easing: EasingFunc
 
+@dataclass(slots=True)
+class _PlaylistRequest(Request):
+    playlist: Playlist
+    musics: list[Music]
+    order: list[int]
+    shuffle: bool
+    loop: bool
+    fade_in: float
+    fade_out: float
+    delay: float
+    cross_fade: float
+    playing: bool = True
+    index: int = 0
+    delay_timer: float = 0.0
+
 # ======================================== MANAGER ========================================
 class AudioManager(Manager):
     """Gestionnaire audio"""
     __slots__ = (
         "_master_volume", "_music_volume",
-        "_active_sounds", "_current_music", "_crossfade",
+        "_active_sounds", "_current_music", "_crossfade", "_playlist",
         "_source_cache",
     )
 
@@ -264,6 +300,7 @@ class AudioManager(Manager):
         self._active_sounds: set[Sound] = set()
         self._current_music: Music | None = None
         self._crossfade: _CrossfadeRequest | None = None
+        self._playlist: _PlaylistRequest | None = None
         self._source_cache: dict[str, _media.StaticSource] = {}
 
     # ======================================== PROPERTIES ========================================
@@ -506,7 +543,16 @@ class AudioManager(Manager):
         return self._active_sounds
 
     # ======================================== MUSICS ========================================
-    def play_music(self, music: Music, volume: Real = 1.0, loop: bool = True, fade_s: float = 0.0, fade_easing: EasingFunc = linear) -> MusicHandle:
+    def play_music(
+            self,
+            music: Music,
+            volume: Real = 1.0,
+            loop: bool = True,
+            fade_s: float = 0.0,
+            fade_easing: EasingFunc = linear,
+            playlist_fallback: bool = True,
+            _interrupt_playlist: bool = True,
+        ) -> MusicHandle:
         """Joue un ``Music`` asset en remplaçant l'éventuel en cours.
 
         Args:
@@ -515,16 +561,21 @@ class AudioManager(Manager):
             loop: boucle si True
             fade_s: fade-in en secondes
             fade_easing: fonction d'atténuation du fade-in
+            playlist_fallback: relancer la playliste en cours après la musique
         """
         # Arrêt de la musique en cours
         self._stop_music_immediate()
+
+        # Arrêt de la playlist en cours
+        if self._playlist is not None and _interrupt_playlist:
+            self._playlist.playing = False
 
         # Génération du handle
         source = music._source or _media.load(music.path, streaming=True)
         player = _media.Player()
         player.loop = loop
         player.queue(source)
-        handle = MusicHandle(music, source, player, on_stop=lambda h: self._clear_current_music(h.music))
+        handle = MusicHandle(music, source, player, on_stop=self._make_on_stop(music, playlist_fallback))
 
         # Lecture de la musique
         handle.set_volumes(self._master_volume * self._music_volume * music.volume, volume)
@@ -597,7 +648,16 @@ class AudioManager(Manager):
         else:
             self._stop_music_immediate()
 
-    def switch_music(self, music: Music, volume: Real = 1.0, fade_s: float = 1.0, fade_easing: EasingFunc = linear, loop: bool = True) -> MusicHandle:
+    def switch_music(
+            self,
+            music: Music,
+            volume: Real = 1.0,
+            loop: bool = True,
+            fade_s: float = 1.0,
+            fade_easing: EasingFunc = linear,
+            playlist_fallback: bool = True,
+            _interrupt_playlist: bool = True,
+        ) -> MusicHandle:
         """Crossfade vers une nouvelle musique
 
         Args:
@@ -605,10 +665,15 @@ class AudioManager(Manager):
             fade_s: durée totale du crossfade en secondes
             fade_easing: fonction d'atténuation du cross-fade
             loop: boucle la nouvelle musique
+            playlist_fallback: relancer la playliste en cours après la musique
         """
         # Cas sans cross-fade
         if fade_s <= 0.0:
             return self.play_music(music, loop=loop)
+        
+        # Arrêt de la playlist en cours
+        if self._playlist is not None and _interrupt_playlist:
+            self._playlist.playing = False
 
         # Annulation du cross-fade en cours et récupération de la musique sortante
         self._cancel_crossfade()
@@ -622,7 +687,7 @@ class AudioManager(Manager):
         player = _media.Player()
         player.loop = loop
         player.queue(source)
-        handle = MusicHandle(music, source, player, on_stop=lambda h: self._clear_current_music(h.music))
+        handle = MusicHandle(music, source, player, on_stop=self._make_on_stop(music, playlist_fallback))
 
         # Création du cross-fade
         self._crossfade = _CrossfadeRequest(
@@ -649,13 +714,91 @@ class AudioManager(Manager):
 
     @property
     def current_music(self) -> Music:
-        """Renvoie le musique courante"""
+        """Renvoie le musique en cours"""
         return self._current_music
+    
+    # ======================================== PLAYLISTS ========================================
+    def play_playlist(self, playlist: Playlist) -> None:
+        """Lance la lecture d'une playlist
+        
+        Args:
+            playlist: playlist à jouer
+        """
+        if __debug__:
+            expect(playlist, Playlist)
+        self._playlist = _PlaylistRequest(
+            playlist = playlist,
+            musics = list(playlist.musics),
+            order = list(playlist.order),
+            shuffle = playlist.shuffle,
+            loop = playlist.loop,
+            fade_in = playlist.fade_in,
+            fade_out = playlist.fade_out,
+            delay = playlist.delay,
+            cross_fade = playlist.cross_fade,
+        )
+        self._play_playlist_next()
+
+    def resume_playlist(self) -> None:
+        """Reprend la playlist en cours"""
+        if self._playlist is None or self._playlist.playing:
+            return
+        self._playlist.playing = True
+        self.resume_music()
+
+    def pause_playlist(self) -> None:
+        """Met la playlist en cours en pause"""
+        if self._playlist is None or not self._playlist.playing:
+            return
+        self._playlist.playing = False
+        self.pause_music()
+
+    def stop_playlist(self, fade_s: Real = 0.0) -> None:
+        """Arrête la playlist en cours
+        
+        Args:
+            fade_s: fade-out *(en secondes)*
+        """
+        if self._playlist is None:
+            return
+        self._playlist = None
+        self.stop_music(fade_s=fade_s)
+
+    @property
+    def current_playlist(self) -> Playlist:
+        """Renvoie la playlist en cours"""
+        if self._playlist is None:
+            return None
+        return self._playlist.playlist
+    
+    @property
+    def playlist_index(self) -> int:
+        """Renvoie l'indice de lecture de la playlist en cours"""
+        if self._playlist is None:
+            return 0
+        return self._playlist.index
+    
+    @property
+    def playlist_playing(self) -> bool:
+        """Vérifie que la playliste courant soit en cours de lecture"""
+        if self._playlist is None:
+            return False
+        return self._playlist.playing
 
     # ======================================== CYCLE DE VIE ========================================
     def update(self, dt: float) -> None:
         """Actualisation"""
         # Mise à jour des cooldowns
+        self._update_sounds(dt)
+
+        # Gestion de la playlist
+        self._update_playlist(dt)
+
+        # Fade musical
+        self._update_fade(dt)
+
+    def _update_sounds(self, dt: float) -> None:
+        """Actualisation des sons actifs"""
         done: set[Sound] = set()
         for sound in self._active_sounds:
             if sound.is_paused():
@@ -664,7 +807,30 @@ class AudioManager(Manager):
                 done.add(sound)
         self._active_sounds -= done
 
-        # Fade musical
+    def _update_playlist(self, dt: float) -> None:
+        """Actualisation de la playlist en cours"""
+        if not self.playlist_playing:
+            return
+        pr = self._playlist
+
+        # Délai en cours
+        if pr.delay_timer > 0.0:
+            pr.delay_timer -= dt
+            if pr.delay_timer <= 0.0:
+                pr.delay_timer = 0.0
+                self._play_playlist_next()
+            return
+
+        # Crossfade anticipé
+        if pr.cross_fade > 0.0 and pr.delay == 0.0 and self._current_music is not None:
+            handle = self._current_music._handle
+            if handle is not None and self._crossfade is None:
+                remaining = handle.time_remaining
+                if remaining is not None and remaining <= pr.cross_fade:
+                    self._play_playlist_next()
+
+    def _update_fade(self, dt: float) -> None:
+        """Actualisation du fondu"""
         if self._crossfade is None:
             return
         cf = self._crossfade
@@ -681,7 +847,7 @@ class AudioManager(Manager):
 
         if cf.step >= cf.steps:
             if cf.handle_out is not None:
-                if cf.handle_in.music == cf.handle_out.music:
+                if cf.handle_in is not None and cf.handle_in.music == cf.handle_out.music:
                     cf.handle_out.delete()
                 else:
                     cf.handle_out.stop()
@@ -713,6 +879,21 @@ class AudioManager(Manager):
         if self._current_music is music:
             self._current_music = None
 
+    def _on_interrupted_music_end(self, handle: MusicHandle) -> None:
+        """Reprend la playlist après une musique de surcharge"""
+        if self._playlist is not None and not self._playlist.playing:
+            self._playlist.playing = True
+            self._playlist.delay_timer = 0.0
+            self._play_playlist_next()
+
+    def _make_on_stop(self, music: Music, playlist_fallback: bool) -> Callable:
+        """Construit le callback on_stop en fusionnant la logique musique et playlist"""
+        def on_stop(h: MusicHandle) -> None:
+            self._clear_current_music(music)
+            if playlist_fallback and self._playlist is not None and not self._playlist.playing:
+                self._on_interrupted_music_end(h)
+        return on_stop
+
     def _cancel_crossfade(self) -> None:
         """Annule le cross-fade"""
         self._crossfade = None
@@ -729,8 +910,31 @@ class AudioManager(Manager):
         elif self._current_music is not None:
             self._current_music._handle.base_volume = base_musics_volume * self._current_music.volume
 
+    def _play_playlist_next(self) -> None:
+        """Joue la prochaine musique de la playlist en cours"""
+        pr = self._playlist
+        if pr.index >= len(pr.order):
+            if pr.loop:
+                if pr.shuffle:
+                    random.shuffle(pr.order)
+                pr.index = 0
+            else:
+                self.stop_playlist(fade_s=pr.fade_out)
+                return
+        next_music = pr.musics[pr.order[pr.index]]
+        if pr.index == 0:
+            self.play_music(next_music, fade_s=pr.fade_in, loop=False, _interrupt_playlist=False)
+        else:
+            self.switch_music(next_music, fade_s=pr.cross_fade, loop=False, _interrupt_playlist=False)
+        pr.index += 1
+
+        # Armer le délai pour la piste suivante
+        pr.delay_timer = pr.delay
+
 # ======================================== EXPORTS ========================================
 __all__ = [
-    "AudioManager",
+    "SoundHandle",
+    "MusicHandle",
     "SoundGroup",
+    "AudioManager",
 ]

@@ -74,9 +74,19 @@ class Playlist(Asset):
 
         # Attributs internes
         self._order: list[int] = None
-        self._apply_shuffle()
+        self._refresh_order()
 
     # ======================================== PROPERTIES ========================================
+    @property
+    def musics(self) -> list[Music]:
+        """Renvoie la liste des musiques *(lecture seule)*"""
+        return self._musics
+
+    @property
+    def order(self) -> list[int]:
+        """Renvoie l'ordre de lecture des musiques *(lecture seule)*"""
+        return self._order
+
     @property
     def shuffle(self) -> bool:
         """Lecture aléatoire"""
@@ -88,7 +98,8 @@ class Playlist(Asset):
         if value == self._shuffle:
             return
         self._shuffle = value
-        self._apply_shuffle()
+        if self._shuffle:
+            random.shuffle(self._order)
 
     @property
     def loop(self) -> bool:
@@ -153,10 +164,11 @@ class Playlist(Asset):
         assert value >= 0.0, f"cross_fade ({value}) must be positive"
         self._cross_fade = value
 
-    @property
-    def order(self) -> list[int]:
-        """Renvoie l'ordre de lecture des musiques *(lecture seule)*"""
-        return self._order
+    @cross_fade.setter
+    def cross_fade(self, value: Real) -> None:
+        value = float(value)
+        assert value >= 0.0, f"cross_fade ({value}) must be positive"
+        self._cross_fade = value
 
     # ======================================== MUSICS ========================================
     def add(self, music: Music, index: int = -1) -> None:
@@ -172,7 +184,7 @@ class Playlist(Asset):
             self._musics.append(music)
         else:
             self._musics.insert(music, index)
-        self._apply_shuffle()
+        self._refresh_order()
 
     def remove(self, music: Music) -> None:
         """Supprime une musique de la liste
@@ -181,7 +193,7 @@ class Playlist(Asset):
             music: asset ``Music`` à supprimer
         """
         self._musics.remove(music)
-        self._apply_shuffle()
+        self._refresh_order()
 
     def pop(self, index: int) -> Music:
         """Supprime une musique de la liste par son indice
@@ -193,7 +205,7 @@ class Playlist(Asset):
             music: l'asset ``Music`` supprimé de la liste
         """
         music = self._musics.pop(index)
-        self._apply_shuffle()
+        self._refresh_order()
         return music
     
     def get(self, index: int) -> Music:
@@ -204,48 +216,37 @@ class Playlist(Asset):
         """
         return self._musics[index]
     
-    def musics_list(self) -> list[Music]:
-        """Renvoie la liste des musiques *(lecture seule)*"""
-        return self._musics
-    
     def clear(self) -> None:
         """Vide la liste des musiques"""
         self._musics.clear()
         self._order.clear()
 
-    # ======================================== INTERFACE ========================================
-    def next(self) -> Music | None:
-        """Renvoie la prochaine musique à jouer"""
-        if self._index >= len(self._order):
-            if not self._loop:
-                return None
-            self._index = 0
-            if self._shuffle:
-                random.shuffle(self._order)
-        music = self._musics[self._order[self._index]]
-        self._index += 1
-        return music
-    
+    # ======================================== INTERFACE ========================================    
     def play(self) -> None:
         """Joue la playlist"""
-        ...
+        self._get_audio_manager().play_playlist(self)
     
     def resume(self) -> None:
         """Reprend la playlist"""
-        ...
+        if self._get_audio_manager().current_playlist != self:
+            return
+        self._get_audio_manager().resume_playlist()
 
     def pause(self) -> None:
         """Met pause à la playlist"""
-        ...
+        if self._get_audio_manager().current_playlist != self:
+            return
+        self._get_audio_manager().pause_playlist()
 
     def stop(self) -> None:
         """Arrête la playlist"""
-        ...
+        if self._get_audio_manager().current_playlist != self:
+            return
+        self._get_audio_manager().stop_playlist()
     
     # ======================================== INTERNALS ========================================
-    def _apply_shuffle(self) -> None:
+    def _refresh_order(self) -> None:
         """Applique la lecture aléatoire"""
+        self._order = list(range(len(self._musics)))
         if self._shuffle:
             random.shuffle(self._order)
-        else:
-            self._order = list(range(len(self._musics)))
