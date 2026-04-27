@@ -39,3 +39,8 @@ class ContextManager:
         """Itère sur les itérateurs"""
         for manager in self.__slots__:
             yield getattr(self, manager, None)
+
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "ContextManager",
+]

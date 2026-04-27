@@ -8,13 +8,22 @@ from ._context import ContextManager
 
 import pyglet
 from collections import deque
-from typing import Callable
+from typing import Callable, Any
 from numbers import Real
 from dataclasses import dataclass
 
 # ======================================== CONSTANTS ========================================
 _FPS_MIN = 15
 _DT_MAX = 1 / _FPS_MIN
+
+# ======================================== REQUEST ========================================
+@dataclass(slots=True)
+class _TimerRequest(Request):
+    """Requête d'appel de fonction avec timer"""
+    callback: Callable
+    elapsed: float
+    interval: float
+    remaining: int | None
 
 # ======================================== GESTIONNAIRE ========================================
 class TimeManager(Manager):
@@ -126,7 +135,11 @@ class TimeManager(Manager):
 
     # ======================================== COLLECTIONS ========================================
     def schedule(self, func: Callable) -> None:
-        """Lance une boucle sur une fonction"""
+        """Lance une boucle sur une fonction
+        
+        Args:
+            func: fonction à lancer
+        """
         self._scheduling.append(func)
         if self._target_fps is None:
             pyglet.clock.schedule(func)
@@ -149,28 +162,32 @@ class TimeManager(Manager):
         """
         return self._clock - origin
     
-    def after(self, interval: float, callback: Callable) -> None:
+    def after(self, interval: float, callback: Callable[[], Any]) -> None:
         """Appel une fonction en différé
 
         Args:
+            interval: délai avant appel *(en secondes)*
             callback: fonction à appeler
-            interval: délai avant appel
         """
         self._timers.append(_TimerRequest(callback=callback, elapsed=0, interval=interval, remaining=1))
 
-    def every(self, interval: float, callback: Callable, limit: int = None) -> None:
+    def every(self, interval: float, callback: Callable[[], Any], limit: int = None) -> None:
         """Appel une fonction à un intervalle donné
 
         Args:
+            interval: délai entre chaque appel *(en secondes)*
             callback: fonction à appeler
-            interval: délai entre chaque appel
             limit: limite de répétitions
         """
         self._timers.append(_TimerRequest(callback=callback, elapsed=0, interval=interval, remaining=limit))
 
     # ======================================== LIFE CYCLE ========================================
     def tick(self, raw_dt: float) -> float:
-        """Calcul le delta-time affiné"""
+        """Calcul le delta-time affiné
+        
+        Args:
+            raw_dt: delta-time brut
+        """
         self._clock += raw_dt
         self._raw_dt = raw_dt
         self._dt = min(_DT_MAX, raw_dt)
@@ -180,7 +197,11 @@ class TimeManager(Manager):
         return self._eff_dt
     
     def update(self, dt: float) -> None:
-        """Actualisation"""
+        """Actualisation
+        
+        Args:
+            dt: delta-time
+        """
         for timer in list(self._timers):
             timer.elapsed += dt
             if timer.elapsed >= timer.interval:
@@ -213,11 +234,7 @@ class TimeManager(Manager):
             else:
                 pyglet.clock.schedule_interval(pyglet.app.event_loop._redraw_windows, self.target_dt)
 
-# ======================================== REQUEST ========================================
-@dataclass(slots=True)
-class _TimerRequest(Request):
-    """Requête d'appel de fonction avec timer"""
-    callback: Callable
-    elapsed: float
-    interval: float
-    remaining: int | None
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "TimeManager",
+]

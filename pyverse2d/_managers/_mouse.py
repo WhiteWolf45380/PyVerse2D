@@ -20,7 +20,7 @@ class SystemMouseCursor(MouseCursor):
     """Curseur de souris système
 
     Args:
-        cursor: constante ``SystemCursor``
+        cursor: identifiant ``SystemCursor``
     """
     __slots__ = ("_cursor",)
 
@@ -28,7 +28,11 @@ class SystemMouseCursor(MouseCursor):
         self._cursor: str = cursor
 
     def to_pyglet(self, window: PygletWindow) -> pyglet.window.MouseCursor:
-        """Renvoie le curseur pyglet"""
+        """Renvoie le curseur pyglet
+        
+        Args:
+            window: fenêtre OS courante
+        """
         return window.get_system_mouse_cursor(self._cursor)
 
 
@@ -56,7 +60,11 @@ class ImageMouseCursor(MouseCursor):
         self._acceleration: bool = expect(acceleration, bool)
 
     def to_pyglet(self, window: PygletWindow) -> pyglet.window.ImageMouseCursor:
-        """Renvoie le curseur pyglet"""
+        """Renvoie le curseur pyglet
+        
+        Args:
+            window: Fenêtre OS courante
+        """
         raw = pyglet.image.load(self._image.path)
         hot_x = int(self._anchor_x * raw.width)
         hot_y = int((1.0 - self._anchor_y) * raw.height)
@@ -155,7 +163,7 @@ class MouseManager(Manager):
         """Renvoie le ``str`` d'un bouton
         
         Args:
-            button: bouton à transformer
+            button: identifiant du bouton
         """
         return _NAMES.get(button, "Unknown")
 
@@ -263,64 +271,127 @@ class MouseManager(Manager):
         return self._mouse_out
     
     def is_pressed(self, button: Button) -> bool:
-        """Vérifie si un bouton est maintenu enfoncé"""
+        """Vérifie si un bouton est maintenu enfoncé
+        
+        Args:
+            button: identifiant du bouton
+        """
         return self._pressed.get(button, False)
 
     def just_pressed(self, button: Button) -> bool:
-        """Vérifie si un bouton vient d'être pressé cette frame"""
+        """Vérifie si un bouton vient d'être pressé cette frame
+        
+        Args:
+            button: identifiant du bouton
+        """
         return button in self._step
 
     def just_released(self, button: Button) -> bool:
-        """Vérifie si un bouton vient d'être relâché cette frame"""
+        """Vérifie si un bouton vient d'être relâché cette frame
+        
+        Args:
+            button: identifiant du bouton
+        """
         return button in self._released_this_frame
 
     def is_currently_pressed(self, button: Button) -> bool:
-        """Vérifie si un bouton est pressé cette frame ou maintenu"""
+        """Vérifie si un bouton est pressé cette frame ou maintenu
+        
+        Args:
+            button: identifiant du bouton
+        """
         return self._pressed.get(button, False) or button in self._step
         
     # ======================================== HOOKS ========================================
     def _on_motion(self, x: float, y: float, dx: float, dy: float) -> None:
-        """Déplacement de la souris"""
+        """Déplacement de la souris
+        
+        Args:
+            x: coordonnée horizontale
+            y: coordonnée verticale
+            dx: déplacement horizontal
+            dy: déplacement vertical
+        """
         self._compute_position(x, y)
         self._check_out()
         self._mouse_dx = dx * self._window.width / self._window.screen.width
         self._mouse_dy = dy * self._window.height / self._window.screen.height
 
     def _on_drag(self, x: float, y: float, dx: float, dy: float, buttons: int) -> None:
-        """Glissement lors du maintien"""
+        """Glissement lors du maintien
+        
+        Args:
+            x: coordonnée horizontale
+            y: coordonnée verticale
+            dx: déplacement horizontal
+            dy: déplacement vertical
+        """
         self._compute_position(x, y)
         self._check_out()
         self._drag_dx = dx * self._window.width / self._window.screen.width
         self._drag_dy = dy * self._window.height / self._window.screen.height
 
     def _on_press(self, x: float, y: float, button: int) -> None:
-        """Pression d'un bouton"""
+        """Pression d'un bouton
+        
+        Args:
+            x: coordonnée horizontale
+            y: coordonnée verticale
+            button: identifiant du bouton
+        """
         self._compute_position(x, y)
         self._check_out()
 
     def _on_release(self, x: float, y: float, button: int) -> None:
-        """Relachement d'un bouton"""
+        """Relachement d'un bouton
+        
+        Args:
+            x: coordonnée horizontale
+            y: coordonnée verticale
+            button: identifiant du bouton
+        """
         self._compute_position(x, y)
         self._check_out()
 
     def _on_enter(self, x: float, y: float) -> None:
-        """Entrée dans la fenêtre"""
+        """Entrée dans la fenêtre
+        
+        Args:
+            x: coordonnée horizontale
+            y: coordonnée verticale
+        """
         self._compute_position(x, y)
         self._check_out()
 
     def _on_leave(self, x: float, y: float) -> None:
-        """Sortie de la fenêtre"""
+        """Sortie de la fenêtre
+        
+        Args:
+            x: coordonnée horizontale
+            y: coordonnée verticale
+        """
         self._compute_position(x, y)
         self._mouse_out = True
 
     def _on_scroll(self, x: float, y: float, scroll_x: float, scroll_y: float) -> None:
-        """Défilement de la molette"""
+        """Défilement de la molette
+        
+        Args:
+            x: coordonnée horizontale
+            y: coordonnée verticale
+            scroll_x: défilement horizontal
+            scroll_y: défilement vertical
+        """
         self._scroll_dx = scroll_x
         self._scroll_dy = scroll_y
 
     # ======================================== LIFE CYCLE ========================================
     def update(self, dt: float) -> None:
-        """Actualisation"""
+        """Actualisation
+        
+        Args:
+            dt: delta-time
+        """
         pass
 
     def flush(self) -> None:
@@ -339,7 +410,12 @@ class MouseManager(Manager):
 
     # ======================================== INTERNALS ========================================
     def _compute_position(self, x: float, y: float) -> None:
-        """Convertit les coords pyglet en coords écran centrées"""
+        """Convertit les coordonnnées OS en coordonnées logiques
+        
+        Args:
+            x: coordonnée horizontale OS
+            y: coordonnée verticale OS
+        """
         self._mouse_x, self._mouse_y = self._window.window_to_screen(x, y)
 
     def _check_out(self) -> None:
@@ -354,3 +430,11 @@ class MouseManager(Manager):
     def _clear_world_position(self) -> None:
         """Nettoie la position monde"""
         self._world_position = None
+
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "SystemMouseCursor",
+    "ImageMouseCursor",
+    
+    "MouseManager",
+]

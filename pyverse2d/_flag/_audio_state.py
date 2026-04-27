@@ -7,3 +7,8 @@ class AudioState(Enum):
     PLAYING = "playing"     # en cours de lecture
     PAUSED = "paused"       # en pause
     SLEEPING = "sleeping"   # en sommeil
+
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "AudioState",
+]

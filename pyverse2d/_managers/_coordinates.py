@@ -47,8 +47,10 @@ class CoordinatesManager(Manager):
 
     # ======================================== BIND ========================================
     def bind_viewport(self, viewport: Viewport) -> None:
-        """Résout et met en cache le viewport courant.
-        Appelé par Scene avant de boucler sur les temporarys.
+        """Résout et met en cache le viewport courant
+
+        Args:
+            viewport: viewport courant
         """
         screen = self._window.screen
         self._viewport = viewport
@@ -59,32 +61,33 @@ class CoordinatesManager(Manager):
         self._temporary_camera_resolve = None
 
     def bind_camera(self, camera: Camera) -> None:
-        """Résout et met en cache la caméra principale de la scène.
-        Appelé par Scene après bind_viewport.
+        """Résout et met en cache la caméra principale courante
+
+        Args:
+            camera: caméra principale courante
         """
         _, _, lw, lh, _, _ = self._viewport_resolve
         self._camera = camera
         self._camera_resolve = camera.resolve(lw, lh)
 
     def bind_temporary_camera(self, camera: Camera) -> None:
-        """Résout et met en cache la caméra locale d'un temporary.
-        Appelé par temporary si celui-ci possède sa propre caméra.
-        Prend le dessus sur la caméra de scène pour la durée du temporary.
+        """Résout et met en cache la caméra locale courante
+
+        Args:
+            camera: caméra locale courante
         """
         _, _, lw, lh, _, _ = self._viewport_resolve
         self._temporary_camera = camera
         self._temporary_camera_resolve = camera.resolve(lw, lh)
 
     def unbind_temporary_camera(self) -> None:
-        """Restaure la caméra de scène comme caméra active.
-        Appelé par temporary en fin d'update/render.
-        """
+        """Restaure la caméra principale"""
         self._temporary_camera = None
         self._temporary_camera_resolve = None
 
     # ======================================== FAST CONVERSIONS ========================================
     def world_to_logical(self, x: float, y: float, viewport: Viewport = None, camera: Camera = None) -> tuple[int, int]:
-        """Conversion directe World to Logical (espace LogicalScreen)"""
+        """Conversion directe World to Logical"""
         # Résolutions
         vp_r, cam_r = self._resolve(viewport, camera)
         lx, ly, lw, lh, (ox, oy), (dx, dy) = vp_r
@@ -321,4 +324,6 @@ _CONVERTERS: dict[tuple[CoordSpace, CoordSpace], Callable] = {
 }
 
 # ======================================== EXPORTS ========================================
-__all__ = ["CoordinatesManager"]
+__all__ = [
+    "CoordinatesManager",
+]

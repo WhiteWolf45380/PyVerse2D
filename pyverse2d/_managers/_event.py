@@ -262,3 +262,8 @@ class _EventSlot:
             result = sub.callback(*args, **kwargs)
             if result is self._manager.ConsumeFlag:
                 break
+
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "EventManager",
+]

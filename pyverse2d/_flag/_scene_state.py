@@ -8,3 +8,8 @@ class SceneState(Enum):
     PAUSED = "paused"       # draw only
     HIDDEN = "hidden"       # update only
     SLEEPING = "sleep"      # none
+
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "SceneState",
+]

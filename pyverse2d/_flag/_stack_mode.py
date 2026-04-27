@@ -8,3 +8,8 @@ class StackMode(Enum):
     PAUSE = "pause"         # scene du dessous stop draw mais continue update
     HIDE = "hide"           # scene du dessous stop update mais continue draw
     STOP = "stop"           # scene du dessous stop tout
+
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "StackMode",
+]

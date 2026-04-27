@@ -12,3 +12,8 @@ class HasPosition(Protocol):
     def x(self) -> float: ...
     @property
     def y(self) -> float: ...
+
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "HasPosition",
+]

@@ -3,6 +3,12 @@ from enum import IntEnum, auto
 
 # ======================================== IMPORTS ========================================
 class ComponentType(IntEnum):
-    CIRCLE = auto()
-    SEGMENT = auto()
-    RECT = auto()
+    """Composants de rendu"""
+    CIRCLE = auto()     # Cercle
+    SEGMENT = auto()    # Segment
+    RECT = auto()       # Rectangle
+
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "ComponentType",
+]

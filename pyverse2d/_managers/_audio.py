@@ -346,7 +346,31 @@ class AudioManager(Manager):
             cooldown: délai minimal entre deux lectures (secondes)
             group: groupe SFX
         """
-        return Sound(path, volume=volume, cooldown=cooldown, group=group)
+        return Sound(
+            path = path,
+            volume=volume,
+            cooldown=cooldown,
+            group=group
+        )
+    
+    @staticmethod
+    def create_sound_with_variations(
+        folder_path: str,
+        prefix: str = "",
+        extensions: list[str] | None = None,
+        volume: Real = 1.0,
+        cooldown: Real = 0.0,
+        group: SoundGroup |  None = None
+    ):
+        """"""
+        return Sound.from_variations(
+            folder_path = folder_path,
+            prefix = prefix,
+            extensions = extensions,
+            volume = volume,
+            cooldown = cooldown,
+            group = group,
+        )  
 
     @staticmethod
     def create_music(
@@ -359,7 +383,10 @@ class AudioManager(Manager):
             path: chemin vers le fichier audio
             volume: volume propre [0, 1]
         """
-        return Music(path, volume=volume)
+        return Music(
+            path = path,
+            volume=volume,
+        )
 
     @staticmethod
     def load_sounds(
@@ -794,7 +821,11 @@ class AudioManager(Manager):
 
     # ======================================== CYCLE DE VIE ========================================
     def update(self, dt: float) -> None:
-        """Actualisation"""
+        """Actualisation
+        
+        Args:
+            dt: delta-time
+        """
         # Mise à jour des cooldowns
         self._update_sounds(dt)
 
@@ -805,7 +836,11 @@ class AudioManager(Manager):
         self._update_fade(dt)
 
     def _update_sounds(self, dt: float) -> None:
-        """Actualisation des sons actifs"""
+        """Actualisation des sons actifs
+
+        Args:
+            dt: delta-time
+        """
         done: set[Sound] = set()
         for sound in self._active_sounds:
             if sound.is_paused():
@@ -815,7 +850,11 @@ class AudioManager(Manager):
         self._active_sounds -= done
 
     def _update_playlist(self, dt: float) -> None:
-        """Actualisation de la playlist en cours"""
+        """Actualisation de la playlist en cours
+        
+        Args:
+            dt: delta-time
+        """
         if not self.playlist_playing:
             return
         pr = self._playlist
@@ -837,7 +876,11 @@ class AudioManager(Manager):
                     self._play_playlist_next()
 
     def _update_fade(self, dt: float) -> None:
-        """Actualisation du fondu"""
+        """Actualisation du fondu
+        
+        Args:
+            dt: delta-time
+        """
         if self._crossfade is None:
             return
         cf = self._crossfade
@@ -868,7 +911,11 @@ class AudioManager(Manager):
 
     # ======================================== INTERNALS ========================================
     def _load_source(self, path: str) -> _media.StaticSource:
-        """Charge une source audio en cacheant les résultats"""
+        """Charge une source audio en cacheant les résultats
+        
+        Args
+            path: chemin vers le fichier audio
+        """
         if path not in self._source_cache:
             self._source_cache[path] = _media.load(path, streaming=False)
         return self._source_cache[path]
@@ -882,19 +929,33 @@ class AudioManager(Manager):
             self._current_music = None
 
     def _clear_current_music(self, music: Music) -> None:
-        """Nettoie la musique courante si elle correspond à la musique donnée"""
+        """Nettoie la musique courante si elle correspond à la musique donnée
+        
+        Args:
+            music: musique à tester
+        """
         if self._current_music is music:
             self._current_music = None
 
     def _on_interrupted_music_end(self, handle: MusicHandle) -> None:
-        """Reprend la playlist après une musique de surcharge"""
+        """Reprend la playlist après une musique de surcharge
+        
+        Args:
+            handle: token de lecture
+        """
         if self._playlist is not None and not self._playlist.playing:
             self._playlist.playing = True
             self._playlist.delay_timer = 0.0
             self._play_playlist_next()
 
     def _make_on_stop(self, music: Music, on_end: Callable[[MusicHandle], Any], playlist_fallback: bool) -> Callable:
-        """Construit le callback on_stop en fusionnant la logique musique et playlist"""
+        """Construit le callback on_stop en fusionnant la logique musique et playlist
+        
+        Args:
+            music: musique concernée
+            on_end: callback de fin de lecture
+            playlist_fallback: reprise de la playlist à la fin de lecture
+        """
         def on_stop(h: MusicHandle) -> None:
             self._clear_current_music(music)
             if on_end is not None:
@@ -944,6 +1005,8 @@ class AudioManager(Manager):
 __all__ = [
     "SoundHandle",
     "MusicHandle",
+
     "SoundGroup",
+
     "AudioManager",
 ]

@@ -49,14 +49,22 @@ class UiManager(Manager):
 
     # ======================================== REQUESTS ========================================
     def ask_hover(self, widget: Widget) -> None:
-        """Demande à survoler un widget"""
+        """Demande à survoler un widget
+        
+        Args:
+            widget: ``Widget`` demandeur
+        """
         if self._hovered is not None:
             return False
         self._hovered = widget
         return True
 
     def ask_focus(self, widget: Widget) -> None:
-        """Demande à concentrer un widget"""
+        """Demande à concentrer un widget
+        
+        Args:
+            widget: ``Widget`` demandeur
+        """
         if self._focused is not None:
             return False
         self._focused = widget
@@ -64,10 +72,19 @@ class UiManager(Manager):
 
     # ======================================== LIFE CYCLE ========================================
     def update(self, dt: float) -> None:
-        """Actualisation"""
+        """Actualisation
+        
+        Args:
+            dt: delta-time
+        """
         pass
 
     def flush(self) -> None:
         """Nettoyage"""
         self._hovered = None
         self._focused = None
+
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "UiManager",
+]

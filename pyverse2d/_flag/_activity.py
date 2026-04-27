@@ -9,3 +9,8 @@ class Activity(Flag):
     DISABLED = auto()               # vient d'être désativé
     ACTIVE = auto()                 # état actif constant
     INACTIVE = auto()               # état inactif constant
+
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "Activity",
+]

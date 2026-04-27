@@ -164,28 +164,53 @@ class KeyManager(Manager):
     # ======================================== KEYS ========================================
     @staticmethod
     def name(key: Key) -> str:
+        """Renvoie le ``str`` d'une clé par son identifiant
+        
+        Args:
+            key: identifiant de la clé
+        """
         return _NAMES.get(key, "Unknown")
 
     # ======================================== STATE ========================================
     def is_pressed(self, key: Key) -> bool:
-        """Vérifie si une touche est maintenue enfoncée"""
+        """Vérifie si une touche est maintenue enfoncée
+        
+        Args:
+            key: identifiant de la clé
+        """
         return self._pressed.get(key, False)
 
     def just_pressed(self, key: Key) -> bool:
-        """Vérifie si une touche vient d'être pressée cette frame"""
+        """Vérifie si une touche vient d'être pressée cette frame
+        
+        Args:
+            key: identifiant de la clé
+        """
         return key in self._step
 
     def just_released(self, key: Key) -> bool:
-        """Vérifie si une touche vient d'être relâchée cette frame"""
+        """Vérifie si une touche vient d'être relâchée cette frame
+        
+        Args:
+            key: identifiant de la clé
+        """
         return key in self._released_this_frame
 
     def _is_currently_pressed(self, key: Key) -> bool:
-        """Vérifie si une touche est pressée cette frame ou maintenue"""
+        """Vérifie si une touche est pressée cette frame ou maintenue
+        
+        Args:
+            key: identifiant de la clé
+        """
         return self._pressed.get(key, False) or key in self._step
 
     # ======================================== LIFE CYCLE ========================================
     def update(self, dt: float) -> None:
-        """Actualisation"""
+        """Actualisation
+        
+        Args:
+            dt: delta-time
+        """
         pass
 
     def flush(self) -> None:
@@ -198,10 +223,23 @@ class KeyManager(Manager):
 
     # ======================================== HOOKS ========================================
     def _on_press(self, key: int) -> None:
-        """Pression d'une touche"""
+        """Pression d'une touche
+        
+        Args:
+            key: identifiant de la clé
+        """
         self._step.append(key)
 
     def _on_release(self, key: int) -> None:
-        """Relachement d'une touche"""
+        """Relachement d'une touche
+        
+        Args
+            key: identifiant de la clé
+        """
         self._pressed[key] = False
         self._released_this_frame.append(key)
+
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "KeyManager",
+]
