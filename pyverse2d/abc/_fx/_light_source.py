@@ -14,6 +14,7 @@ from numbers import Real
 # ======================================== REQUEST ========================================
 @dataclass(slots=True)
 class AttachRequest:
+    """Requête d'attache"""
     target: HasPosition
     offset: Vector
     smoothing: float
