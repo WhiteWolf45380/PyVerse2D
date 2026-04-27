@@ -27,6 +27,7 @@ class SoundEmitter(Component):
         "_volume", "_inner_radius", "_outer_radius", "_falloff",
         "_on_start", "_on_end",
         "_to_play", "_playing",
+        "_registry",
     )
 
     def __init__(
@@ -53,6 +54,9 @@ class SoundEmitter(Component):
         # Buffer
         self._to_play: list[AudioRequest] = []
         self._playing: set[SoundHandle] = set()
+
+        # Registry
+        self._registry: dict[str, Sound] = {}
 
     # ======================================== CONTRACT ========================================
     def __repr__(self) -> str:
@@ -139,15 +143,65 @@ class SoundEmitter(Component):
     def on_end(self) -> CallbackList:
         """Fin de lecture d'un son"""
         return self._on_end
+    
+    # ======================================== REGSITRY ========================================
+    def register(self, sound: Sound, name: str) -> None:
+        """Enregistre un son
+
+        Args:
+            sound: son à enregistrer
+            name: nom du son
+        """
+        self._registry[name] = sound
+
+    def unregister(self, name: str) -> None:
+        """Supprime l'enregistrement d'un son
+
+        Args:
+            name: nom du son
+        """
+        del self._registry[name]
+
+    def get(self, name: str) -> Sound | None:
+        """Renvoie un son pré-enregistrer
+
+        Args:
+            name: nom du son
+
+        Raises:
+            ValueError: si le son n'est pas présent dans le registre
+        """
+        return self._registry[name]
+    
+    def has(self, name: str) -> bool:
+        """Vérifie la présence d'un son dans le registre
+        
+        Args:
+            name: nom du son
+        """
+        return name in self._registry
 
     # ======================================== INTERFACE ========================================
+    def emit(
+            self,
+            name: str,
+            loop: bool = False,
+            limit: int | None = None,
+        ) -> None:
+        """Joue un son pré-enregistrer
+        
+        Args:
+            name: nom du son
+        """
+        self.play(self.get(name), loop=loop, limit=limit)
+
     def play(
             self,
             sound: Sound,
             loop: bool = False,
             limit: int | None = None,
         ) -> None:
-        """Joue un son
+        """Joue un son inconnu
 
         Args:
             sound: son à jouer
