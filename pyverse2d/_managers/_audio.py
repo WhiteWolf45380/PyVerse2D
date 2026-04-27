@@ -580,7 +580,7 @@ class AudioManager(Manager):
         player = _media.Player()
         player.loop = loop
         player.queue(source)
-        handle = MusicHandle(music, source, player, on_stop=self._make_on_stop(music, on_end, playlist_fallback))
+        handle = MusicHandle(music, source, player, on_stop=self._make_on_stop(music, on_end=on_end, playlist_fallback=playlist_fallback))
 
         # Lecture de la musique
         handle.player.play()
@@ -646,6 +646,7 @@ class AudioManager(Manager):
                 elapsed=0.0,
                 vol_out=self._current_music._handle.play_volume,
                 vol_in=0.0,
+                easing=fade_easing,
             )
             self._current_music = None
         
@@ -660,6 +661,7 @@ class AudioManager(Manager):
             loop: bool = True,
             fade_s: float = 1.0,
             fade_easing: EasingFunc = linear,
+            on_end: Callable[[MusicHandle], Any] = None,
             playlist_fallback: bool = True,
             _interrupt_playlist: bool = True,
         ) -> MusicHandle:
@@ -692,7 +694,7 @@ class AudioManager(Manager):
         player = _media.Player()
         player.loop = loop
         player.queue(source)
-        handle = MusicHandle(music, source, player, on_stop=self._make_on_stop(music, playlist_fallback))
+        handle = MusicHandle(music, source, player, on_stop=self._make_on_stop(music, on_end=on_end, playlist_fallback=playlist_fallback))
 
         # Création du cross-fade
         self._crossfade = _CrossfadeRequest(
