@@ -1,7 +1,7 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from ..._internal import HasPosition
+from ..._internal import HasPosition, expect, clamped, expect_callable
 from ..._flag import Activity
 from ...math import Vector, Point
 from ...math.easing import EasingFunc, is_easing
@@ -42,19 +42,23 @@ class LightSource(ABC):
             color: Color = (255, 255, 255),
             intensity: Real = 1.0,
             falloff: EasingFunc = None,
-            enabled: bool = True,
+            enable: bool = True,
         ):
+        # Transtyping
+        intensity: float = float(intensity)
+
+        # Debugging
+        if __debug__:
+            clamped(intensity)
+            expect_callable(falloff)
+            expect(enable, bool)
+
         # Paramètres publiques
         self._position: Point = Point(position)
         self._color: Color = Color(color)
         self._intensity: float = float(intensity)
         self._falloff: EasingFunc = falloff
-        self._enabled: bool = enabled
-
-        if __debug__:
-            if not 0.0 <= self._intensity <= 1.0: raise ValueError("intensity must be within 0.0 and 1.0")
-            if self._falloff is not None and not is_easing(self._falloff): raise ValueError("falloff must be an EasingFunc from pv.math.easing module or None")
-            if not isinstance(enabled, bool): raise TypeError(f"enabled must be a boolean, got {type(self._enabled).__name__}")
+        self._enabled: bool = enable
 
         # Paramètres internes
         self._attach: AttachRequest | None = None
@@ -122,7 +126,7 @@ class LightSource(ABC):
     @intensity.setter
     def intensity(self, value: Real) -> None:
         value = float(value)
-        assert 0.0 <= value <= 1.0, f"intensity must be within 0.0 and 1.0, got {value}"
+        assert 0.0 <= value <= 1.0, f"intensity ({value}) must be within 0.0 and 1.0"
         self._intensity = value
     
     @property
@@ -136,7 +140,7 @@ class LightSource(ABC):
     
     @falloff.setter
     def falloff(self, value: EasingFunc) -> None:
-        assert value is None or is_easing(value), "falloff must be an EasingFunc from math.easing module or None"
+        assert callable(value), f"falloff ({value}) must be an EasingFunc or None"
         self._falloff = value
 
     # ======================================== STATE ========================================
@@ -200,7 +204,11 @@ class LightSource(ABC):
 
     # ======================================== LIFE CYCLE ========================================
     def update(self, dt: float) -> None:
-        """Actualisation"""
+        """Actualisation
+        
+        Args:
+            dt: delta-time
+        """
         if self._attach is not None:
             self._update_attach(dt)
         self._update(dt)
@@ -210,11 +218,19 @@ class LightSource(ABC):
         return activity
 
     def _update(self, dt: float) -> None:
-        """Actualisation personnalisée (à override)"""
+        """Actualisation personnalisée (à override)
+        
+        Args:
+            dt: delta-time
+        """
         pass
 
     def _update_attach(self, dt: float) -> None:
-        """Actualisation de l'attache"""
+        """Actualisation de l'attache
+        
+        Args:
+            dt: delta-time
+        """
         target = self._attach.target
         offset = self._attach.offset
         smoothing = self._attach.smoothing
