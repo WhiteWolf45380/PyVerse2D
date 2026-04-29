@@ -52,7 +52,7 @@ class LightSource(ABC):
         # Debugging
         if __debug__:
             clamped(intensity)
-            expect_callable(falloff)
+            expect_callable(falloff, include_none=True)
             expect(enable, bool)
 
         # Attributs publiques
