@@ -400,14 +400,21 @@ class Pipeline:
         """Renvoie ``(x_min, y_min, x_max, y_max)`` du frustum visible en coordonnées monde"""
         return self.get_coord().get_frustum_aabb()
 
-    def scale_to_framebuffer(self, width: float = None, height: float = None) -> float | tuple[float, float]:
+    def scale_to_framebuffer(self, width: float | None = None, height: float | None = None) -> float | tuple[float, float]:
         """Convertit une taille monde en taille framebuffer
         
         Args:
             width: largeur monde
             height: hauteur monde
         """
-        return self.get_coord().world_to_framebuffer(width, height, vector=True)
+        w = width or 0
+        h = height or 0
+        fb_w, fb_h = self.get_coord().world_to_framebuffer(width, height, vector=True)
+        if width is None:
+            return fb_h
+        if height is None:
+            return fb_w
+        return fb_w, fb_h
     
     @contextmanager
     def scissor_world(self, wx: float, wy: float, ww: float, wh: float, viewport: Viewport = None, camera: Camera = None):
