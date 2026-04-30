@@ -17,7 +17,6 @@ from typing import TYPE_CHECKING
 from dataclasses import dataclass
 from contextlib import contextmanager
 from ctypes import c_int
-import math
 
 if TYPE_CHECKING: 
     from .._managers import CoordinatesManager

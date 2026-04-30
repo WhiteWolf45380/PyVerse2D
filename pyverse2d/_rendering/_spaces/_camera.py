@@ -448,14 +448,15 @@ class Camera(Space):
         # Renommage
         vw = self._view_width
         vh = self._view_height
+        ax, ay = self._anchor
 
         # Cache
-        projection_key: tuple = (fb_w, fb_h, vw, vh)
+        projection_key: tuple = (fb_w, fb_h, vw, vh, ax, ay)
         if projection_key in self._PROJECTION_CACHE:
             return self._PROJECTION_CACHE[projection_key]
         
         # Construction
-        matrix = self._compute_projection(fb_w, fb_h, vw, vh)
+        matrix = self._compute_projection(fb_w, fb_h, vw, vh, ax, ay)
         self._PROJECTION_CACHE[projection_key] = matrix
         return matrix
 
@@ -476,7 +477,7 @@ class Camera(Space):
             return matrix
         
         # Construction
-        matrix = self._compute_view(cx, cy, theta, zoom)
+        matrix = self._compute_view(cx, cy, ax, ay, theta, zoom)
         self._VIEW_CACHE_FRAME[view_key] = matrix
         return matrix
     
@@ -499,7 +500,7 @@ class Camera(Space):
         self._position.x = x
         self._position.y = y
 
-    def _compute_projection(self, fb_w: int, fb_h: int, vw: float, vh: float) -> Mat4:
+    def _compute_projection(self, fb_w: int, fb_h: int, vw: float, vh: float, ax: float, ay: float) -> Mat4:
         """Compute la matrice de projection *(TS)^(-1)*
         
         Args:
@@ -507,6 +508,8 @@ class Camera(Space):
             fb_h: hauteur du framebuffer
             vw: largeur de la vue
             vh: hauteur de la vue
+            ax: ancre relative locale horizontale
+            ay: ancre relative locale verticale
         """
         # Calcul des dimensions du frustum
         if vw is None and vh is None:
@@ -524,7 +527,8 @@ class Camera(Space):
                 vh = vw * fb_ratio
 
         # Calcul des paramètres
-        tx = ty = -1
+        tx = -(2 * ax - 1)
+        ty = -(2 * ay - 1)
         sx = 2 / vw
         sy = 2 / vh
         
