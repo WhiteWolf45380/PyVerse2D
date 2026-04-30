@@ -51,6 +51,7 @@ class Viewport(Space):
             positive(width, arg="width")
             positive(height, arg="height")
             if x_direction.is_collinear(y_direction):
+                raise ValueError("A basis cannot have collinear direction vectors")
 
         # Attributs publiques
         self._position: Point = position
