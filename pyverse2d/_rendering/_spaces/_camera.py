@@ -477,7 +477,7 @@ class Camera(Space):
             return matrix
         
         # Construction
-        matrix = self._compute_view(cx, cy, ax, ay, theta, zoom)
+        matrix = self._compute_view(cx, cy, theta, zoom)
         self._VIEW_CACHE_FRAME[view_key] = matrix
         return matrix
     
