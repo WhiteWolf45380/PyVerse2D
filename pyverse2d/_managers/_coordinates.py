@@ -197,7 +197,9 @@ class CoordinatesManager(Manager):
         Pip = self._get_pipeline()
         ndc_x, ndc_y, _, _ = Pip @ M
         gx, gy, gw, gh = self._viewport_resolve
-        return gx + ndc_x * gw, gy + ndc_y * gh
+        fb_x = gx + (ndc_x + 1) * 0.5 * gw
+        fb_y = gy + (ndc_y + 1) * 0.5 * gh
+        return fb_x, fb_y
 
     def world_to_window(self, x: float, y: float, vector: bool = False) -> tuple[float, float]:
         """Conversion ``World`` vers ``Window``
@@ -231,7 +233,8 @@ class CoordinatesManager(Manager):
     def _framebuffer_to_world(self, x: float, y: float, vector: bool) -> tuple[float, float]:
         """Logique interne de ``framebuffer_to_world``"""
         gx, gy, gw, gh = self._viewport_resolve
-        ndc_x, ndc_y = (x - gx) / gw, (y - gy) / gh
+        ndc_x = (x - gx) / gw * 2 - 1
+        ndc_y = (y - gy) / gh * 2 - 1
         M = self.homogeneous(ndc_x, ndc_y, vector=vector)
         inv_Pip = self._get_inv_pipeline()
         world_x, world_y, _, _ = inv_Pip @ M
