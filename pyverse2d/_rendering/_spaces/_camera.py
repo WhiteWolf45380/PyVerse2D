@@ -521,7 +521,7 @@ class Camera(Space):
         else:
             fb_ratio = fb_w / fb_h
             view_ratio = vw / vh
-            if fb_ratio < view_ratio:
+            if fb_ratio > view_ratio:
                 vw = vh * fb_ratio
             else:
                 vh = vw * fb_ratio
