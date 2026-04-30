@@ -407,9 +407,9 @@ class Pipeline:
             width: largeur monde
             height: hauteur monde
         """
-        w = width or 0
-        h = height or 0
-        fb_w, fb_h = self.get_coord().world_to_framebuffer(width, height, vector=True)
+        w = width if width is not None else 0
+        h = height if height is not None else 0
+        fb_w, fb_h = self.get_coord().world_to_framebuffer(w, h, vector=True)
         if width is None:
             return fb_h
         if height is None:

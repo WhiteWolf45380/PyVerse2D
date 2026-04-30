@@ -68,7 +68,7 @@ class Point(MathObject):
     # ======================================== GETTERS ========================================
     def __getitem__(self, i: int) -> float:
         """Renvoie une coordonnée du point"""
-        return (self._x, self._y)[expect(i, int)]
+        return (self._x, self._y)[i]
 
     @property
     def x(self) -> float:
@@ -87,17 +87,17 @@ class Point(MathObject):
     # ======================================== SETTERS ========================================
     def __setitem__(self, i: int, value: Real):
         """Fixe une coordonnée du point"""
-        setattr(self, ("x", "y")[expect(i, int)], round(float(expect(value, Real)), self.PRECISION))
+        setattr(self, ("x", "y")[i], round(float(value), self.PRECISION))
 
     @x.setter
     def x(self, value: Real):
         """Fixe la coordonnée horizontale du point"""
-        self._x = round(float(expect(value, Real)), self.PRECISION)
+        self._x = round(float(value), self.PRECISION)
 
     @y.setter
     def y(self, value: Real):
         """Fixe la coordonnée verticale du point"""
-        self._y = round(float(expect(value, Real)), self.PRECISION)
+        self._y = round(float(value), self.PRECISION)
 
     # ======================================== OPERATIONS ========================================
     def __add__(self, other: Vector | Point) -> Point:
@@ -174,6 +174,10 @@ class Point(MathObject):
     def copy(self) -> Point:
         """Renvoie une copie du point"""
         return Point._make(self._x, self._y)
+    
+    def homogeneous(self) -> tuple[float, float, float, float]:
+        """Renvoie le vecteur homogène 4D"""
+        return (self._x, self._y, 0, 1)
 
     def vector_to(self, point: Point) -> Vector:
         """
@@ -182,8 +186,8 @@ class Point(MathObject):
         Args:
             point(Point): point cible
         """
-        p = expect(point, Point)
-        return Vector._make(p._x - self._x, p._y - self._y)
+        x, y = point
+        self._vector_to(x, y)
 
     def distance_to(self, point: Point) -> float:
         """
@@ -192,10 +196,8 @@ class Point(MathObject):
         Args:
             point(Point): point cible
         """
-        p = expect(point, Point)
-        dx = p._x - self._x
-        dy = p._y - self._y
-        return sqrt(dx * dx + dy * dy)
+        x, y = point
+        return self._distance_to(x, y)
 
     def translate(self, vector: Vector) -> Point:
         """
@@ -204,8 +206,8 @@ class Point(MathObject):
         Args:
             vector(Vector): vecteur de translation
         """
-        v = Vector(vector)
-        return Point._make(self._x + v._x, self._y + v._y)
+        x, y = vector
+        return self._translate(x, y)
 
     def midpoint(self, point: Point) -> Point:
         """
@@ -214,8 +216,8 @@ class Point(MathObject):
         Args:
             point(Point): second point du segment
         """
-        p = expect(point, Point)
-        return Point._make((self._x + p._x) * 0.5, (self._y + p._y) * 0.5)
+        x, y = point
+        return self._midpoint(x, y)
 
     def barycenter(self, *points: Point) -> Point:
         """
@@ -224,34 +226,28 @@ class Point(MathObject):
         Args:
             points(Point): autres points
         """
-        n = len(points) + 1
-        x = (self._x + sum(p._x for p in points)) / n
-        y = (self._y + sum(p._y for p in points)) / n
-        return Point._make(x, y)
+        xs, ys = zip(*points)
+        n = len(xs) + 1
+        return Point._make(
+            (self._x + sum(x for x in xs)) / n,
+            (self._y + sum(y for y in ys)) / n,
+        )
 
     # ======================================== INTERNAL METHODS ========================================
-    def _vector_to(self, point: Point) -> Vector:
+    def _vector_to(self, x: float, y: float) -> Vector:
         """Vecteur à un autre point"""
-        return Vector._make(point._x - self._x, point._y - self._y)
+        return Vector._make(x - self._x, y - self._y)
 
-    def _distance_to(self, point: Point) -> float:
+    def _distance_to(self, x: float, y: float) -> float:
         """Distance à un autre point"""
-        dx = point._x - self._x
-        dy = point._y - self._y
+        dx = x - self._x
+        dy = y - self._y
         return sqrt(dx * dx + dy * dy)
 
-    def _translate(self, vector: Vector) -> Point:
+    def _translate(self, x: float, y: float) -> Point:
         """Translation par un vecteur"""
-        return Point._make(self._x + vector._x, self._y + vector._y)
+        return Point._make(self._x + x, self._y + y)
 
-    def _midpoint(self, point: Point) -> Point:
+    def _midpoint(self, x: float, y: float) -> Point:
         """Point du milieu à un autre point"""
-        return Point._make((self._x + point._x) * 0.5, (self._y + point._y) * 0.5)
-
-    def _barycenter(self, *points) -> Point:
-        """Barycentre à plusieurs autres points"""
-        n = len(points) + 1
-        return Point._make(
-            (self._x + sum(p._x for p in points)) / n,
-            (self._y + sum(p._y for p in points)) / n,
-        )
+        return Point._make((self._x + x) * 0.5, (self._y + y) * 0.5)

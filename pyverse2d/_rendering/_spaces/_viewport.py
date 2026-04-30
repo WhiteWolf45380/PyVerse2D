@@ -50,6 +50,7 @@ class Viewport(Space):
         if __debug__:
             positive(width, arg="width")
             positive(height, arg="height")
+            if x_direction._is_collinear()
 
         # Attributs publiques
         self._position: Point = position

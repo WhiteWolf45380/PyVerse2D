@@ -190,3 +190,5 @@ class Scene:
         """Nettoie le contexte courant"""
         mouse: MouseManager = MouseManager.get_instance()
         mouse._clear_world_position()
+        coord: CoordinatesManager = Pipeline.get_coord()
+        coord.clear_context()

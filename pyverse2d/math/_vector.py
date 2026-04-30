@@ -62,7 +62,7 @@ class Vector(MathObject):
     # ======================================== GETTERS ========================================
     def __getitem__(self, i: int) -> float:
         """Renvoie une composante du vecteur"""
-        return (self._x, self._y)[expect(i, int)]
+        return (self._x, self._y)[i]
 
     @property
     def x(self) -> float:
@@ -99,17 +99,17 @@ class Vector(MathObject):
     # ======================================== SETTERS ========================================
     def __setitem__(self, i: int, value: Real):
         """Fixe une composante du vecteur"""
-        setattr(self, ("x", "y")[expect(i, int)], round(float(expect(value, Real)), self.PRECISION))
+        setattr(self, ("x", "y")[i], round(float(value), self.PRECISION))
 
     @x.setter
     def x(self, value: Real):
         """Fixe la composante x du vecteur"""
-        self._x = round(float(expect(value, Real)), self.PRECISION)
+        self._x = round(float(value), self.PRECISION)
 
     @y.setter
     def y(self, value: Real):
         """Fixe la composante y du vecteur"""
-        self._y = round(float(expect(value, Real)), self.PRECISION)
+        self._y = round(float(value), self.PRECISION)
 
     @norm.setter
     def norm(self, value: Real):
@@ -117,7 +117,7 @@ class Vector(MathObject):
         n = sqrt(self._x * self._x + self._y * self._y)
         if n == 0:
             raise ZeroDivisionError("Cannot scale null vector")
-        scale = float(expect(value, Real)) / n
+        scale = float(value) / n
         self._x = round(self._x * scale, self.PRECISION)
         self._y = round(self._y * scale, self.PRECISION)
 
@@ -212,7 +212,8 @@ class Vector(MathObject):
         Args:
             vector(Vector): vecteur à tester
         """
-        return self._is_orthogonal(expect(vector, Vector))
+        x, y = vector
+        return self._is_orthogonal(x, y)
 
     def is_collinear(self, vector: Vector) -> bool:
         """
@@ -221,12 +222,17 @@ class Vector(MathObject):
         Args:
             vector(Vector): vecteur à tester
         """
-        return self._is_collinear(expect(vector, Vector))
+        x, y = vector
+        return self._is_collinear(x, y)
 
     # ======================================== PUBLIC METHODS ========================================
     def copy(self) -> Vector:
         """Renvoie une copie"""
         return Vector._make(self._x, self._y)
+    
+    def homogeneous(self) -> tuple[float, float, float, float]:
+        """Renvoie le vecteur homogène 4D"""
+        return (self._x, self._y, 0, 0)
 
     def normalize(self):
         """Normalise le vecteur en place"""
@@ -244,8 +250,8 @@ class Vector(MathObject):
         Args:
             vector(Vector): second vecteur
         """
-        v = expect(vector, Vector)
-        return self._x * v._x + self._y * v._y
+        x, y = vector
+        return self._dot(x, y)
 
     def cross(self, vector: Vector) -> float:
         """
@@ -254,8 +260,8 @@ class Vector(MathObject):
         Args:
             vector(Vector): second vecteur
         """
-        v = expect(vector, Vector)
-        return self._x * v._y - self._y * v._x
+        x, y = vector
+        return self._cross(x, y)
 
     def angle_with(self, vector: Vector) -> float:
         """
@@ -264,12 +270,8 @@ class Vector(MathObject):
         Args:
             vector(Vector): second vecteur
         """
-        v = expect(vector, Vector)
-        n1 = sqrt(self._x * self._x + self._y * self._y)
-        n2 = sqrt(v._x * v._x + v._y * v._y)
-        if n1 == 0 or n2 == 0:
-            raise ValueError("Cannot compute angle with null vector")
-        return acos(max(-1.0, min(1.0, (self._x * v._x + self._y * v._y) / (n1 * n2))))
+        x, y = vector
+        return self._angle_with(x, y)
 
     def projection(self, vector: Vector) -> Vector:
         """
@@ -278,12 +280,8 @@ class Vector(MathObject):
         Args:
             vector(Vector): vecteur de projection
         """
-        v = expect(vector, Vector)
-        denom = v._x * v._x + v._y * v._y
-        if denom == 0:
-            raise ValueError("Cannot project on null vector")
-        t = (self._x * v._x + self._y * v._y) / denom
-        return Vector._make(v._x * t, v._y * t)
+        x, y = vector
+        return self._projection(x, y)
 
     def distance(self, vector: Vector) -> float:
         """
@@ -292,42 +290,40 @@ class Vector(MathObject):
         Args:
             vector(Vector): vecteur cible
         """
-        v = expect(vector, Vector)
-        dx = self._x - v._x
-        dy = self._y - v._y
-        return sqrt(dx * dx + dy * dy)
+        x, y = vector
+        return self._distance(x, y)
 
     # ======================================== INTERNAL METHODS ========================================
-    def _is_collinear(self, vector: Vector) -> bool:
+    def _is_collinear(self, x: float, y: float) -> bool:
         """Vérifie la colinéarité"""
-        return self._x * vector._y - self._y * vector._x == 0
+        return self._x * y - self._y * x == 0
 
-    def _is_orthogonal(self, vector: Vector) -> bool:
+    def _is_orthogonal(self, x: float, y: float) -> bool:
         """Vérifie l'orthogonalité"""
-        return self._x * vector._x + self._y * vector._y == 0
+        return self._x * x + self._y * y == 0
 
-    def _dot(self, vector: Vector) -> float:
+    def _dot(self, x: float, y: float) -> float:
         """Produit scalaire"""
-        return self._x * vector._x + self._y * vector._y
+        return self._x * x + self._y * y
 
-    def _cross(self, vector: Vector) -> float:
+    def _cross(self, x: float, y: float) -> float:
         """Produit vectoriel"""
-        return self._x * vector._y - self._y * vector._x
+        return self._x * y - self._y * x
 
-    def _angle_with(self, vector: Vector) -> float:
+    def _angle_with(self, x: float, y: float) -> float:
         """Distance angulaire"""
         n1 = sqrt(self._x * self._x + self._y * self._y)
-        n2 = sqrt(vector._x * vector._x + vector._y * vector._y)
-        return acos(max(-1.0, min(1.0, (self._x * vector._x + self._y * vector._y) / (n1 * n2))))
+        n2 = sqrt(x * x + y * y)
+        return acos(max(-1.0, min(1.0, (self._x * x + self._y * y) / (n1 * n2))))
 
-    def _projection(self, vector: Vector) -> Vector:
+    def _projection(self, x: float, y: float) -> Vector:
         """Projeté vectoriel"""
-        denom = vector._x * vector._x + vector._y * vector._y
-        t = (self._x * vector._x + self._y * vector._y) / denom
-        return Vector._make(vector._x * t, vector._y * t)
+        denom = x * x + y * y
+        t = (self._x * x + self._y * y) / denom
+        return Vector._make(x * t, y * t)
 
-    def _distance(self, vector: Vector) -> float:
+    def _distance(self, x: float, y: float) -> float:
         """Distance euclidienne"""
-        dx = self._x - vector._x
-        dy = self._y - vector._y
+        dx = self._x - x
+        dy = self._y - y
         return sqrt(dx * dx + dy * dy)
