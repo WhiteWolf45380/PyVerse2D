@@ -490,8 +490,8 @@ class Camera(Space):
 
     def flush_view_cache_frame(self) -> None:
         """Nettoie le cache de vue de la frame courante"""
-        self._VIEW_CACHE_FRAME, self._VIEW_CACHE_STORED =  self._VIEW_CACHE_STORED, self._VIEW_CACHE_FRAME
-        self._VIEW_CACHE_FRAME.clear()
+        Camera._VIEW_CACHE_FRAME, Camera._VIEW_CACHE_STORED =  Camera._VIEW_CACHE_STORED, Camera._VIEW_CACHE_FRAME
+        Camera._VIEW_CACHE_FRAME.clear()
     
     # ======================================== INTERNALS ========================================
     def _go(self, x: float, y: float) -> None:
