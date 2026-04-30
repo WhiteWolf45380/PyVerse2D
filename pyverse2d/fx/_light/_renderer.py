@@ -556,7 +556,7 @@ class LightRenderer:
 
         for i, light in enumerate(points):
             fx, fy = pipeline.world_to_framebuffer(light.x, light.y)
-            pos_buf[i] = (float(fx), float(fy))
+            pos_buf[i] = (fx, fy)
             col_buf[i] = light.color.rgb
             rad_buf[i] = pipeline.scale_to_framebuffer(light.radius)
             int_buf[i] = light.intensity
@@ -612,8 +612,12 @@ class LightRenderer:
 
         for i, light in enumerate(cones):
             fx, fy   = pipeline.world_to_framebuffer(light.x, light.y)
-            dfx, dfy = pipeline.world_to_framebuffer_dir_normalized(light.direction.x, light.direction.y)
-            pos_buf[i] = (float(fx), float(fy))
+            dfx, dfy = pipeline.world_to_framebuffer(light.direction.x, light.direction.y, vector=True)
+            norm = (dfx**2 + dfy**2)**0.5
+            if norm != 0.0:
+                dfx /= norm
+                dfy /= norm
+            pos_buf[i] = (fx, fy)
             dir_buf[i] = (dfx, dfy)
             col_buf[i] = light.color.rgb
             rad_buf[i] = pipeline.scale_to_framebuffer(light.radius)
@@ -675,7 +679,7 @@ class LightRenderer:
 
         for i, light in enumerate(points):
             fx, fy = pipeline.world_to_framebuffer(light.x, light.y)
-            p_pos[i] = (float(fx), float(fy))
+            p_pos[i] = (fx, fy)
             p_col[i] = light.color.rgb
             p_rad[i] = pipeline.scale_to_framebuffer(light.radius)
             p_int[i] = light.intensity
@@ -691,7 +695,7 @@ class LightRenderer:
         for i, light in enumerate(cones):
             fx, fy = pipeline.world_to_framebuffer(light.x, light.y)
             dfx, dfy = pipeline.world_to_framebuffer_dir_normalized(light.direction.x, light.direction.y)
-            c_pos[i] = (float(fx), float(fy))
+            c_pos[i] = (fx, fy)
             c_dir[i] = (dfx, dfy)
             c_col[i] = light.color.rgb
             c_rad[i] = pipeline.scale_to_framebuffer(light.radius)
