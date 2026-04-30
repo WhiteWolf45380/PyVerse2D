@@ -297,6 +297,18 @@ def equal_to(value: Real, target: object, arg: str = "Argument"):
         raise ValueError(f"{arg} must be equal to {target!r}, got {value!r}")
     return value
 
+def different_from(value: Real, target: object, arg: str = "Argument"):
+    """Vérifie que la valeur soit différente à une cible
+
+    Args:
+        value: valeur à vérifier
+        target: valeur interdite
+        arg: nom de l'argument à vérifier
+    """
+    if value == target:
+        raise ValueError(f"{arg} must be different from {target!r}, got {value!r}")
+    return value
+
 # ======================================== EXPORTS ========================================
 __all__ = [
     "expect",
@@ -312,4 +324,5 @@ __all__ = [
     "inferior_to",
     "superior_to",
     "equal_to",
+    "different_from",
 ]

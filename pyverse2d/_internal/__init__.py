@@ -12,6 +12,7 @@ from ._validators import (
     inferior_to,
     superior_to,
     equal_to,
+    different_from,
 )
 
 from ._protocols import (
@@ -37,6 +38,7 @@ __all__ = [
     "inferior_to",
     "superior_to",
     "equal_to",
+    "different_from",
 
     "HasPosition",
 
