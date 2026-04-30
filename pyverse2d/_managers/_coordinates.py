@@ -197,9 +197,10 @@ class CoordinatesManager(Manager):
         Pip = self._get_pipeline()
         ndc_x, ndc_y, _, _ = Pip @ M
         gx, gy, gw, gh = self._viewport_resolve
-        fb_x = gx + (ndc_x + 1) * 0.5 * gw
-        fb_y = gy + (ndc_y + 1) * 0.5 * gh
-        return fb_x, fb_y
+        if vector:
+            return ndc_x * 0.5 * gw, ndc_y * 0.5 * gh
+        else:
+            return gx + (ndc_x + 1) * 0.5 * gw, gy + (ndc_y + 1) * 0.5 * gh
 
     def world_to_window(self, x: float, y: float, vector: bool = False) -> tuple[float, float]:
         """Conversion ``World`` vers ``Window``
@@ -233,8 +234,12 @@ class CoordinatesManager(Manager):
     def _framebuffer_to_world(self, x: float, y: float, vector: bool) -> tuple[float, float]:
         """Logique interne de ``framebuffer_to_world``"""
         gx, gy, gw, gh = self._viewport_resolve
-        ndc_x = (x - gx) / gw * 2 - 1
-        ndc_y = (y - gy) / gh * 2 - 1
+        if vector:
+            ndc_x = x / gw * 2
+            ndc_y = y / gh * 2
+        else:
+            ndc_x = (x - gx) / gw * 2 - 1
+            ndc_y = (y - gy) / gh * 2 - 1
         M = self.homogeneous(ndc_x, ndc_y, vector=vector)
         inv_Pip = self._get_inv_pipeline()
         world_x, world_y, _, _ = inv_Pip @ M
@@ -246,16 +251,18 @@ class CoordinatesManager(Manager):
         Args:
             x: coordonnée horizontal *(Logical)*
             y: coordonnée verticale *(Logical)*
-            vector: *ignoré*
+            vector: ignore la translation
         """
         try:
-            return self._framebuffer_to_window(x, y)
+            return self._framebuffer_to_window(x, y, vector)
         except TypeError:
             raise NoContextError() from None
         
-    def _framebuffer_to_window(self, x: float, y: float) -> tuple[float, float]:
+    def _framebuffer_to_window(self, x: float, y: float, vector: bool) -> tuple[float, float]:
         """Logique interne de ``framebuffer_to_window``"""
         window = self._window
+        if vector:
+            return x * window.physical_scale, y * window.physical_scale
         canvas = window.canvas
         return canvas.x + x * window.physical_scale, canvas.y + y * window.physical_scale
 
@@ -281,16 +288,18 @@ class CoordinatesManager(Manager):
         Args:
             x: coordonnée horizontal *(Phyisical)*
             y: coordonnée verticale *(Physical)*
-            vector: *ignoré*
+            vector: ignore la translation
         """
         try:
-            return self._window_to_framebuffer(x, y)
+            return self._window_to_framebuffer(x, y, vector)
         except TypeError:
             raise NoContextError() from None
         
-    def _window_to_framebuffer(self, x: float, y: float) -> tuple[float, float]:
+    def _window_to_framebuffer(self, x: float, y: float, vector: bool) -> tuple[float, float]:
         """Logique interne de ``window_to_framebuffer``"""
         window = self._window
+        if vector:
+            return x * window.logical_scale, y * window.logical_scale
         canvas = window.canvas
         return (x - canvas.x) * window.logical_scale, (y - canvas.y) * window.logical_scale
 
