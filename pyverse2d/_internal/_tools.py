@@ -1,6 +1,7 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 from typing import Callable
+import time
 
 # ======================================== PROCESSOR ========================================
 class Processor:
@@ -53,6 +54,16 @@ class Processor:
             ctx: contexte partagé entre les étapes
         """
         self.run(ctx)
+    
+    # ======================================== DEBUGGING ========================================
+    def profile(self, ctx) -> None:
+        """Exécute les étapes avec timing"""
+        for step in self._steps:
+            t = time.perf_counter()
+            result = step(ctx)
+            print(f"{step.__name__}: {(time.perf_counter() - t) * 1000:.3f}ms")
+            if result is False:
+                return
 
 # ======================================== CALLBACK LIST ========================================
 class CallbackList:

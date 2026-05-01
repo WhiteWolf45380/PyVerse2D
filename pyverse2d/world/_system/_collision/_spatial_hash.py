@@ -1,8 +1,8 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from ..._component import Transform, RigidBody, Collider
-from ._registry import world_center
+from ..._component import RigidBody, Collider
+from ...._core import Geometry
 
 # ======================================== SPATIAL HASH ========================================
 class SpatialHash:
@@ -19,17 +19,15 @@ class SpatialHash:
         self._static_cells.clear()
         self._static_built = False
 
-    def calibrate(self, entities: list):
+    def calibrate(self, entities: list, geometry_cache: dict):
         """Calibre la taille des cellules sur les shapes dynamiques présentes"""
         extents = []
         for e in entities:
             rb = e.get(RigidBody) if e.has(RigidBody) else None
             if rb is None or rb.is_static():
                 continue
-            col: Collider = e.get(Collider)
-            tr: Transform = e.get(Transform)
-            cx_, cy_ = world_center(col.shape, tr, col.offset)
-            x_min, y_min, x_max, y_max = col.shape.world_bounding_box(cx_, cy_, tr.scale, tr.rotation)
+            geom: Geometry = geometry_cache[e.id]
+            x_min, y_min, x_max, y_max = geom.world_bounding_box()
             extents.append((x_max - x_min) * 0.5)
             extents.append((y_max - y_min) * 0.5)
         if not extents:
@@ -39,7 +37,7 @@ class SpatialHash:
         median = extents[len(extents) // 2]
         self._cell_size = max(median * 2.5, 16.0)
 
-    def update_dynamic(self, entities: list):
+    def update_dynamic(self, entities: list, geometry_cache: dict):
         """Met à jour les cellules dynamiques et reconstruit les statiques si nécessaire"""
         self._dynamic_cells.clear()
         rebuild = not self._static_built
@@ -49,12 +47,12 @@ class SpatialHash:
                 continue
             rb = entity.get(RigidBody) if entity.has(RigidBody) else None
             is_static = (rb is None) or rb.is_static()
-            tr = entity.get(Transform)
+            geom: Geometry = geometry_cache[entity.id]
             if is_static:
                 if rebuild:
-                    self._insert(self._static_cells, entity, col, tr, None)
+                    self._insert(self._static_cells, entity, geom, rb)
             else:
-                self._insert(self._dynamic_cells, entity, col, tr, rb)
+                self._insert(self._dynamic_cells, entity, geom, rb)
         if rebuild:
             self._static_built = True
 
@@ -88,22 +86,23 @@ class SpatialHash:
 
         return pairs
 
-    def _insert(self, cells, entity, col: Collider, tr: Transform, rb):
+    def _insert(self, cells: dict, entity, geom: Geometry, rb):
         """Insère une entité dans les cellules qu'elle occupe"""
         cs = self._cell_size
-        cx_, cy_ = world_center(col.shape, tr, col.offset)
-        w_min_x, w_min_y, w_max_x, w_max_y = col.shape.world_bounding_box(cx_, cy_, tr.scale, tr.rotation)
+        x_min, y_min, x_max, y_max = geom.world_bounding_box()
 
         if rb is not None and not rb.is_static():
-            prev_cx = rb.prev_x - (tr.x - cx_)
-            prev_cy = rb.prev_y - (tr.y - cy_)
-            prev_min_x, prev_min_y, prev_max_x, prev_max_y = col.shape.world_bounding_box(prev_cx, prev_cy, tr.scale, tr.rotation)
-            min_x = min(w_min_x, prev_min_x)
-            max_x = max(w_max_x, prev_max_x)
-            min_y = min(w_min_y, prev_min_y)
-            max_y = max(w_max_y, prev_max_y)
+            cx, cy = geom.world_center()
+            prev_cx = rb.prev_x - (geom._transform.x - cx)
+            prev_cy = rb.prev_y - (geom._transform.y - cy)
+            dx = prev_cx - cx
+            dy = prev_cy - cy
+            min_x = min(x_min, x_min + dx)
+            max_x = max(x_max, x_max + dx)
+            min_y = min(y_min, y_min + dy)
+            max_y = max(y_max, y_max + dy)
         else:
-            min_x, max_x, min_y, max_y = w_min_x, w_max_x, w_min_y, w_max_y
+            min_x, max_x, min_y, max_y = x_min, x_max, y_min, y_max
 
         for gx in range(int(min_x // cs), int(max_x // cs) + 1):
             for gy in range(int(min_y // cs), int(max_y // cs) + 1):

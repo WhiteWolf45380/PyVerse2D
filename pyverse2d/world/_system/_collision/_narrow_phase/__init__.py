@@ -1,6 +1,7 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
+from ....._core import Geometry
 from .....abc import Shape
 from .....shape import Circle, Ellipse, Capsule
 
@@ -18,8 +19,19 @@ from numpy.typing import NDArray
 _PRIMITIVE_TYPES = (Circle, Ellipse, Capsule)
 
 # ======================================== DISPATCH ========================================
-def dispatch(sa: Shape, ax: float, ay: float, scale_a: float, rot_a: float, sb: Shape, bx: float, by: float, scale_b: float, rot_b: float) -> Contact | None:
+def dispatch(geom_a: Geometry, geom_b: Geometry) -> Contact | None:
     """Fait correspondre les shapes à leur test de collision"""
+    sa = geom_a.shape
+    sb = geom_b.shape
+    tr_a = geom_a.transform
+    tr_b = geom_b.transform
+    ax, ay = geom_a.world_center()
+    scale_a = tr_a.scale
+    rot_a = tr_a.rotation
+    bx, by = geom_b.world_center()
+    scale_b = tr_b.scale
+    rot_b = tr_b.rotation
+
     a_is_prim = isinstance(sa, _PRIMITIVE_TYPES)
     b_is_prim = isinstance(sb, _PRIMITIVE_TYPES)
 
@@ -49,8 +61,8 @@ def dispatch(sa: Shape, ax: float, ay: float, scale_a: float, rot_a: float, sb: 
         return _flip(c)
 
     # Vertex vs Vertex
-    pts_a = sa.world_vertices(ax, ay, scale_a, rot_a)
-    pts_b = sb.world_vertices(bx, by, scale_b, rot_b)
+    pts_a = geom_a.world_vertices()
+    pts_b = geom_b.world_vertices()
     return sat(pts_a, pts_b)
 
 # ======================================== HELPERS ========================================

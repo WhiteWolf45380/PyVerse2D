@@ -19,27 +19,45 @@ class Collider(Component):
         trigger(bool, optional): collision fantôme
         active(bool, optional): collision active
     """
-    __slots__ = ("_shape", "_offset", "_category", "_mask", "_trigger", "_active", "_contacts", "_coyote_elapsed")
+    __slots__ = (
+        "_shape", "_offset", "_category", "_mask", "_trigger", "_active",
+        "_contacts", "_coyote_elapsed", "_dirty_shape",
+    )
+
     requires = ("Transform",)
     _COYOTE_TIME = 0.1  # temps avant perte du contact
 
     def __init__(
             self,
             shape: Shape,
-            offset: Point = (0.0, 0.0),
+            offset: Vector = (0.0, 0.0),
             category: int = 0b00000001,
             mask: int = 0b11111111,
             trigger: bool = False,
             active: bool = True,
         ):
-        self._shape: Shape = expect(shape, Shape)
-        self._offset: Point = Point(offset)
-        self._category: int = expect(category, int)
-        self._mask: int = expect(mask, int)
-        self._trigger: bool = expect(trigger, bool)
-        self._active: bool = expect(active, bool)
+        # Transtypage
+        offset = Vector(offset)
+
+        if __debug__:
+            expect(shape, Shape)
+            expect(category, int)
+            expect(mask, int)
+            expect(trigger, bool)
+            expect(active, bool)
+
+        # Attributs publiques
+        self._shape: Shape = shape
+        self._offset: Vector = offset
+        self._category: int = category
+        self._mask: int = mask
+        self._trigger: bool = trigger
+        self._active: bool = active
+
+        # Attributs internes
         self._contacts: dict[Collider, Vector] = {}
         self._coyote_elapsed: float = 0.0
+        self._dirty_shape: bool = True
     
     # ======================================== CONTRACT ========================================
     def __repr__(self) -> str:
@@ -53,34 +71,55 @@ class Collider(Component):
     def copy(self) -> Collider:
         """Renvoie une copie du composant"""
         new = Collider(self._shape, self._offset, self._category, self._mask, self._trigger, self._active)
-        new._contacts = self._contacts.copy()
-        new._coyote_elapsed = self._coyote_elapsed
         return new
     
-    # ======================================== GETTERS ========================================
+    # ======================================== PROPERTIES ========================================
     @property
     def shape(self) -> Shape:
-        """Renvoie la forme de la hitbox"""
+        """Forme de la hitbox *(Immuable)*"""
         return self._shape
     
     @property
-    def offset(self) -> Point:
-        """Renvoie le décalage par rapport au Transform"""
+    def offset(self) -> Vector:
+        """Décalage par rapport au ``Transform``
+        
+        Le décalage peut être un objet ``Vector`` ou n'importe quel tuple ``(vx, vy)``.
+        """
         return self._offset
+    
+    @offset.setter
+    def offset(self, value: Vector) -> None:
+        self._offset.x, self._offset.y = value
     
     @property
     def category(self) -> int:
-        """Renvoie la catégorie binaire de collision"""
+        """Catégorie binaire de collision
+        
+        Cette propriété définie la catégorie à laquelle appartient le ``Collider``.
+        Par défaut cette propriété est fixe à *0b00000001*.
+        """
         return self._category
+    
+    @category.setter
+    def category(self, value: int) -> None:
+        if __debug__:
+            expect(value, int)
+        self._category = value
     
     @property
     def mask(self) -> int:
-        """Renvoie le masque binaire de collision"""
+        """Masque binaire de collision
+        
+        Cette propriété définie avec quelles catégories le ``Collider`` peut entrer en contact.
+        Par défaut toutes les catégories sont acceptées *0b11111111*.
+        """
         return self._mask
     
-    def get_contacts(self) -> dict[Collider, Vector]:
-        """Renvoie le dictionnaire des contactes et de la normale de collision"""
-        return self._contacts
+    @mask.setter
+    def mask(self, value: int) -> None:
+        if __debug__:
+            expect(value, int)
+        self._mask = value
     
     # ======================================== PREDICATES ========================================
     def is_trigger(self) -> bool:
@@ -99,7 +138,7 @@ class Collider(Component):
         """Vérifie la collision avec un autre collider"""
         return other in self._contacts
 
-    # ======================================== PUBLIC METHODS ========================================
+    # ======================================== INTERFACE ========================================
     def activate(self):
         """Active la collision"""
         self._active = True
@@ -107,6 +146,10 @@ class Collider(Component):
     def deactivate(self):
         """Désactive la collision"""
         self._active = False
+
+    def get_contacts(self) -> dict[Collider, Vector]:
+        """Renvoie le dictionnaire des contactes et de la normale de collision"""
+        return self._contacts
 
     def collision_normal(self, other: Collider) -> Vector | None:
         """Renvoie la normale de collision avec un autre ``Collider``"""
