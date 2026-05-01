@@ -50,13 +50,13 @@ def dispatch(geom_a: Geometry, geom_b: Geometry) -> Contact | None:
 
     # Primitive vs Vertex
     if a_is_prim and not b_is_prim:
-        pts_b = sb.world_vertices(bx, by, scale_b, rot_b)
+        pts_b = geom_b.world_vertices(bx, by, scale_b, rot_b)
         c = _primitive_vs_pts(sa, ax, ay, scale_a, rot_a, pts_b)
         return c
 
     # Vertex vs Primitive
     if not a_is_prim and b_is_prim:
-        pts_a = sa.world_vertices(ax, ay, scale_a, rot_a)
+        pts_a = geom_a.world_vertices(ax, ay, scale_a, rot_a)
         c = _primitive_vs_pts(sb, bx, by, scale_b, rot_b, pts_a)
         return _flip(c)
 
