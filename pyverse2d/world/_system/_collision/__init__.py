@@ -30,12 +30,12 @@ class CollisionSystem(System):
         vel_along_wake_treshold: vitesse de rapprochement minimale pour réveiller les entités
     """
     __slots__ = (
-        "_hash",
-        "_cache", "_geometry_cache",
         "_slop", "_max_position_correction",
         "_iterations", "_extra_iterations_threshold", "_extra_iterations",
         "_restitution_threshold", "_restitution_max_velocity",
         "_vel_along_wake_treshold",
+        "_hash",
+        "_cache", "_geometry_cache", "_geometry_keys",
     )
     order = 70
     exclusive = True
