@@ -20,11 +20,11 @@ class Transform:
         "_version",
     )
 
-    def __init__(self, position: Point = (0.0, 0.0), anchor: Point = (0.5, 0.5), scale: Real = 1.0, rotation: Real = 0.0):
+    def __init__(self, position: Point = (0.0, 0.0), anchor: Point = (0.5, 0.5), rotation: Real = 0.0, scale: Real = 1.0):
         position = Point(position)
         anchor = Point(anchor)
-        scale = float(scale)
         rotation = float(rotation)
+        scale = float(scale)
 
         if __debug__:
             different_from(scale, 0.0)
