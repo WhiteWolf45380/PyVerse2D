@@ -36,6 +36,7 @@ class CollisionSystem(System):
         "_vel_along_wake_treshold",
         "_hash",
         "_cache", "_geometry_cache", "_geometry_keys",
+        "_C",
     )
     order = 70
     exclusive = True
