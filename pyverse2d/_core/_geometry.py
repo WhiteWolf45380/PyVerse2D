@@ -33,24 +33,49 @@ class Geometry:
     )
 
     def __init__(self, shape: Shape, transform: Transform, offset: Vector = None):
+        # Attributs publiques
         self._shape: Shape = shape
         self._transform: Transform = transform
         self._offset: Vector | None = offset
+
+        # Version
         self._last_version: int = -1
+
+        # Caches de données
         self._cache_rotscale_vertices: NDArray[np.float32] | None = None
         self._cache_world_vertices: NDArray[np.float32] | None = None
         self._cache_world_bounding_box: tuple[float, float, float, float] | None = None
         self._cache_world_center: tuple[float, float] | None = None
+
+        # Dirty flags
         self._dirty_rotscale: bool = True
         self._dirty_world_vertices: bool = True
         self._dirty_world_bounding_box: bool = True
         self._dirty_world_center: bool = True
+
+        # Caches de valeurs
         self._cached_tx: float = 0.0
         self._cached_ty: float = 0.0
         self._cached_ax: float = 0.0
         self._cached_ay: float = 0.0
         self._cached_cos_r: float = 1.0
         self._cached_sin_r: float = 0.0
+
+    # ======================================== PROPERTIES ========================================
+    @property
+    def shape(self) -> Shape:
+        """Forme géométrique"""
+        return self._shape
+    
+    @property
+    def transform(self) -> Transform:
+        """Transformation monde"""
+        return self._transform
+    
+    @property
+    def offset(self) -> Vector:
+        """Décalage par rapport au ``Transform``"""
+        return self._offset
 
     # ======================================== WORLD TRANSFORM ========================================
     def world_vertices(self) -> NDArray[np.float32]:
