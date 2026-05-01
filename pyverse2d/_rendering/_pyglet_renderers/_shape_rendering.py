@@ -4,6 +4,7 @@ from __future__ import annotations
 from ...typing import BorderAlign
 from ...asset import Color
 from ...abc import Shape
+from ..._core import Geometry
 
 from .. import Pipeline
 
@@ -16,20 +17,13 @@ import numpy as np
 
 # ======================================== CONSTANTS ========================================
 _UNSET = object()
-_TRANSFORM_DEPS = frozenset({"x", "y", "anchor_x", "anchor_y", "scale", "rotation"})
 
 # ======================================== PUBLIC ========================================
 class PygletShapeRenderer:
     """Renderer pyglet unifié pour une shape géométrique
 
     Args:
-        shape: shape à rendre
-        x: position horizontale monde
-        y: position verticale monde
-        anchor_x: ancre relative locale horizontale [0, 1]
-        anchor_y: ancre relative locale verticale [0, 1]
-        scale: facteur d'échelle uniforme
-        rotation: rotation en degrés (sens trigonométrique)
+        geometry: géométrie monde
         filling: activer le remplissage
         color: couleur de remplissage
         border_width: épaisseur de la bordure en pixels
@@ -41,9 +35,7 @@ class PygletShapeRenderer:
         parent: groupe parent
     """
     __slots__ = (
-        "_shape",
-        "_x", "_y", "_anchor_x", "_anchor_y",
-        "_scale", "_rotation",
+        "_geometry",
         "_filling", "_color",
         "_border_width", "_border_align", "_border_color",
         "_opacity", "_z", "_pipeline", "_parent",
@@ -71,13 +63,7 @@ class PygletShapeRenderer:
 
     def __init__(
         self,
-        shape: Shape,
-        x: float = 0.0,
-        y: float = 0.0,
-        anchor_x: float = 0.5,
-        anchor_y: float = 0.5,
-        scale: float = 1.0,
-        rotation: float = 0.0,
+        geometry: Geometry,
         filling: bool = True,
         color: Color = None,
         border_width: int = 0,
@@ -88,13 +74,7 @@ class PygletShapeRenderer:
         pipeline: Pipeline = None,
         parent: Group = None,
     ):
-        self._shape = shape
-        self._x = x
-        self._y = y
-        self._anchor_x = anchor_x
-        self._anchor_y = anchor_y
-        self._scale = scale
-        self._rotation = rotation
+        self._geometry: Geometry = geometry
         self._filling = filling
         self._color = color
         self._border_width = border_width
