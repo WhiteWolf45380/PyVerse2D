@@ -306,7 +306,7 @@ def different_from(value: Real, target: object, arg: str = "Argument"):
         arg: nom de l'argument à vérifier
     """
     if value == target:
-        raise ValueError(f"{arg} must be different from {target!r}, got {value!r}")
+        raise ValueError(f"{arg} must be different from {target!r}")
     return value
 
 # ======================================== EXPORTS ========================================

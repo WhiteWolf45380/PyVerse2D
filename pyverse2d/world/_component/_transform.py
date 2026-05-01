@@ -6,7 +6,7 @@ from ...math import Point
 from ..._core import Transform as _Transform
 
 # ======================================== COMPONENT ========================================
-class Transform(Component, _Transform):
+class Transform(_Transform, Component):
     """Composant gérant le positionnement
 
     Ce composant est manipulé par ``PhysicsSystem``, ``CollisionSystem`` et ``SteeringSystem``.

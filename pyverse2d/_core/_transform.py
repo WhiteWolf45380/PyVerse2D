@@ -21,7 +21,7 @@ class Transform:
         "_scale", "_rotation",
     )
 
-    def __init__(self, position: Point = (0.0, 0.0), anchor: Point = (0.5, 0.5), scale: Real = 1.0, rotation: Real = 0.0):
+    def __init__(self, position: Point = (0.0, 0.0), anchor: Point = (0.5, 0.5), rotation: Real = 0.0, scale: Real = 1.0):
         # Transtypage
         position = Point(position)
         anchor = Point(anchor)
