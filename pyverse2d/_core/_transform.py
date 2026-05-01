@@ -1,4 +1,3 @@
-# ======================================== IMPORTS ========================================
 from __future__ import annotations
 
 from .._internal import different_from
@@ -6,7 +5,6 @@ from ..math import Point, Vector
 
 from numbers import Real
 
-# ======================================== TRANSFORM ========================================
 class Transform:
     """Objet possédant un positionnement monde
     
@@ -19,10 +17,10 @@ class Transform:
     __slots__ = (
         "_position", "_anchor",
         "_scale", "_rotation",
+        "_version",
     )
 
-    def __init__(self, position: Point = (0.0, 0.0), anchor: Point = (0.5, 0.5), rotation: Real = 0.0, scale: Real = 1.0):
-        # Transtypage
+    def __init__(self, position: Point = (0.0, 0.0), anchor: Point = (0.5, 0.5), scale: Real = 1.0, rotation: Real = 0.0):
         position = Point(position)
         anchor = Point(anchor)
         scale = float(scale)
@@ -31,13 +29,18 @@ class Transform:
         if __debug__:
             different_from(scale, 0.0)
 
-        # Attributs publiques
         self._position: Point = position
         self._anchor: Point = anchor
         self._scale: float = scale
         self._rotation: float = rotation
+        self._version: int = 0
 
     # ======================================== PROPERTIES ========================================
+    @property
+    def version(self) -> int:
+        """Version du transform — incrémentée à chaque mutation"""
+        return self._version
+
     @property
     def position(self) -> Point:
         """Position
@@ -49,6 +52,7 @@ class Transform:
     @position.setter
     def position(self, value: Point) -> None:
         self._position.x, self._position.y = value
+        self._version += 1
 
     @property
     def x(self) -> float:
@@ -61,6 +65,7 @@ class Transform:
     @x.setter
     def x(self, value: Real) -> None:
         self._position.x = value
+        self._version += 1
     
     @property
     def y(self) -> float:
@@ -73,6 +78,7 @@ class Transform:
     @y.setter
     def y(self, value: Real) -> None:
         self._position.y = value
+        self._version += 1
     
     @property
     def anchor(self) -> Point:
@@ -86,6 +92,7 @@ class Transform:
     @anchor.setter
     def anchor(self, value: Point) -> None:
         self._anchor.x, self._anchor.y = value
+        self._version += 1
     
     @property
     def anchor_x(self) -> float:
@@ -98,6 +105,7 @@ class Transform:
     @anchor_x.setter
     def anchor_x(self, value: Real) -> None:
         self._anchor.x = value
+        self._version += 1
     
     @property
     def anchor_y(self) -> float:
@@ -110,6 +118,7 @@ class Transform:
     @anchor_y.setter
     def anchor_y(self, value: Real) -> None:
         self._anchor.y = value
+        self._version += 1
     
     @property
     def rotation(self) -> float:
@@ -123,8 +132,8 @@ class Transform:
     
     @rotation.setter
     def rotation(self, value: Real) -> None:
-        value = float(value)
-        self._rotation = value
+        self._rotation = float(value)
+        self._version += 1
     
     @property
     def scale(self) -> float:
@@ -140,6 +149,7 @@ class Transform:
         if __debug__:
             different_from(value, 0.0)
         self._scale = value
+        self._version += 1
 
     # ======================================== INTERFACE ========================================
     def copy(self) -> Transform:
@@ -155,6 +165,7 @@ class Transform:
         tx, ty = vector
         self._position.x += tx
         self._position.y += ty
+        self._version += 1
 
     def rotate(self, angle: Real) -> None:
         """Applique une rotation dans le sens trigonométrique *(CCW)*
@@ -162,8 +173,8 @@ class Transform:
         Args:
             angle: angle de rotation *en degrés*
         """
-        angle = float(angle)
-        self._rotation += angle
+        self._rotation += float(angle)
+        self._version += 1
 
     def resize(self, factor: Real) -> None:
         """Applique un redimensionnement
@@ -175,3 +186,4 @@ class Transform:
         if __debug__:
             different_from(factor, 0.0)
         self._scale *= factor
+        self._version += 1
