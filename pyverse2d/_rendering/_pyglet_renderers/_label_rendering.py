@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 from ...asset import Color, Text
+from ..._core import Transform
+from ...math import Vector
 
 from .. import Pipeline
 
@@ -18,12 +20,8 @@ class PygletLabelRenderer:
 
     Args:
         text: texte à rendre
-        x: position horizontale
-        y: point verticale
-        anchor_x: ancre relative locale
-        anchor_y: ancre relative verticale
-        scale: facteur de redimensionnement
-        rotation: rotation en degrés (CCW)
+        transform: transformation monde
+        offset: décalage au transform
         weight: graisse ('bold', 'thin', '100'…'900', ou int pyglet)
         italic: italique
         underline: couleur du soulignement
@@ -42,25 +40,20 @@ class PygletLabelRenderer:
     """
     __slots__ = (
         "_text",
-        "_x", "_y", "_anchor_x", "_anchor_y",
-        "_scale", "_rotation",
+        "_transform", "_offset",
         "_weight", "_italic", "_underline",
         "_color", "_opacity",
         "_width", "_height", "_multiline", "_wrap_lines", "_align",
         "_margin", "_line_spacing",
         "_z", "_pipeline", "_parent",
-        "_label",
+        "_transform_version", "_label",
     )
 
     def __init__(
         self,
         text: Text,
-        x: float = 0.0,
-        y: float = 0.0,
-        anchor_x: float = 0.5,
-        anchor_y: float = 0.5,
-        scale: float = 1.0,
-        rotation: float = 0.0,
+        transform: Transform,
+        offset: Vector = None,
         weight: str | int = "normal",
         italic: bool = False,
         underline: Color = None,
@@ -79,12 +72,8 @@ class PygletLabelRenderer:
     ):
         # Paramètres publics
         self._text: Text = text
-        self._x: float = x
-        self._y: float = y
-        self._anchor_x: float = anchor_x
-        self._anchor_y: float = anchor_y
-        self._scale: float = scale
-        self._rotation: float = rotation
+        self._transform: Transform = transform
+        self._offset: Vector = offset
         self._weight: str | int = weight
         self._italic: bool = italic
         self._underline: Color = underline
@@ -102,6 +91,7 @@ class PygletLabelRenderer:
         self._parent: Group = parent
 
         # Construction
+        self._transform_version: int = -1
         self._label: pyglet.text.Label = None
         self._build()
 
@@ -122,7 +112,7 @@ class PygletLabelRenderer:
         self._label = pyglet.text.Label(
             text=self._text.text,
             font_name=font.name,
-            font_size=int(font.size * self._scale),
+            font_size=int(font.size * self._transform.scale),
             weight=self._weight,
             italic=self._italic,
             color=(r, g, b, a),
@@ -131,7 +121,7 @@ class PygletLabelRenderer:
             width=width,
             height=height,
             multiline=self._multiline,
-            rotation=-self._rotation,
+            rotation=-self._transform.rotation,
             batch=self._pipeline.batch,
             group=self._pipeline.get_group(z=self._z) if self._parent is None else self._parent,
         )
@@ -155,143 +145,62 @@ class PygletLabelRenderer:
 
     # ======================================== GETTERS ========================================
     @property
-    def text(self) -> Text:
-        """Renvoie l'asset Text"""
-        return self._text
+    def text(self) -> Text: return self._text
+    @property
+    def transform(self) -> Transform: return self._transform
+    @property
+    def offset(self) -> Vector: return self._offset
 
     @property
-    def position(self) -> tuple[float, float]:
-        """Renvoie la position"""
-        return (self._x, self._y)
+    def weight(self) -> str | int: return self._weight
+    @property
+    def italic(self) -> bool: return self._italic
+    @property
+    def underline(self) -> Color: return self._underline
+    @property
+    def color(self) -> Color: return self._color
+    @property
+    def opacity(self) -> float: return self._opacity
 
     @property
-    def x(self) -> float:
-        """Renvoie la position horizontale"""
-        return self._x
+    def width(self) -> int: return self._width
+    @property
+    def height(self) -> int: return self._height
+    @property
+    def multiline(self) -> bool: return self._multiline
+    @property
+    def wrap_lines(self) -> bool: return self._wrap_lines
+    @property
+    def align(self) -> str: return self._align
+    @property
+    def margin(self) -> int: return self._margin
+    @property
+    def line_spacing(self) -> float: return self._line_spacing
 
     @property
-    def y(self) -> float:
-        """Renvoie la position verticale"""
-        return self._y
+    def z(self) -> int: return self._z
+    @property
+    def pipeline(self) -> Pipeline: return self._pipeline
+    @property
+    def parent(self) -> Group: return self._parent
 
     @property
-    def anchor_x(self) -> float:
-        """Renvoie l'ancre horizontale"""
-        return self._anchor_x
+    def content_width(self) -> int: return self._label.content_width if self._label else 0
+    @property
+    def content_height(self) -> int: return self._label.content_height if self._label else 0
 
-    @property
-    def anchor_y(self) -> float:
-        """Renvoie l'ancre verticale"""
-        return self._anchor_y
-    
-    @property
-    def scale(self) -> float:
-        """Facteur de redimensionnement"""
-        return self._scale
-
-    @property
-    def rotation(self) -> float:
-        """Renvoie la rotation en degrés"""
-        return self._rotation
-
-    @property
-    def weight(self) -> str | int:
-        """Renvoie la graisse"""
-        return self._weight
-
-    @property
-    def italic(self) -> bool:
-        """Renvoie l'italique"""
-        return self._italic
-
-    @property
-    def underline(self) -> Color:
-        """Renvoie la couleur de soulignement"""
-        return self._underline
-
-    @property
-    def color(self) -> Color:
-        """Renvoie la couleur du texte"""
-        return self._color
-
-    @property
-    def opacity(self) -> float:
-        """Renvoie l'opacité"""
-        return self._opacity
-
-    @property
-    def width(self) -> int:
-        """Renvoie la largeur de la boîte"""
-        return self._width
-
-    @property
-    def height(self) -> int:
-        """Renvoie la hauteur de la boîte"""
-        return self._height
-
-    @property
-    def multiline(self) -> bool:
-        """Renvoie le multiline"""
-        return self._multiline
-
-    @property
-    def wrap_lines(self) -> bool:
-        """Renvoie le word-wrap"""
-        return self._wrap_lines
-
-    @property
-    def align(self) -> str:
-        """Renvoie l'alignement"""
-        return self._align
-
-    @property
-    def margin(self) -> int:
-        """Renvoie la marge intérieure"""
-        return self._margin
-
-    @property
-    def line_spacing(self) -> float:
-        """Renvoie l'espacement de ligne"""
-        return self._line_spacing
-
-    @property
-    def z(self) -> int:
-        """Renvoie le z-order"""
-        return self._z
-
-    @property
-    def pipeline(self) -> Pipeline:
-        """Renvoie la pipeline de rendu"""
-        return self._pipeline
-    
-    @property
-    def parent(self) -> Group:
-        """Renvoie le groupe parent"""
-        return self._parent
-
-    @property
-    def content_width(self) -> int:
-        """Renvoie la largeur réelle du texte rendu"""
-        return self._label.content_width if self._label else 0
-
-    @property
-    def content_height(self) -> int:
-        """Renvoie la hauteur réelle du texte rendu"""
-        return self._label.content_height if self._label else 0
-
+    # ======================================== VISIBILITY ========================================
     @property
     def visible(self) -> bool:
         """Renvoie la visibilité"""
         return self._label.visible if self._label else False
-
-    # ======================================== SETTERS ========================================
+    
     @visible.setter
     def visible(self, value: bool) -> None:
         """Active ou désactive la visibilité"""
         if self._label:
             self._label.visible = value
 
-    # ======================================== PREDICATES ========================================
     def is_visible(self) -> bool:
         """Vérifie la visibilité"""
         return self._label is not None and self._label.visible
@@ -303,12 +212,8 @@ class PygletLabelRenderer:
 
         Args:
             text: texte à rendre
-            x: position horizontale
-            y: point verticale
-            anchor_x: ancre relative locale
-            anchor_y: ancre relative verticale
-            scale: facteur de redimensionnement
-            rotation: rotation en degrés (CCW)
+            transform: transformation monde
+            offset: décalage au transform
             weight: graisse ('bold', 'thin', '100'…'900', ou int pyglet)
             italic: italique
             underline: couleur du soulignement
@@ -325,8 +230,7 @@ class PygletLabelRenderer:
             pipeline: pipeline de rendu
             parent: groupe parent
         """
-        rebuild: bool = False
-        changes: list[str] = set()
+        changes: set[str] = set()
 
         # Actualisation des paramètres
         for key, value in kwargs.items():
@@ -335,6 +239,12 @@ class PygletLabelRenderer:
                 continue
             setattr(self, f"_{key}", value)
             changes.add(key)
+
+        # Vérification de la version du Transform
+        tr_version = self._transform.version
+        if tr_version != self._transform_version:
+            changes.add("transform")
+            self._transform_version = tr_version
 
         # Appel des callbacks
         rebuild: bool = False
@@ -352,7 +262,7 @@ class PygletLabelRenderer:
         if rebuild:
             self._rebuild()
         elif refresh:
-            self._refresh_position()
+            self._refresh_transform()
 
     def delete(self) -> None:
         """Libère les ressources pyglet"""
@@ -361,38 +271,20 @@ class PygletLabelRenderer:
             self._label = None
 
     # ======================================== HANDLERS ========================================
-    def _handle_text(self) -> None:
+    def _handle_text(self) -> str:
         """Actualisation du text"""
         font = self._text.font
         self._label.text = self._text.text
         self._label.font_name = font.name
-        self._label.font_size = int(font.size * self._scale)
         return "refresh"
 
-    def _handle_x(self) -> None:
-        """Actualisation de la position horizontale"""
-        return "refresh"
-
-    def _handle_y(self) -> None:
-        """Actualisation de la position verticale"""
-        return "refresh"
-
-    def _handle_anchor_x(self) -> None:
-        """Actualisation de l'ancre horizontale"""
-        return "refresh"
-
-    def _handle_anchor_y(self) -> None:
-        """Actualisation de l'ancre verticale"""
+    def _handle_transform(self) -> str:
+        """Actualisation de la transformation"""
         return "refresh"
     
-    def _handle_scale(self) -> None:
-        """Actualisation du facteur de redimensionnement"""
-        self._label.font_size = int(self._text.font.size * self._scale)
+    def _handle_offset(self) -> str:
+        """Actualisation du décalage"""
         return "refresh"
-
-    def _handle_rotation(self) -> None:
-        """Actualisation de la rotation"""
-        self._label.rotation = -self._rotation
 
     def _handle_weight(self) -> None:
         """Actualisation de la graisse"""
@@ -417,21 +309,21 @@ class PygletLabelRenderer:
         a = self._color.a if self._color is not None else 1.0
         self._label.opacity = int(255 * a * self._opacity)
 
-    def _handle_width(self) -> None:
+    def _handle_width(self) -> str:
         """Actualisation de la largeur"""
         self._label.width = self._width
         return "refresh"
 
-    def _handle_height(self) -> None:
+    def _handle_height(self) -> str:
         """Actualisation de la hauteur"""
         self._label.height = self._height
         return "refresh"
     
-    def _handle_multiline(self) -> None:
+    def _handle_multiline(self) -> str:
         """Actualisation du saut de ligne"""
         return "rebuild"
     
-    def _handle_wrap_lines(self) -> None:
+    def _handle_wrap_lines(self) -> str:
         """Actualisation de la conservation"""
         return "rebuild"
 
@@ -439,7 +331,7 @@ class PygletLabelRenderer:
         """Actualisation de l'alignement"""
         self._label.set_style("align", self._align)
 
-    def _handle_margin(self) -> None:
+    def _handle_margin(self) -> str:
         """Actualisation de la marge"""
         margin = self._margin
         s = self._label.set_style
@@ -449,7 +341,7 @@ class PygletLabelRenderer:
         s("margin_bottom", margin)
         return "refresh"
 
-    def _handle_line_spacing(self) -> None:
+    def _handle_line_spacing(self) -> str:
         """Actualisation de l'espacement"""
         self._label.set_style("line_spacing", self._line_spacing)
         return "refresh"
@@ -463,10 +355,19 @@ class PygletLabelRenderer:
         self._label.group = self._pipeline.get_group(z=self._z) if self._parent is None else self._parent
 
     # ======================================== HELPERS ========================================
-    def _refresh_position(self) -> None:
-        """Recalcule x/y pyglet à partir de l'ancre et des dimensions réelles"""
-        self._label.x = self._x - self._anchor_x * self._label.content_width
-        self._label.y = self._y - self._anchor_y * self._label.content_height
+    def _refresh_transform(self) -> None:
+        """Actualise la transformation monde"""
+        transform = self._transform
+
+        self._label.font_size = int(self._text.font.size * transform.scale)
+        self._label.rotation = -transform.rotation
+
+        if self._offset is not None:
+            self._label.x = transform.x + self._offset.x
+            self._label.y = transform.y + self._offset.y
+        else:
+            self._label.x = transform.x
+            self._label.y = transform.y
 
     def _rebuild(self) -> None:
         """Reconstruit le label avec les paramètres courants"""

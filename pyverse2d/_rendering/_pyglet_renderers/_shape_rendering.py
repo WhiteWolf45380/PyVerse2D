@@ -18,6 +18,12 @@ import numpy as np
 # ======================================== CONSTANTS ========================================
 _UNSET = object()
 
+_REBUILD_KEYS: frozenset[str] = frozenset({"z", "geometry", "parent"})
+_STYLE_KEYS: frozenset[str] = frozenset({"opacity", "color"})
+
+_STRIP_REFRESH_KEYS: frozenset[str] = frozenset({"transform", "border_width", "border_align"})
+_STRIP_STYLE_KEYS: frozenset[str] = frozenset({"opacity", "border_color"})
+
 # ======================================== PUBLIC ========================================
 class PygletShapeRenderer:
     """Renderer pyglet unifié pour une shape géométrique
@@ -39,7 +45,7 @@ class PygletShapeRenderer:
         "_filling", "_color",
         "_border_width", "_border_align", "_border_color",
         "_opacity", "_z", "_pipeline", "_parent",
-        "_fill", "_border",
+        "_transform_version", "_fill", "_border",
     )
 
     # Cache partagé des shader groups
@@ -74,17 +80,20 @@ class PygletShapeRenderer:
         pipeline: Pipeline = None,
         parent: Group = None,
     ):
+        # Attributs publiques
         self._geometry: Geometry = geometry
-        self._filling = filling
-        self._color = color
-        self._border_width = border_width
-        self._border_align = border_align
-        self._border_color = border_color
-        self._opacity = opacity
-        self._z = z
-        self._pipeline = pipeline
-        self._parent = parent
+        self._filling: bool = filling
+        self._color: Color = color
+        self._border_width: int = border_width
+        self._border_align: BorderAlign = border_align
+        self._border_color: Color = border_color
+        self._opacity: float = opacity
+        self._z: int = z
+        self._pipeline: Pipeline = pipeline
+        self._parent: Group = parent
 
+        # Attributs internes
+        self._transform_version: int = -1
         self._fill: _FillRenderer = None
         self._border: _BorderRenderer = None
         self._build()
@@ -99,25 +108,15 @@ class PygletShapeRenderer:
 
     # ======================================== GETTERS ========================================
     @property
-    def shape(self) -> Shape: return self._shape
+    def geometry(self) -> Geometry: return self._geometry
     @property
-    def position(self) -> tuple: return (self._x, self._y)
-    @property
-    def x(self) -> float: return self._x
-    @property
-    def y(self) -> float: return self._y
-    @property
-    def anchor_x(self) -> float: return self._anchor_x
-    @property
-    def anchor_y(self) -> float: return self._anchor_y
-    @property
-    def scale(self) -> float: return self._scale
-    @property
-    def rotation(self) -> float: return self._rotation
+    def shape(self) -> Shape: return self._geometry.shape
+
     @property
     def filling(self) -> bool: return self._filling
     @property
     def color(self) -> Color: return self._color
+
     @property
     def border_width(self) -> int: return int(self._border_width)
     @property
@@ -126,6 +125,7 @@ class PygletShapeRenderer:
     def border_color(self) -> Color: return self._border_color
     @property
     def opacity(self) -> float: return self._opacity
+
     @property
     def z(self) -> int: return self._z
     @property
@@ -155,13 +155,7 @@ class PygletShapeRenderer:
         """Actualisation
 
         Args:
-            shape: nouvelle forme
-            x: position horizontale
-            y: position verticale
-            anchor_x: ancre horizontale
-            anchor_y: ancre verticale
-            scale: facteur de redimensionnement
-            rotation: rotation en degrés
+            geometry: géométrie monde
             filling: remplissage activé
             color: couleur de remplissage
             border_width: épaisseur de bordure
@@ -171,6 +165,7 @@ class PygletShapeRenderer:
             z: z-order
             parent: groupe parent
         """
+        # Détection des changements
         changes: set[str] = set()
         for key, value in kwargs.items():
             current = getattr(self, f"_{key}", _UNSET)
@@ -178,6 +173,12 @@ class PygletShapeRenderer:
                 continue
             setattr(self, f"_{key}", value)
             changes.add(key)
+
+        # Vérication de la version du Transform
+        tr_version = self._geometry.transform.version
+        if tr_version != self._transform_version:
+            changes.add("transform")
+            self._transform_version = tr_version
 
         if not changes:
             return
@@ -229,8 +230,8 @@ class _FillRenderer:
         if self._vlist is not None:
             self._vlist.delete()
 
-        vertices = psr.shape.world_vertices(psr.x, psr.y, psr.scale, psr.rotation, psr.anchor_x, psr.anchor_y)
-        indexes = psr.shape.get_indexes()
+        vertices = psr.geometry.world_vertices()
+        indexes = psr.geometry.shape.get_indexes()
         self._n = len(vertices)
 
         r, g, b, a = psr.color.rgba8
@@ -268,17 +269,17 @@ class _FillRenderer:
     def update(self, psr: PygletShapeRenderer, changes: set[str]) -> None:
         """Actualisation"""
         # Changement de z-order
-        if "z" in changes or "parent" in changes:
+        if not changes.isdisjoint(_REBUILD_KEYS):
             self._build(psr)
             return
         
         # Changement de position
-        if changes & _TRANSFORM_DEPS:
-            vertices = psr.shape.world_vertices(psr.x, psr.y, psr.scale, psr.rotation, psr.anchor_x, psr.anchor_y)
+        if "transform" in changes:
+            vertices = psr.shape.world_vertices()
             self._vlist.position[:] = vertices.flatten().tolist()
 
         # Changement de style
-        if "color" in changes or "opacity" in changes:
+        if not changes.isdisjoint(_STYLE_KEYS):
             r, g, b, a = psr.color.rgba8
             a = int(a * psr.opacity)
             self._vlist.colors[:] = (r, g, b, a) * self._n
@@ -349,16 +350,16 @@ class _BorderRenderer:
     def update(self, psr: PygletShapeRenderer, changes: set[str]) -> None:
         """Actualisation"""
         # Changement de z-order
-        if "z" in changes or "parent" in changes:
+        if not changes.isdisjoint(_REBUILD_KEYS):
             self._build(psr)
             return
 
         # Changement de bordure
-        if changes & (_TRANSFORM_DEPS | {"border_width", "border_align"}):
+        if not changes.isdisjoint(_STRIP_REFRESH_KEYS):
             self._refresh_strip(psr)
 
         # Changement de style
-        if "border_color" in changes or "opacity" in changes:
+        if not changes.isdisjoint(_STRIP_STYLE_KEYS):
             r, g, b, a = psr.border_color.rgba8
             a = int(a * psr.opacity)
             self._vlist.colors[:] = (r, g, b, a) * self._n
@@ -372,7 +373,7 @@ class _BorderRenderer:
 # ======================================== HELPERS ========================================
 def _world_strip(psr: PygletShapeRenderer) -> np.ndarray:
     """Génère le triangle strip en espace monde"""
-    world = psr.shape.world_vertices(psr.x, psr.y, psr.scale, psr.rotation, psr.anchor_x, psr.anchor_y)
+    world = psr.geometry.world_vertices()
     return _build_strip(world, psr.border_width * psr.scale, psr.border_align)
 
 def _build_strip(contour: np.ndarray, width: float, align: str = "center") -> np.ndarray:

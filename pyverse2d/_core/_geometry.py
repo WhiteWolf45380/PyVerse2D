@@ -76,6 +76,55 @@ class Geometry:
     def offset(self) -> Vector:
         """Décalage par rapport au ``Transform``"""
         return self._offset
+    
+    @property
+    def offset_x(self) -> float:
+        """Décalage horizontal"""
+        return self._offset.x
+    
+    @property
+    def offset_y(self) -> float:
+        """Décalage vertical"""
+    
+    @property
+    def position(self) -> tuple[float, float]:
+        """Position monde"""
+        return (self._transform.x + self._offset.x, self._transform.y + self._offset.y)
+    
+    @property
+    def x(self) -> float:
+        """Position horizontale monde"""
+        return self._transform.x + self._offset.x
+    
+    @property
+    def y(self) -> float:
+        """Position verticale monde"""
+        return self._transform.y + self._offset.y
+    
+    @property
+    def anchor(self) -> tuple[float, float]:
+        """Ancre relative locale"""
+        return (self._transform.anchor_x, self._transform.anchor_y)
+    
+    @property
+    def anchor_x(self) -> float:
+        """Ancre relative locale horizontale"""
+        return self._transform.anchor_x
+    
+    @property
+    def anchor_y(self) -> float:
+        """Ancre relative locale verticale"""
+        return self._transform.anchor_y
+    
+    @property
+    def rotation(self) -> float:
+        """Angle de rotation"""
+        return self._transform.rotation
+    
+    @property
+    def scale(self) -> float:
+        """Facteur de redimensionnement"""
+        return self._transform.scale
 
     # ======================================== WORLD TRANSFORM ========================================
     def world_vertices(self) -> NDArray[np.float32]:
