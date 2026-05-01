@@ -1,8 +1,11 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from .. import Pipeline
+from ..._core import Transform
 from ...asset import Color, Image
+from ...math import Vector
+
+from .. import Pipeline
 
 import pyglet
 import pyglet.sprite
@@ -16,16 +19,6 @@ import os
 
 # ======================================== CONSTANTS ========================================
 _UNSET = object()   # élément non défini
-_HANDLER_GROUPS = {
-    "x": "position",
-    "y": "position",
-    "anchor_x": "anchor",
-    "anchor_y": "anchor",
-    "scale_x": "scales",
-    "scale_y": "scales",
-    "flip_x": "scales",
-    "flip_y": "scales",
-}
 
 # ======================================== SPRITE RENDERER ========================================
 class PygletSpriteRenderer:
@@ -33,15 +26,10 @@ class PygletSpriteRenderer:
 
     Args:
         image: descripteur d'image (asset)
-        x: position horizontale
-        y: position verticale
-        anchor_x: ancre relative locale horizontale [0.0 ; 1.0]
-        anchor_y: ancre relative locale verticale [0.0 ; 1.0]
-        scale_x: facteur de redimensionnement horizontal (transform)
-        scale_y: facteur de redimensionnement vertical (transform)
+        transform: transformation monde
+        offset: décalage par rapport au transform
         flip_x: miroir horizontal
         flip_y: miroir vertical
-        rotation: rotation en degrés (CCW)
         color teinte multiplicative
         opacity: opacité [0.0 ; 1.0]
         z: z-order
@@ -49,23 +37,18 @@ class PygletSpriteRenderer:
         parent: groupe parent
     """
     __slots__ = (
-        "_image",
-        "_x", "_y", "_anchor_x", "_anchor_y",
-        "_scale_x", "_scale_y", "_flip_x", "_flip_y", "_rotation",
+        "_image","_transform", "_offset",
+        "_flip_x", "_flip_y",
         "_color", "_opacity",
         "_z", "_pipeline", "_parent",
-        "_sprite",
+        "_transform_version", "_sprite",
     )
 
     def __init__(
         self,
         image: Image,
-        x: float = 0.0,
-        y: float = 0.0,
-        anchor_x: float = 0.5,
-        anchor_y: float = 0.5,
-        scale_x: float = 1.0,
-        scale_y: float = 1.0,
+        transform: Transform,
+        offset: Vector = None,
         flip_x: bool = False,
         flip_y: bool = False,
         rotation: float = 0.0,
@@ -75,13 +58,10 @@ class PygletSpriteRenderer:
         pipeline: Pipeline = None,
         parent: Group = None,
     ):
+        # Attributs publiques
         self._image: Image = image
-        self._x: float = x
-        self._y: float = y
-        self._anchor_x: float = anchor_x
-        self._anchor_y: float = anchor_y
-        self._scale_x: float = scale_x
-        self._scale_y: float = scale_y
+        self._transform: Transform = transform
+        self._offset: Vector = None
         self._flip_x: bool = flip_x
         self._flip_y: bool = flip_y
         self._rotation: float = rotation
@@ -91,6 +71,8 @@ class PygletSpriteRenderer:
         self._pipeline: Pipeline = pipeline
         self._parent: Group = parent
 
+        # Attributs internes
+        self._transform_version: int = self._transform.version
         self._sprite: pyglet.sprite.Sprite = None
         self._build()
 
@@ -127,82 +109,33 @@ class PygletSpriteRenderer:
  
         # Travaille sur une région
         region = raw.get_region(0, 0, raw.width, raw.height)
-        region.anchor_x = int(self._anchor_x * raw.width)
-        region.anchor_y = int(self._anchor_y * raw.height)
- 
-        # Calcul des tailles effectives
-        eff_sx, eff_sy = self._effective_scales(raw)
     
         # Construction du sprite
         self._sprite = pyglet.sprite.Sprite(
             region,
-            x=self._x,
-            y=self._y,
             batch=self._pipeline.batch,
             group=self._pipeline.get_group(z=self._z) if self._parent is None else self._parent,
         )
-        self._sprite.scale_x = eff_sx
-        self._sprite.scale_y = eff_sy
-        self._sprite.rotation = -self._rotation
         self._sprite.color = (r, g, b, a)
 
-    def _effective_scales(self, raw: pyglet.image.AbstractImage) -> tuple[float, float]:
-        """Calcule les tailles effectifs"""
-        img_sx: float | None = (self._image.width / raw.width if self._image.width else None)
-        img_sy: float | None = (self._image.height / raw.height if self._image.height else None)
-
-        if img_sx is None and img_sy is None:
-            img_sx = img_sy = 1.0
-        elif img_sx is None:
-            img_sx = img_sy
-        elif img_sy is None:
-            img_sy = img_sx
-
-        f  = self._image.scale_factor
-        fx = -1 if self._flip_x else 1
-        fy = -1 if self._flip_y else 1
-        return self._scale_x * img_sx * f * fx, self._scale_y * img_sy * f * fy
+        # Application de la transformation
+        self._refresh_transform()
 
     # ======================================== GETTERS ========================================
     @property
     def image(self) -> Image:
-        """Renvoie le descripteur d'image"""
+        """Descripteur d'image"""
         return self._image
-
+    
     @property
-    def position(self) -> tuple[float, float]:
-        """Renvoie la position"""
-        return (self._x, self._y)
-
+    def transform(self) -> Transform:
+        """Transformation monde"""
+        return self._transform
+    
     @property
-    def x(self) -> float:
-        """Renvoie la position horizontale"""
-        return self._x
-
-    @property
-    def y(self) -> float:
-        """Renvoie la position verticale"""
-        return self._y
-
-    @property
-    def anchor_x(self) -> float:
-        """Renvoie l'ancre horizontale"""
-        return self._anchor_x
-
-    @property
-    def anchor_y(self) -> float:
-        """Renvoie l'ancre verticale"""
-        return self._anchor_y
-
-    @property
-    def scale_x(self) -> float:
-        """Renvoie le facteur de redimensionnement horizontal"""
-        return self._scale_x
-
-    @property
-    def scale_y(self) -> float:
-        """Renvoie le facteur de redimensionnement vertical"""
-        return self._scale_y
+    def offset(self) -> Vector | None:
+        """Décalage au transform"""
+        return self._offset
 
     @property
     def flip_x(self) -> bool:
@@ -213,11 +146,6 @@ class PygletSpriteRenderer:
     def flip_y(self) -> bool:
         """Renvoie le miroir vertical"""
         return self._flip_y
-
-    @property
-    def rotation(self) -> float:
-        """Renvoie la rotation en degrés"""
-        return self._rotation
 
     @property
     def opacity(self) -> float:
@@ -254,19 +182,18 @@ class PygletSpriteRenderer:
         """Renvoie la hauteur de la texture"""
         return self._sprite.height
 
+    # ======================================== VISIBILITY ========================================
     @property
     def visible(self) -> bool:
         """Renvoie la visibilité"""
         return self._sprite.visible if self._sprite else False
 
-    # ======================================== SETTERS ========================================
     @visible.setter
     def visible(self, value: bool) -> None:
         """Active ou désactive la visibilité"""
         if self._sprite:
             self._sprite.visible = value
 
-    # ======================================== PREDICATES ========================================
     def is_visible(self) -> bool:
         """Vérifie la visibilité"""
         return self._sprite is not None and self._sprite.visible
@@ -278,39 +205,49 @@ class PygletSpriteRenderer:
 
         Args:
             image: descripteur d'image
-            x: position horizontale
-            y: position verticale
-            anchor_x: ancre relative locale horizontale
-            anchor_y: ancre relative locale verticale
-            scale_x: facteur de redimensionnement horizontal
-            scale_y: facteur de redimensionnement vertical
+            transform: transformation monde
+            offset: décalage
             flip_x: miroir horizontal
             flip_y: miroir vertical
-            rotation: rotation en degrés (CCW)
             opacity: opacité
             color: teinte multiplicative
             z: z-order
             pipeline: pipeline de rendu
             parent: groupe parent
         """
+        # Détection des changements
         changes: list[str] = set()
         for key, value in kwargs.items():
             current = getattr(self, f"_{key}", _UNSET)
             if current is _UNSET or value == current:
                 continue
             setattr(self, f"_{key}", value)
-            if key == "image":
-                self._rebuild()
-                return
-            elif key in _HANDLER_GROUPS:
-                changes.add(_HANDLER_GROUPS[key])
-            else:
-                changes.add(key)
+            changes.add(key)
 
+        # Vérificatin de la version du transform
+        tr_version = self._transform.version
+        if tr_version != self._transform_version:
+            changes.add("transform")
+            self._transform_version = tr_version
+
+        # Activation des handlers
+        rebuild: bool = False
+        refresh: bool = False
         for key in changes:
             handler = getattr(self, f"_handle_{key}", None)
             if handler:
-                handler()
+                output: str | None = handler()
+                if output:
+                    if output == "rebuild":
+                        rebuild = True
+                    elif output == "refresh":
+                        refresh = True
+
+        # Recalculs globaux
+        if rebuild:
+            self._rebuild()
+        elif refresh:
+            self._refresh_transform()
 
     def delete(self) -> None:
         """Libère les ressources pyglet"""
@@ -319,23 +256,25 @@ class PygletSpriteRenderer:
             self._sprite = None
 
     # ======================================== HANDLERS ========================================
-    def _handle_position(self) -> None:
-        """Actualisation de la position"""
-        self._sprite.position = (self._x, self._y, 0)
+    def _handle_image(self) -> str:
+        """Actualisation de l'image"""
+        return "rebuild"
 
-    def _handle_anchor(self) -> None:
-        """Actualisation de l'ancre"""
-        self._sprite.image.anchor_x, self._sprite.image.anchor_y = int(self._anchor_x * self._sprite.image.width), int(self._anchor_y * self._sprite.image.height)
+    def _handle_transform(self) -> str:
+        """Actualisation de la transformation monde"""
+        return "refresh"
+    
+    def _handle_offset(self) -> str:
+        """Actualisation du décalage"""
+        return "refresh"
+    
+    def _handle_flip_x(self) -> str:
+        """Actualisation du mirroir horizontal"""
+        return "refresh"
 
-    def _handle_scales(self) -> None:
-        """Actualisation du facteur de redimensionnement"""
-        raw = self._load_image(self._image.path)
-        if raw:
-            self._sprite.scale_x, self._sprite.scale_y = self._effective_scales(raw)
-
-    def _handle_rotation(self) -> None:
-        """Actualisation de la rotation"""
-        self._sprite.rotation = -self._rotation
+    def _handle_flip_y(self) -> str:
+        """Actualisation du mirroir vertical"""
+        return "refresh"
 
     def _handle_color(self) -> None:
         """Actualisation de la couleur de teinte"""
@@ -355,11 +294,51 @@ class PygletSpriteRenderer:
         """Actualisation du groupe parent"""
         self._sprite.group = self._pipeline.get_group(z=self._z) if self._parent is None else self._parent
 
-    # ======================================== HELPERS ========================================
+    # ======================================== INTERNALS ========================================
     def _rebuild(self) -> None:
         """Reconstruit le sprite avec les paramètres courants"""
         self.delete()
         self._build()
+
+    def _refresh_transform(self) -> None:
+        """Actualise transform sans reconstruire"""
+        if self._sprite is None:
+            return
+
+        # Anchor
+        img = self._sprite.image
+        img.anchor_x = int(self._transform.anchor_x * img.width)
+        img.anchor_y = int(self._transform.anchor_y * img.height)
+
+        # Position
+        if self._offset is None:
+            self._sprite.x, self._sprite.y = self._transform.position
+        else:
+            self._sprite.x = self._transform.x + self._offset.x
+            self._sprite.y = self._transform.y + self._offset.y
+
+        # Échelle
+        self._sprite.scale_x, self._sprite.scale_y = self._effective_scales(self._sprite.image)
+
+        # Rotation
+        self._sprite.rotation = -self._transform.rotation
+
+    def _effective_scales(self, raw: pyglet.image.AbstractImage) -> tuple[float, float]:
+        """Calcule les tailles effectifs"""
+        img_sx: float | None = (self._image.width / raw.width if self._image.width else None)
+        img_sy: float | None = (self._image.height / raw.height if self._image.height else None)
+
+        if img_sx is None and img_sy is None:
+            img_sx = img_sy = 1.0
+        elif img_sx is None:
+            img_sx = img_sy
+        elif img_sy is None:
+            img_sy = img_sx
+
+        f  = self._image.scale_factor
+        fx = -1 if self._flip_x else 1
+        fy = -1 if self._flip_y else 1
+        return self._transform.scale * img_sx * f * fx, self._transform.scale * img_sy * f * fy
 
 # ======================================== EXPORTS ========================================
 __all__ = [

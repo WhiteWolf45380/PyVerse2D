@@ -91,7 +91,7 @@ class PygletLabelRenderer:
         self._parent: Group = parent
 
         # Construction
-        self._transform_version: int = -1
+        self._transform_version: int = self._transform.version
         self._label: pyglet.text.Label = None
         self._build()
 
@@ -246,19 +246,21 @@ class PygletLabelRenderer:
             changes.add("transform")
             self._transform_version = tr_version
 
-        # Appel des callbacks
+        # Appel des handlers
         rebuild: bool = False
         refresh: bool = False
 
         for key in changes:
             handler = getattr(self, f"_handle_{key}", None)
             if handler:
-                output: str = handler()
-                if output == "rebuild":
-                    rebuild = True
-                elif output == "refresh":
-                    refresh = True       
+                output: str | None = handler()
+                if output:
+                    if output == "rebuild":
+                        rebuild = True
+                    elif output == "refresh":
+                        refresh = True       
 
+        # Recalculs globaux
         if rebuild:
             self._rebuild()
         elif refresh:
