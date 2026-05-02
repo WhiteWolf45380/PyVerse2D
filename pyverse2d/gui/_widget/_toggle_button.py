@@ -4,6 +4,7 @@ from __future__ import annotations
 from ..._internal import expect
 from ...abc import Widget, Shape, Button
 from ...math import Point
+from ...shape import Rect
 
 from numbers import Real
 from typing import Callable, Any
@@ -52,7 +53,7 @@ class ToggleButton(Button):
         self._off_widget: Widget = off_widget.copy() if off_widget is not None else self._on_widget.copy()
         self._state: bool = state
         self._toggle_cb: Callable[[bool], Any] | None = callback
-        self._current: Widget = None
+        self._current: Widget = self._on_widget if self._state else self._off_widget
 
         if __debug__:
             expect(self._on_widget, Widget)
@@ -60,10 +61,10 @@ class ToggleButton(Button):
             expect(self._state, bool)
 
         # Initialisation du bouton
-        super().__init__(position, anchor, scale, rotation, opacity, clipping,
-                         callback=self._toggle, condition=condition, id=id, give_id=give_id)
+        super().__init__(position, anchor, scale, rotation, opacity, clipping, callback=self._toggle, condition=condition, id=id, give_id=give_id)
 
-        self._set_widget(self._on_widget if self._state else self._off_widget)
+        # Activation du widget courant
+        self._set_widget(self._current)
 
     # ======================================== PROPERTIES ========================================
     @property
@@ -126,6 +127,8 @@ class ToggleButton(Button):
     @property
     def hitbox(self) -> Shape:
         """AABB du bouton"""
+        if self._current is None:
+            return Rect(1, 1)
         return self._current.hitbox
 
     # ======================================== PREDICATES ========================================
@@ -179,3 +182,4 @@ class ToggleButton(Button):
             self.remove_child(self._current)
         self._current = self.add_child(widget, name="background", z=0)
         self._invalidate_scissor()
+        self._invalidate_geometry()
