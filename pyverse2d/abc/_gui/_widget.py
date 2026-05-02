@@ -1,7 +1,7 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from ..._internal import expect, clamped, over
+from ..._internal import expect, clamped, over, CallbackList
 from ...math import Point
 from ..._core import Transform, Geometry
 
@@ -96,7 +96,7 @@ class Widget(ABC):
         "_layer", "_parent", "_children",
         "_transform", "_world_transform", "_geometry",
         "_opacity", "_active", "_visible", "_clipping",
-        "_activate_process", "_deactivate_process", "_show_process", "_hide_process",
+        "_on_activate", "_on_deactivate", "_on_show", "_on_hide",
         "_attr_locks", "_behaviors", "_click", "_hover", "_select", "_focus",
         "_cached_scissor", "_scissor_dirty",
         "_context",
@@ -146,10 +146,10 @@ class Widget(ABC):
         self._visible: bool = True
 
         # Hooks
-        self._activate_process: list[Callable] = []
-        self._deactivate_process: list[Callable] = []
-        self._show_process: list[Callable] = []
-        self._hide_process: list[Callable] = []
+        self._on_activate: CallbackList = None
+        self._on_deactivate: CallbackList = None
+        self._on_show: CallbackList = None
+        self._on_hide: CallbackList = None
 
         # Behaviors
         self._attr_locks: dict[str, int] = {}
@@ -373,7 +373,12 @@ class Widget(ABC):
     # ======================================== INTERFACE ========================================
     @abstractmethod
     def copy(self) -> Widget: ...
-    
+
+    def deepcopy(self) -> Widget:
+        """Renvoie une copie profonde du ``Widget``"""
+        copy = self._copy()
+        copy.children = [wrapper.copy() for wrapper in self._children]
+
     # ========================================  TRANSFORMATIONS ========================================
     def resize(self, factor: Real) -> None:
         """Redimensionne le widget par un facteur
@@ -401,8 +406,8 @@ class Widget(ABC):
         self._active = True
         for behavior in self._behaviors:
             getattr(self, f"_{behavior}").enable()
-        for fn in self._activate_process:
-            fn(self)
+        if self._on_activate:
+            self._on_activate.trigger()
         if propagate:
             for child in self._children:
                 child.widget.activate()
@@ -417,8 +422,8 @@ class Widget(ABC):
         for behavior in self._behaviors:
             getattr(self, f"_{behavior}").disable()
         self._attr_locks.clear()
-        for fn in self._deactivate_process:
-            fn(self)
+        if self._on_deactivate:
+            self._on_deactivate.trigger()
         if propagate:
             for child in self._children:
                 child.widget.deactivate()
@@ -441,8 +446,8 @@ class Widget(ABC):
             propagate: propage l'état aux enfants
         """
         self._visible = True
-        for fn in self._show_process:
-            fn(self)
+        if self._on_show:
+            self._on_show.trigger()
         if propagate:
             for child in self._children:
                 child.widget.show()
@@ -454,8 +459,8 @@ class Widget(ABC):
             propagate: propage l'état aux enfants
         """
         self._visible = False
-        for fn in self._hide_process:
-            fn(self)
+        if self._on_hide:
+            self._on_hide.trigger()
         if propagate:
             for child in self._children:
                 child.widget.hide()
@@ -677,41 +682,33 @@ class Widget(ABC):
         return None
 
     # ======================================== HOOKS ========================================
-    def on_activate(self, fn: Callable) -> Callable:
-        """Ajoute une fonction à l'activation et retourne un token d'invalidation
-        
-        Args:
-            fn: fonction à ajouter
-        """
-        self._activate_process.append(fn)
-        return lambda: self._activate_process.remove(fn)
+    @property
+    def on_activate(self) -> CallbackList:
+        """Hook d'activation"""
+        if self._on_activate is None:
+            self._on_activate = CallbackList()
+        return self._on_activate
     
-    def on_deactivate(self, fn: Callable) -> Callable:
-        """Ajoute une fonction à la désactivation et retourne un token d'invalidation
-        
-        Args:
-            fn: fonction à ajouter
-        """
-        self._deactivate_process.append(fn)
-        return lambda: self._deactivate_process.remove(fn)
+    @property
+    def on_deactivate(self) -> CallbackList:
+        """Hook de désactivation"""
+        if self._on_deactivate is None:
+            self._on_deactivate = CallbackList()
+        return self._on_deactivate
     
-    def on_show(self, fn: Callable) -> Callable:
-        """Ajoute une fonction à l'apparition et retourne un token d'invalidation
-        
-        Args:
-            fn: fonction à ajouter
-        """
-        self._show_process.append(fn)
-        return lambda: self._show_process.remove(fn)
+    @property
+    def on_show(self) -> CallbackList:
+        """Hook d'apparition"""
+        if self._on_show is None:
+            self._on_show = CallbackList()
+        return self._on_show
 
-    def on_hide(self, fn: Callable) -> Callable:
-        """Ajoute une fonction à la dispartion et retourne un token d'invalidation
-        
-        Args:
-            fn: fonction à ajouter
-        """
-        self._hide_process.append(fn)
-        return lambda: self._hide_process.remove(fn)
+    @property
+    def on_hide(self) -> CallbackList:
+        """Hook de désapparition"""
+        if self._on_hide is None:
+            self._on_hide = CallbackList()
+        return self._on_hide
 
     # ======================================== LIFE CYCLE ========================================
     @abstractmethod
@@ -898,6 +895,16 @@ class WidgetWrapper:
     def __lt__(self, other: WidgetWrapper) -> bool:
         """Comparaison inférieure"""
         return self.z < other.z
+    
+    def copy(self) -> WidgetWrapper:
+        """Renvoie une copie du wrapper"""
+        return WidgetWrapper(
+            widget = self._widget.copy(),
+            name = self.name,
+            z = self.z,
+            share_scale = self.share_scale,
+            share_rotation = self.share_rotation,
+        )
     
 # ======================================== HELPERS ========================================
 def intersect(a: tuple[int, int, int, int], b: tuple[int, int, int, int]) -> tuple[int, int, int, int]:
