@@ -395,7 +395,7 @@ class Widget(ABC):
 
     def give_children(self, other: Widget) -> None:
         """Donne une copie des enfants du ``Widget`` à un autre ``Widget``"""
-        other.children = [wrapper.copy() for wrapper in self._children]
+        other._children = [wrapper.copy() for wrapper in self._children]
 
     def give_behaviors(self, other: Widget) -> None:
         """Donne une copie des comportements du ``Widget`` à un autre ``Widget``"""
