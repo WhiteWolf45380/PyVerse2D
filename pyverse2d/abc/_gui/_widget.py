@@ -388,10 +388,10 @@ class Widget(ABC):
 
     def give_hooks(self, other: Widget) -> None:
         """Donne une copie des hooks du ``Widget`` à un autre ``Widget``"""
-        other.on_activate = self._on_activate.copy() if self._on_activate else None
-        other.on_deactivate = self._on_deactivate.copy() if self._on_deactivate else None
-        other.on_show = self._on_show.copy() if self._on_show else None
-        other.on_hide = self._on_hide.copy() if self._on_hide else None
+        other._on_activate = self._on_activate.copy() if self._on_activate else None
+        other._on_deactivate = self._on_deactivate.copy() if self._on_deactivate else None
+        other._on_show = self._on_show.copy() if self._on_show else None
+        other._on_hide = self._on_hide.copy() if self._on_hide else None
 
     def give_children(self, other: Widget) -> None:
         """Donne une copie des enfants du ``Widget`` à un autre ``Widget``"""
