@@ -98,13 +98,13 @@ class Surface(Widget):
         )
     
     # ======================================== HOOKS ========================================
-    def show_hook(self) -> None:
+    def _show_hook(self) -> None:
         """Devient visible"""
         if self._shape_renderer is None:
             return
         self._shape_renderer.visible = True
 
-    def hide_hook(self) -> None:
+    def _hide_hook(self) -> None:
         """Devient invisible"""
         if self._shape_renderer is None:
             return
