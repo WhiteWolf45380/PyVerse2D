@@ -68,9 +68,9 @@ class Button(Widget):
             expect(give_id, bool)
 
         # Attributs publiques
-        self._background: Surface | Sprite = self.add_child(background.copy(), name="background", z=0)
-        self._label: Label | None = self.add_child(label.copy(), name="label", z=10) if label is not None else None
-        self._border: Border | None = self.add_child(border.copy(), name="border", z=20) if border is not None else None
+        self._background: Surface | Sprite = background.copy()
+        self._label: Label | None = label.copy() if label is not None else None
+        self._border: Border | None = border.copy() if border is not None else None
         self._callback: Callable = callback
         self._condition: Callable = condition
         self._id: Any = id
@@ -78,6 +78,13 @@ class Button(Widget):
 
         # Initialisation du widget
         super().__init__(position, anchor, scale, rotation, opacity, clipping=clipping)
+
+        # Ajout des enfants
+        self.add_child(self._background, name="background", z=0)
+        if self._label is not None:
+            self.add_child(self._label, name="label", z=10)
+        if self._border is not None:
+            self.add_child(self._border, name="border", z=20)
 
         # Comportements prédéfinis
         self.add_behavior(HoverBehavior())
