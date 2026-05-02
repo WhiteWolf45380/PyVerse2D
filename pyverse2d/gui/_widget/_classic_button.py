@@ -1,13 +1,9 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from ..._internal import expect, expect_callable
-from ..._rendering import Pipeline
-from ...abc import Widget, Shape
+from ..._internal import expect
+from ...abc import Shape, Button
 from ...math import Point
-
-from .._context import RenderContext
-from .._behavior import HoverBehavior, ClickBehavior
 
 from ._surface import Surface
 from ._sprite import Sprite
@@ -18,8 +14,8 @@ from numbers import Real
 from typing import Callable, Any
 
 # ======================================== WIDGET ========================================
-class Button(Widget):
-    """Composant GUI composé: Bouton
+class ClassicButton(Button):
+    """Composant GUI composé: Bouton classique
     
     Args:
         background: Surface ou Sprite de fond
@@ -38,10 +34,7 @@ class Button(Widget):
     """
     __slots__ = (
         "_background", "_label", "_border",
-        "_callback", "_condition", "_id", "_give_id",
     )
-
-    _ACTION_NAME: str = "_default"
 
     def __init__(
             self,
@@ -63,21 +56,15 @@ class Button(Widget):
             expect(background, (Surface, Sprite))
             expect(label, (Label, None))
             expect(border, (Border, None))
-            expect_callable(callback, include_none=True, arg="callback")
-            expect_callable(condition, include_none=True, arg="condition")
-            expect(give_id, bool)
 
         # Attributs publiques
         self._background: Surface | Sprite = background.copy()
         self._label: Label | None = label.copy() if label is not None else None
         self._border: Border | None = border.copy() if border is not None else None
-        self._callback: Callable = callback
-        self._condition: Callable = condition
-        self._id: Any = id
-        self._give_id: bool = give_id
 
-        # Initialisation du widget
-        super().__init__(position, anchor, scale, rotation, opacity, clipping=clipping)
+        # Initialisation du bouton
+        super().__init__(position, anchor, scale, rotation, opacity, clipping,
+                         callback, condition, id, give_id)
 
         # Ajout des enfants
         self.add_child(self._background, name="background", z=0)
@@ -86,13 +73,6 @@ class Button(Widget):
         if self._border is not None:
             self.add_child(self._border, name="border", z=20)
 
-        # Comportements prédéfinis
-        self.add_behavior(HoverBehavior())
-        self.add_behavior(ClickBehavior())
-
-        # Application du callback
-        self._apply_callback()
-    
     # ======================================== PROPERTIES ========================================
     @property
     def background(self) -> Surface | Sprite:
@@ -143,77 +123,11 @@ class Button(Widget):
     def hitbox(self) -> Shape:
         """AABB du bouton"""
         return self._background.hitbox
-    
-    @property
-    def callback(self) -> Callable | None:
-        """Action au clique
-
-        L'action doit être un objet pouvant être appelé.
-        Mettre cette propriété à ``None`` pour ne pas assigner d'action.
-        """
-        return self._callback
-    
-    @callback.setter
-    def callback(self, value: Callable | None) -> None:
-        assert value is None or callable(value), f"callback ({value}) must be a callable"
-        if value == self._callback:
-            return
-        with self._refresh:
-            self._callback = value
-
-    @property
-    def condition(self) -> Callable | None:
-        """Condition d'action
-
-        Cette propriété ajoute une condition à l'appel de l'action lors du clique.
-        La condition doit être un objet pouvant être appelé.
-        Mettre à ``None`` pour ne pas avoir de condition.
-        """
-        return self._condition
-    
-    @condition.setter
-    def condition(self, value: Callable | None) -> None:
-        assert value is None or callable(value), f"condition ({value}) must be a callable"
-        if value == self._condition:
-            return
-        with self._refresh:
-            self._condition = value
-
-    @property
-    def id(self) -> Any:
-        """Identifiant du bouton
-
-        L'indentifiant peut être n'importe quoi.
-        """
-        return self._id
-    
-    @id.setter
-    def id(self, value: Any) -> None:
-        with self._refresh:
-            self._id = value
-    
-    @property
-    def give_id(self) -> bool:
-        """Donne l'identifiant à l'action
-
-        Activer cette propriété passera un kwarg ``id`` au callback.
-        """
-        return self._give_id
-    
-    @give_id.setter
-    def give_id(self, value: bool) -> None:
-        assert isinstance(value, bool), f"give_id ({value}) must be a boolean"
-        with self._refresh:
-            self._give_id = value
 
     # ======================================== PREDICATES ========================================
-    def is_hovered(self) -> bool:
-        """Vérifie que le widget soit survolé"""
-        return self.hover.is_hovered()
-
     def collidespoint(self, point):
         """Vérifie la collision avec un point"""
-        return self.background.collidespoint(point)
+        return self._background.collidespoint(point)
 
     # ======================================== INTERFACE ========================================
     def copy(self) -> Button:
@@ -233,35 +147,3 @@ class Button(Widget):
             id = self._id,
             give_id = self._give_id,
         )
-    
-    # ======================================== LIFE CYCLE ========================================
-    def _update(self, dt: float):
-        """Actualisation"""
-        ...
-    
-    def _draw(self, pipeline: Pipeline, context: RenderContext):
-        """Affichage"""
-        ...
-    
-    def _destroy(self):
-        """Libère les ressources pyglet"""
-        ...
-
-    # ======================================== INTERNALS ========================================
-    def _apply_callback(self) -> None:
-        """Applique le callback"""
-        if self._callback is not None:
-            self.click.add(name=self._ACTION_NAME, callback=self._callback, kwargs={"id": self._id} if self._give_id else None, condition=self._condition)
-
-    def _remove_callback(self) -> None:
-        """Retire le callback"""
-        if self.click.has(self._ACTION_NAME):
-            self.click.remove(self._ACTION_NAME)
-
-    def _refresh(self):
-        """Contexte d'actualisation de l'action"""
-        self._remove_callback()
-        try:
-            yield
-        finally:
-            self._apply_callback()

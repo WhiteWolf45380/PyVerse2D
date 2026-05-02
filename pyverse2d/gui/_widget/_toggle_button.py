@@ -2,10 +2,8 @@
 from __future__ import annotations
 
 from ..._internal import expect
-from ...abc import Widget
+from ...abc import Widget, Shape, Button
 from ...math import Point
-
-from ._button import Button
 
 from numbers import Real
 from typing import Callable, Any
@@ -30,13 +28,13 @@ class ToggleButton(Button):
         give_id: donne l'identifiant à l'action
     """
     __slots__ = (
-        "_on_widget", "_off_widget", "_state", "_toggle_cb",
+        "_on_widget", "_off_widget", "_state", "_toggle_cb", "_current",
     )
 
     def __init__(
             self,
             on_widget: Widget,
-            off_widet: Widget = None,
+            off_widget: Widget = None,
             state: bool = True,
             position: Point = (0.0, 0.0),
             anchor: Point = (0.5, 0.5),
@@ -51,9 +49,10 @@ class ToggleButton(Button):
         ):
         # Attributs publiques
         self._on_widget: Widget = on_widget.copy()
-        self._off_widget: Widget = off_widet.copy() or self._on_widget.copy()
+        self._off_widget: Widget = off_widget.copy() if off_widget is not None else self._on_widget.copy()
         self._state: bool = state
         self._toggle_cb: Callable[[bool], Any] | None = callback
+        self._current: Widget = None
 
         if __debug__:
             expect(self._on_widget, Widget)
@@ -61,21 +60,11 @@ class ToggleButton(Button):
             expect(self._state, bool)
 
         # Initialisation du bouton
-        super().__init__(
-            background = self._on_widget,
-            position = position,
-            anchor = anchor,
-            scale = scale,
-            rotation = rotation,
-            opacity = opacity,
-            clipping = clipping,
-            callback = self._toggle,
-            condition = condition,
-            id = id,
-            give_id = give_id,
-        )
+        super().__init__(position, anchor, scale, rotation, opacity, clipping,
+                         callback=self._toggle, condition=condition, id=id, give_id=give_id)
+
         self._set_widget(self._on_widget if self._state else self._off_widget)
-    
+
     # ======================================== PROPERTIES ========================================
     @property
     def on_widget(self) -> Widget:
@@ -134,8 +123,26 @@ class ToggleButton(Button):
         assert value is None or callable(value), f"callback ({value}) must be a callable"
         self._toggle_cb = value
 
+    @property
+    def hitbox(self) -> Shape:
+        """AABB du bouton"""
+        return self._current.hitbox
+
+    # ======================================== PREDICATES ========================================
+    def collidespoint(self, point) -> bool:
+        """Vérifie la collision avec un point"""
+        return self._current.collidespoint(point)
+
+    def is_on(self) -> bool:
+        """Vérifie que le basculement soit à ``True``"""
+        return self._state
+    
+    def is_off(self) -> bool:
+        """Vérifie que le basculement soit à ``False``"""
+        return not self._state
+
     # ======================================== INTERFACE ========================================
-    def copy(self) -> Button:
+    def copy(self) -> ToggleButton:
         """Renvoie une copie du widget"""
         return ToggleButton(
             on_widget = self._on_widget,
@@ -152,14 +159,6 @@ class ToggleButton(Button):
             id = self._id,
             give_id = self._give_id,
         )
-    
-    def is_on(self) -> bool:
-        """Vérifie que le basculement soit à ``True``"""
-        return self._state
-    
-    def is_off(self) -> bool:
-        """Vérifie que le basculement soit à ``False``"""
-        return not self._state
 
     # ======================================== INTERNALS ========================================
     def _toggle(self, *args, **kwargs) -> None:
@@ -176,6 +175,7 @@ class ToggleButton(Button):
     
     def _set_widget(self, widget: Widget) -> None:
         """Change le widget actif"""
-        self.remove_child(self._background)
-        self._background = self.add_child(widget, name="background", z=0)
+        if self._current is not None:
+            self.remove_child(self._current)
+        self._current = self.add_child(widget, name="background", z=0)
         self._invalidate_scissor()
