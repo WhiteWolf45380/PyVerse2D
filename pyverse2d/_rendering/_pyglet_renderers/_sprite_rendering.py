@@ -64,7 +64,6 @@ class PygletSpriteRenderer:
         self._offset: Vector = None
         self._flip_x: bool = flip_x
         self._flip_y: bool = flip_y
-        self._rotation: float = rotation
         self._opacity: float = opacity
         self._color: Color = color
         self._z: int = z
