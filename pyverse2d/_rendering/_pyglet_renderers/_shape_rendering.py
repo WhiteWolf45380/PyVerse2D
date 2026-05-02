@@ -93,7 +93,7 @@ class PygletShapeRenderer:
         self._parent: Group = parent
 
         # Attributs internes
-        self._transform_version: int = self._transform.version
+        self._transform_version: int = self._geometry.transform.version
         self._fill: _FillRenderer = None
         self._border: _BorderRenderer = None
         self._build()
