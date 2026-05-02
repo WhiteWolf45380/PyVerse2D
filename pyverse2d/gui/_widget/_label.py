@@ -340,7 +340,7 @@ class Label(Widget):
         if self._text_renderer is None:
             self._text_renderer = PygletLabelRenderer(
                 text = self._text,
-                transform = self._transform,
+                transform = self._world_transform,
                 weight = self._weight,
                 italic = self._italic,
                 underline = self._underline,
@@ -362,7 +362,7 @@ class Label(Widget):
         else:
             self._text_renderer.update(
                 text = self._text,
-                transform = self._transform,
+                transform = self._world_transform,
                 weight = self._weight,
                 italic = self._italic,
                 underline = self._underline,

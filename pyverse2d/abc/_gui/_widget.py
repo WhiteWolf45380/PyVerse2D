@@ -94,7 +94,7 @@ class Widget(ABC):
     """
     __slots__ = (
         "_layer", "_parent", "_children",
-        "_transform", "_geometry",
+        "_transform", "_world_transform", "_geometry",
         "_opacity", "_active", "_visible", "_clipping",
         "_activate_process", "_deactivate_process", "_show_process", "_hide_process",
         "_attr_locks", "_behaviors", "_click", "_hover", "_select", "_focus",
@@ -131,7 +131,8 @@ class Widget(ABC):
 
         # Attributs publique
         self._transform: Transform = transform
-        self._geometry: Geometry = Geometry(self.hitbox, transform)
+        self._world_transform: Transform = self._transform.copy()
+        self._geometry: Geometry = Geometry(self.hitbox, self._world_transform)
         self._opacity: float = opacity
         self._clipping: bool = clipping
             
@@ -756,7 +757,7 @@ class Widget(ABC):
         self._update_render_context(context, share_scale, share_rotation)
 
         # Actualisation de la transformation monde
-        self._update_trasnform(self_context)
+        self._update_world_transform(self_context)
 
         # Affichage personnel
         self._draw(pipeline, self_context)
@@ -831,9 +832,9 @@ class Widget(ABC):
         self_context.group = WidgetGroup.get_group(order=context.z, parent=context.group, scissor=self._compute_scissor())
         return self_context
     
-    def _update_transform(self, context: RenderContext) -> None:
+    def _update_world_transform(self, context: RenderContext) -> None:
         """Actualisation de la transformation monde"""
-        tr = self._transform
+        tr = self._world_transform
         tr.x = context.x
         tr.y = context.y
         tr.scale = context.scale
@@ -867,7 +868,7 @@ class Widget(ABC):
     
     def _invalidate_geometry(self) -> None:
         """Invalide la géométrie *(changement de hitbox)*"""
-        self._geometry = Geometry(self.hitbox, self._transform)
+        self._geometry = Geometry(self.hitbox, self._world_transform)
 
 # ======================================== WRAPPER ========================================
 class WidgetWrapper:

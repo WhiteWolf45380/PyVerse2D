@@ -175,7 +175,7 @@ class Sprite(Widget):
         if self._image_renderer is None:
             self._image_renderer = PygletSpriteRenderer(
                 image = self._image,
-                transform = self._transform,
+                transform = self._world_transform,
                 flip_x = self._flip_x,
                 flip_y = self._flip_y,
                 color = self._color,
@@ -189,7 +189,7 @@ class Sprite(Widget):
         else:
             self._image_renderer.update(
                 image = self._image,
-                transform = self._transform,
+                transform = self._world_transform,
                 flip_x = self._flip_x,
                 flip_y = self._flip_y,
                 color = self._color,
