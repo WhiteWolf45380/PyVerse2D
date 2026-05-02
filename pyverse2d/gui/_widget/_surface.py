@@ -120,7 +120,6 @@ class Surface(Widget):
         # Construction du renderer
         if self._shape_renderer is None:
             self._shape_renderer = PygletShapeRenderer(
-                shape = self._shape,
                 geometry = self._geometry,
                 color = self._color,
                 opacity = context.opacity,
