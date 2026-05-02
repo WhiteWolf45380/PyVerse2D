@@ -165,11 +165,11 @@ class Widget(ABC):
         # Contexte courant
         self._context: RenderContext = self._get_render_context()(
             pipeline = None,
-            x = self._position.x,
-            y = self._position.y,
-            scale = self._scale,
-            rotation = self._rotation,
-            opacity = self._opacity,
+            x = self.x,
+            y = self.y,
+            scale = self.scale,
+            rotation = self.rotation,
+            opacity = self.opacity,
             group = None,
             z = 0,
         )
