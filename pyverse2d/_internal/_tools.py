@@ -96,6 +96,10 @@ class CallbackList:
         """Appelle les fonctions"""
         for func in self._callbacks:
             func(*args, **kwargs)
+
+    def __len__(self) -> int:
+        """Renvoie le nombre de callbacks assignés"""
+        return len(self._callbacks)
     
     # ======================================== INTERNALS ========================================
     def _inject(self, callbacks: list[Callable]) -> None:
