@@ -35,6 +35,7 @@ class Entity:
     """
     __slots__ = (
         "_id", "_tags", "_active", "_dead",
+        "_on_activate", "_on_deactivate", "_on_kill",
         *_COMPONENTS.values()
         )
 
