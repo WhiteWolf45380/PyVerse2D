@@ -293,10 +293,10 @@ class Label(Widget):
         """Renvoie une copie du widget"""
         return Label(
             text = self._text,
-            position = self._position,
-            anchor = self._anchor,
-            scale = self._scale,
-            rotation = self._rotation,
+            position = self._transform.position,
+            anchor = self._transform.anchor,
+            scale = self._transform.scale,
+            rotation = self._transform.rotation,
             weight = self._weight,
             italic = self._italic,
             underline = self._underline,

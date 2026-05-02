@@ -117,10 +117,10 @@ class Border(Widget):
         """Renvoie une copie du widget"""
         return Border(
             shape = self._shape,
-            position = self._position,
-            anchor = self._anchor,
-            scale = self._scale,
-            rotation = self._rotation,
+            position = self._transform.position,
+            anchor = self._transform.anchor,
+            scale = self._transform.scale,
+            rotation = self._transform.rotation,
             width = self._width,
             align = self._align,
             color = self._color,
