@@ -374,7 +374,7 @@ class _BorderRenderer:
 def _world_strip(psr: PygletShapeRenderer) -> np.ndarray:
     """Génère le triangle strip en espace monde"""
     world = psr.geometry.world_vertices()
-    return _build_strip(world, psr.border_width * psr.scale, psr.border_align)
+    return _build_strip(world, psr.border_width * psr.geometry.transform.scale, psr.border_align)
 
 def _build_strip(contour: np.ndarray, width: float, align: str = "center") -> np.ndarray:
     """Génère un triangle strip ``(N+1)*2`` points autour d'un contour fermé"""
