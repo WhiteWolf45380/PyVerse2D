@@ -59,9 +59,6 @@ class Button(Widget):
             id: Any = None,
             give_id: bool = False,
         ):
-        # Initialisation du widget
-        super().__init__(position, anchor, scale, rotation, opacity, clipping=clipping)
-
         if __debug__:
             expect(background, (Surface, Sprite))
             expect(label, (Label, None))
@@ -78,6 +75,9 @@ class Button(Widget):
         self._condition: Callable = condition
         self._id: Any = id
         self._give_id: bool = give_id
+
+        # Initialisation du widget
+        super().__init__(position, anchor, scale, rotation, opacity, clipping=clipping)
 
         # Comportements prédéfinis
         self.add_behavior(HoverBehavior())

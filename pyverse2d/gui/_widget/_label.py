@@ -71,9 +71,6 @@ class Label(Widget):
             margin: int = 0,
             clipping: bool = False
         ):
-        # Initialisation du widget
-        super().__init__(position, anchor, scale, rotation, opacity, clipping=clipping)
-
         # Texte
         self._text: Text = text
         self._text_renderer: PygletLabelRenderer = None
@@ -98,6 +95,9 @@ class Label(Widget):
         # Cache du AABB
         self._hitbox_key: tuple = None
         self._hitbox_cache: Rect = None
+
+        # Initialisation du widget
+        super().__init__(position, anchor, scale, rotation, opacity, clipping=clipping)
 
         # Hooks
         self.on_show(self._on_show)

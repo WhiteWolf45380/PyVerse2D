@@ -41,15 +41,15 @@ class Surface(Widget):
             opacity: Real = 1.0,
             clipping: bool = False,
         ):
-        # Initialisation du widget
-        super().__init__(position, anchor, scale, rotation, opacity, clipping=clipping)
-
         # Forme
         self._shape: Shape = expect(shape, Shape)
         self._shape_renderer: PygletShapeRenderer = None
 
         # Affichage
         self._color: Color = Color(color)
+
+        # Initialisation du widget
+        super().__init__(position, anchor, scale, rotation, opacity, clipping=clipping)
 
         # Hooks
         self.on_show(self._on_show)

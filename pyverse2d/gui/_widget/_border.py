@@ -44,9 +44,6 @@ class Border(Widget):
             opacity: Real = 1.0,
             clipping: bool = False
         ):
-        # Initialisation du widget
-        super().__init__(position, anchor, scale, rotation, opacity, clipping=clipping)
-
         # Attributs publiques
         self._shape: Shape = shape
         self._width: int = width
@@ -60,6 +57,9 @@ class Border(Widget):
 
         # Attributs privés
         self._shape_renderer: PygletShapeRenderer = None
+
+        # Initialisation du widget
+        super().__init__(position, anchor, scale, rotation, opacity, clipping=clipping)
 
         # Hooks
         self.on_show(self._on_show)
