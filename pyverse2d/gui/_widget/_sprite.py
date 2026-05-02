@@ -125,11 +125,8 @@ class Sprite(Widget):
     @property
     def hitbox(self):
         """Hitbox du sprite"""
-        if self._image_renderer is None:
+        if self._hitbox_cache is None:
             return Rect(1, 1)
-        key = (self._image_renderer.width, self._image_renderer.height)
-        if key != self._hitbox_key:
-            self._hitbox_cache = Rect(*key)
         return self._hitbox_cache
     
     # ======================================== INTERFACE ========================================
@@ -178,15 +175,9 @@ class Sprite(Widget):
         if self._image_renderer is None:
             self._image_renderer = PygletSpriteRenderer(
                 image = self._image,
-                x = context.x,
-                y = context.y,
-                anchor_x = self.anchor_x,
-                anchor_y = self.anchor_y,
-                scale_x = context.scale,
-                scale_y = context.scale,
+                transform = self._transform,
                 flip_x = self._flip_x,
                 flip_y = self._flip_y,
-                rotation = context.rotation,
                 color = self._color,
                 opacity = context.opacity,
                 z = context.z,
@@ -198,21 +189,19 @@ class Sprite(Widget):
         else:
             self._image_renderer.update(
                 image = self._image,
-                x = context.x,
-                y = context.y,
-                anchor_x = self.anchor_x,
-                anchor_y = self.anchor_y,
-                scale_x = context.scale,
-                scale_y = context.scale,
+                transform = self._transform,
                 flip_x = self._flip_x,
                 flip_y = self._flip_y,
-                rotation = context.rotation,
                 color = self._color,
                 opacity = context.opacity,
                 z = context.z,
-                pipeline = pipeline,
                 parent=context.group,
             )
+
+        # Actualisation de la hitbox
+        key = (self._image_renderer.width, self._image_renderer.height)
+        if key != self._hitbox_key:
+            self._hitbox_cache = Rect(*key)
     
     def _destroy(self):
         """Destruction du widget"""

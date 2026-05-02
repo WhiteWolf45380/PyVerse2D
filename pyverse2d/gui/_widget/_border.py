@@ -75,6 +75,7 @@ class Border(Widget):
     def shape(self, value: Shape) -> None:
         assert isinstance(value, Shape), f"shape ({value}) must be a Shape object"
         self._shape = value.copy()
+        self._invalidate_geometry()
         self._invalidate_scissor()
     
     @property
@@ -84,7 +85,9 @@ class Border(Widget):
     
     @width.setter
     def width(self, value: int) -> None:
-        self._width = expect(value, int)
+        if __debug__:
+            expect(value, int)
+        self._width = value
     
     @property
     def align(self) -> BorderAlign:
@@ -140,7 +143,11 @@ class Border(Widget):
 
     # ======================================== LIFE CYCLE ========================================
     def _update(self, dt: float) -> None:
-        """Actualisation"""
+        """Actualisation
+        
+        Args:
+            dt: delta-time
+        """
         ...
     
     def _draw(self, pipeline: Pipeline, context: RenderContext) -> None:
@@ -148,13 +155,7 @@ class Border(Widget):
         # Construction du renderer
         if self._shape_renderer is None:
             self._shape_renderer = PygletShapeRenderer(
-                shape = self._shape,
-                x = context.x,
-                y = context.y,
-                anchor_x = self.anchor_x,
-                anchor_y = self.anchor_y,
-                scale = context.scale,
-                rotation = context.rotation,
+                geometry = self._geometry,
                 filling = False,
                 border_width = self._width,
                 border_align = self._align,
@@ -168,18 +169,12 @@ class Border(Widget):
         # Mise à jour du renderer
         else:
             self._shape_renderer.update(
-                x = context.x,
-                y = context.y,
-                anchor_x = self.anchor_x,
-                anchor_y = self.anchor_y,
-                scale = context.scale,
-                rotation = context.rotation,
+                geometry = self._geometry,
                 filling = False,
                 border_width = self._width,
                 border_align = self._align,
                 border_color = self._color,
                 opacity = context.opacity,
-                pipeline=pipeline,
                 z=context.z,
                 parent=context.group,
             )

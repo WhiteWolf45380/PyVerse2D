@@ -55,33 +55,33 @@ class Surface(Widget):
         self.on_show(self._on_show)
         self.on_hide(self._on_hide)
 
-    # ======================================== GETTERS ========================================
+    # ======================================== PROPERTIES ========================================
     @property
     def shape(self) -> Shape:
-        """Renvoie la forme de la surface"""
+        """Forme de la surface"""
         return self._shape
+    
+    @shape.setter
+    def shape(self, value: Shape) -> None:
+        if __debug__:
+            expect(value, Shape)
+        self._shape = value
+        self._invalidate_geometry()
+        self._invalidate_scissor()
     
     @property
     def color(self) -> Color:
-        """Renvoie la couleur de remplissage"""
+        """Couleur de remplissage"""
         return self._color
+    
+    @color.setter
+    def color(self, value: Color) -> None:
+        self._color = Color(value)
     
     @property
     def hitbox(self) -> Shape:
         """Renvoie la hitbox de la surface"""
         return self._shape
-    
-    # ======================================== SETTERS ========================================
-    @shape.setter
-    def shape(self, value: Shape) -> None:
-        """Fixe la forme de la surface"""
-        self._shape = expect(value, Shape)
-        self._invalidate_scissor()
-    
-    @color.setter
-    def color(self, value: Color) -> None:
-        """Fixe la couleur de remplissage"""
-        self._color = Color(value)
 
     # ======================================== INTERFACE ========================================
     def copy(self) -> Surface:
@@ -121,12 +121,7 @@ class Surface(Widget):
         if self._shape_renderer is None:
             self._shape_renderer = PygletShapeRenderer(
                 shape = self._shape,
-                x = context.x,
-                y = context.y,
-                anchor_x = self.anchor_x,
-                anchor_y = self.anchor_y,
-                scale = context.scale,
-                rotation = context.rotation,
+                geometry = self._geometry,
                 color = self._color,
                 opacity = context.opacity,
                 pipeline = pipeline,
@@ -137,15 +132,9 @@ class Surface(Widget):
         # Mise à jour du renderer
         else:
             self._shape_renderer.update(
-                x = context.x,
-                y = context.y,
-                anchor_x = self.anchor_x,
-                anchor_y = self.anchor_y,
-                scale = context.scale,
-                rotation = context.rotation,
+                geometry = self._geometry,
                 color = self._color,
                 opacity = context.opacity,
-                pipeline=pipeline,
                 z=context.z,
                 parent=context.group,
             )

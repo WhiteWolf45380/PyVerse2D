@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from ..._internal import expect, clamped, over
 from ...math import Point
+from ..._core import Transform, Geometry
 
 from .._shape import Shape
 
@@ -93,7 +94,7 @@ class Widget(ABC):
     """
     __slots__ = (
         "_layer", "_parent", "_children",
-        "_position", "_anchor", "_scale", "_rotation",
+        "_transform", "_geometry",
         "_opacity", "_active", "_visible", "_clipping",
         "_activate_process", "_deactivate_process", "_show_process", "_hide_process",
         "_attr_locks", "_behaviors", "_click", "_hover", "_select", "_focus",
@@ -121,22 +122,16 @@ class Widget(ABC):
             clipping: bool = False,
         ):
         # Transtyping
-        position  = Point(position)
-        anchor = Point(anchor)
-        scale = float(scale)
-        rotation = float(rotation)
+        transform: Transform = Transform(position, anchor, rotation, scale)
         opacity = float(opacity)
 
         if __debug__:
-            over(scale, 0.0, include=False)
             clamped(opacity)
             expect(clipping, bool)
 
         # Attributs publique
-        self._position: Point = position
-        self._anchor: Point = anchor
-        self._scale: float = scale
-        self._rotation: float = rotation
+        self._transform: Transform = transform
+        self._geometry: Geometry = Geometry(self.hitbox, transform)
         self._opacity: float = opacity
         self._clipping: bool = clipping
             
@@ -208,11 +203,11 @@ class Widget(ABC):
 
         La position peut être un objet ``Point`` ou un tuple ``(x, y)``.
         """
-        return self._position
+        return self._transform.position
     
     @position.setter
     def position(self, value: Point) -> None:
-        self._position.x, self._position.y = value
+        self._transform.position = value
         self._invalidate_scissor()
     
     @property
@@ -221,11 +216,11 @@ class Widget(ABC):
 
         La coordonnée doit être un ``Réel``.
         """
-        return self._position.x
+        return self._transform._position.x
     
     @x.setter
     def x(self, value: Real) -> None:
-        self._position.x = value
+        self._transform.x = value
         self._invalidate_scissor()
     
     @property
@@ -234,33 +229,33 @@ class Widget(ABC):
         
         La coordonnée doit être un ``Réel``.
         """
-        return self._position.y
+        return self._transform.y
     
     @y.setter
     def y(self, value: Real) -> None:
-        self._position.y = value
+        self._transform.y = value
         self._invalidate_scissor()
     
     @property
     def absolute_position(self) -> Point:
         """Position absolue"""
         if self._parent is None:
-            return self._position
-        return self._parent.absolute_position + self._position
+            return self.position
+        return self._parent.absolute_position + self.position
     
     @property
     def absolute_x(self) -> float:
         """Position horizontale absolue"""
         if self._parent is None:
-            return self._position.x
-        return self._parent.absolute_x + self._position.x
+            return self.position.x
+        return self._parent.absolute_x + self.position.x
     
     @property
     def absolute_y(self) -> float:
         """Position verticale absolue"""
         if self._parent is None:
-            return self._position.y
-        return self._parent.absolute_y + self._position.y
+            return self.position.y
+        return self._parent.absolute_y + self.position.y
     
     @property
     def anchor(self) -> Point:
@@ -269,11 +264,11 @@ class Widget(ABC):
         L'ancre peut être un objet ``Point`` ou un tuple ``(ax, ay)``.
         Les coordonnées de l'ancre doivent être comprises dans l'intervalle [0, 1].
         """
-        return self._anchor
+        return self._transform.anchor
     
     @anchor.setter
     def anchor(self, value: Point) -> None:
-        self._anchor.x, self._anchor.y = value
+        self._transform.anchor = value
         self._invalidate_scissor()
     
     @property
@@ -282,11 +277,11 @@ class Widget(ABC):
 
         La coordonnée doit être un réel compris dans l'invervalle [0, 1].
         """
-        return self._anchor.x
+        return self._transform.anchor_x
     
     @anchor_x.setter
     def anchor_x(self, value: Real) -> None:
-        self._anchor.x = value
+        self._transform.anchor_x = value
         self._invalidate_scissor()
     
     @property
@@ -295,11 +290,11 @@ class Widget(ABC):
         
         La coordonnée doit être un réel compris dans l'intervalle [0, 1].
         """
-        return self._anchor.y
+        return self._transform.anchor_y
     
     @anchor_y.setter
     def anchor_y(self, value: Real) -> None:
-        self._anchor.y = value
+        self._transform.anchor_y = value
         self._invalidate_scissor()
 
     @property
@@ -308,11 +303,11 @@ class Widget(ABC):
 
         Ce facteur doit être un ``réel`` positif non nul
         """
-        return self._scale
+        return self._transform.scale
     
     @scale.setter
     def scale(self, value: Real) -> None:
-        self._scale = over(float(value), 0.0, include=False)
+        self._transform.scale = value
         self._invalidate_scissor()
 
     @property
@@ -321,11 +316,11 @@ class Widget(ABC):
 
         La rotation se fait *en degrés*, dans le sens trigonométrique *(CCW)*.
         """
-        return self._rotation
+        return self._transform.rotation
 
     @rotation.setter
     def rotation(self, value: Real) -> None:
-        self._rotation = float(value, Real)
+        self._transform.rotation = value
         self._invalidate_scissor()
     
     @property
@@ -864,6 +859,10 @@ class Widget(ABC):
             WidgetGroup.invalidate(id(self))
             for child in self._children:
                 child.widget._invalidate_scissor()
+    
+    def _invalidate_geometry(self) -> None:
+        """Invalide la géométrie *(changement de hitbox)*"""
+        self._geometry = Geometry(self.hitbox, self._transform)
 
 # ======================================== WRAPPER ========================================
 class WidgetWrapper:
