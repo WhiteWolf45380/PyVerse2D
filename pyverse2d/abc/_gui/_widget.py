@@ -820,10 +820,10 @@ class Widget(ABC):
             share_rotation: partage de la rotation du parent
         """
         self_context = self._context
-        self_context.x = self._position.x + context.x
-        self_context.y = self._position.y + context.y
-        self_context.scale = self._scale * (context.scale if share_scale else 1.0)
-        self_context.rotation = self._rotation + (context.rotation if share_rotation else 0.0)
+        self_context.x = self._transform.x + context.x
+        self_context.y = self._transform.y + context.y
+        self_context.scale = self._transform.scale * (context.scale if share_scale else 1.0)
+        self_context.rotation = self._transform.rotation + (context.rotation if share_rotation else 0.0)
         self_context.opacity = self._opacity * context.opacity
         self_context.z = context.z + 1
         self_context.group = WidgetGroup.get_group(order=context.z, parent=context.group, scissor=self._compute_scissor())
@@ -839,7 +839,7 @@ class Widget(ABC):
             self_context = self._context
             xmin, ymin, xmax, ymax = self.hitbox.world_bounding_box(
                 x=self_context.x, y=self_context.y,
-                anchor_x=self.anchor_x, anchor_y=self.anchor_y,
+                anchor_x=self._transform.anchor_x, anchor_y=self._transform.anchor_y,
                 scale=self_context.scale,
                 rotation=self_context.rotation,
             )
