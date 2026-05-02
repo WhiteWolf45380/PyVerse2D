@@ -100,8 +100,8 @@ class Label(Widget):
         super().__init__(position, anchor, scale, rotation, opacity, clipping=clipping)
 
         # Hooks
-        self.on_show(self._on_show)
-        self.on_hide(self._on_hide)
+        self.on_show(self._show_hook)
+        self.on_hide(self._hide_hook)
     
     # ======================================== PROPERTIES ========================================
     @property
@@ -313,13 +313,13 @@ class Label(Widget):
         )
     
     # ======================================== HOOKS ========================================
-    def _on_show(self) -> None:
+    def _show_hook(self) -> None:
         """Devient visible"""
         if self._text_renderer is None:
             return
         self._text_renderer.visible = True
 
-    def _on_hide(self) -> None:
+    def _hide_hook(self) -> None:
         """Devient invisible"""
         if self._text_renderer is None:
             return

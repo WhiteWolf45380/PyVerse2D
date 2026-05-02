@@ -15,7 +15,7 @@ from pyglet.graphics import Group
 from abc import ABC, abstractmethod
 from bisect import insort
 from numbers import Real
-from typing import Callable, Type, TYPE_CHECKING
+from typing import Type, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..._rendering import Pipeline
@@ -430,10 +430,11 @@ class Widget(ABC):
         Args:
             propagate: propage l'état aux enfants
         """
+        was_active = self._active
         self._active = True
         for behavior in self._behaviors:
             getattr(self, f"_{behavior}").enable()
-        if self._on_activate:
+        if not was_active and self._on_activate:
             self._on_activate.trigger()
         if propagate:
             for child in self._children:
@@ -445,11 +446,12 @@ class Widget(ABC):
         Args:
             propagate: propage l'état aux enfants
         """
+        was_active = self._active
         self._active = False
         for behavior in self._behaviors:
             getattr(self, f"_{behavior}").disable()
         self._attr_locks.clear()
-        if self._on_deactivate:
+        if was_active and self._on_deactivate:
             self._on_deactivate.trigger()
         if propagate:
             for child in self._children:
@@ -466,14 +468,26 @@ class Widget(ABC):
         else:
             self.activate(propagate=propagate)
 
+    def set_activity(self, value: bool, propagate: bool = True) -> None:
+        """Fixe l'activité
+
+        Args:
+            value: nouvelle activité
+        """
+        if value:
+            self.activate(propagate=propagate)
+        else:
+            self.deactivate(propagate=propagate)
+
     def show(self, propagate: bool = True) -> None:
         """Montre le composant
 
         Args:
             propagate: propage l'état aux enfants
         """
+        was_visible = self._visible
         self._visible = True
-        if self._on_show:
+        if not was_visible and self._on_show:
             self._on_show.trigger()
         if propagate:
             for child in self._children:
@@ -485,8 +499,9 @@ class Widget(ABC):
         Args:
             propagate: propage l'état aux enfants
         """
+        was_visible = self._visible
         self._visible = False
-        if self._on_hide:
+        if was_visible and self._on_hide:
             self._on_hide.trigger()
         if propagate:
             for child in self._children:
@@ -502,6 +517,17 @@ class Widget(ABC):
             self.hide(propagate=propagate)
         else:
             self.show(propagate=propagate)
+
+    def set_visibility(self, value: bool, propagate: bool = True) -> None:
+        """Fixe la visibilité
+
+        Args:
+            value: nouvelle visibilité
+        """
+        if value:
+            self.show(propagate=propagate)
+        else:
+            self.hide(propagate=propagate)
     
     # ======================================== BEHAVIORS ========================================
     def add_behavior(self, behavior: Behavior) -> None:
