@@ -367,8 +367,7 @@ class Widget(ABC):
     
     def collidespoint(self, point: Point) -> bool:
         """Vérifie la collision avec un point"""
-        self_context = self._context
-        return self.hitbox.world_contains(point, self_context.x, self_context.y, anchor_x=self.anchor_x, anchor_y=self.anchor_y, scale=self_context.scale, rotation=self_context.rotation)
+        return self._geometry.world_contains(point)
     
     # ======================================== INTERFACE ========================================
     @abstractmethod
@@ -756,6 +755,9 @@ class Widget(ABC):
         # Actualisation du contexte de rendu
         self._update_render_context(context, share_scale, share_rotation)
 
+        # Actualisation de la transformation monde
+        self._update_trasnform(self_context)
+
         # Affichage personnel
         self._draw(pipeline, self_context)
 
@@ -828,6 +830,14 @@ class Widget(ABC):
         self_context.z = context.z + 1
         self_context.group = WidgetGroup.get_group(order=context.z, parent=context.group, scissor=self._compute_scissor())
         return self_context
+    
+    def _update_transform(self, context: RenderContext) -> None:
+        """Actualisation de la transformation monde"""
+        tr = self._transform
+        tr.x = context.x
+        tr.y = context.y
+        tr.scale = context.scale
+        tr.rotation = context.rotation
 
     def _compute_scissor(self) -> tuple | None:
         """Calcule le scissor résolu en coordonnées framebuffer"""
@@ -837,12 +847,7 @@ class Widget(ABC):
             result = self._parent._compute_scissor() if self._parent else None
         else:
             self_context = self._context
-            xmin, ymin, xmax, ymax = self.hitbox.world_bounding_box(
-                x=self_context.x, y=self_context.y,
-                anchor_x=self._transform.anchor_x, anchor_y=self._transform.anchor_y,
-                scale=self_context.scale,
-                rotation=self_context.rotation,
-            )
+            xmin, ymin, xmax, ymax = self._geometry.world_bounding_box()
             x, y = self_context.pipeline.world_to_framebuffer(xmin, ymin)
             width, height = self_context.pipeline.scale_to_framebuffer(xmax - xmin, ymax - ymin)
             scissor = (int(x), int(y), int(width), int(height))
