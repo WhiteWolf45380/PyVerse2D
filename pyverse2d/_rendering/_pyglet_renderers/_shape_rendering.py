@@ -275,7 +275,7 @@ class _FillRenderer:
         
         # Changement de position
         if "transform" in changes:
-            vertices = psr.shape.world_vertices()
+            vertices = psr.geometry.world_vertices()
             self._vlist.position[:] = vertices.flatten().tolist()
 
         # Changement de style
