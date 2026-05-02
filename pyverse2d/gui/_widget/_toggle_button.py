@@ -49,8 +49,8 @@ class ToggleButton(Button):
             give_id: bool = False,
         ):
         # Attributs publiques
-        self._on_widget: Widget = on_widget.copy()
-        self._off_widget: Widget = off_widget.copy() if off_widget is not None else self._on_widget.copy()
+        self._on_widget: Widget = on_widget.deepcopy()
+        self._off_widget: Widget = off_widget.deepcopy() if off_widget is not None else self._on_widget.deepcopy()
         self._state: bool = state
         self._toggle_cb: Callable[[bool], Any] | None = callback
         self._current: Widget = self._on_widget if self._state else self._off_widget
@@ -78,7 +78,7 @@ class ToggleButton(Button):
     @on_widget.setter
     def on_widget(self, value: Widget) -> None:
         assert isinstance(value, Widget), f"on_widget ({value}) must be a Widget"
-        self._on_widget = value.copy()
+        self._on_widget = value.deepcopy()
         if self._state:
             self._set_widget(self._on_widget)
     
@@ -93,7 +93,7 @@ class ToggleButton(Button):
     @off_widget.setter
     def off_widget(self, value: Widget | None) -> None:
         assert isinstance(value, Widget), f"off_widget ({value}) must be a Widget"
-        self._off_widget = value.copy() if value is not None else self._on_widget.copy()
+        self._off_widget = value.deepcopy() if value is not None else self._on_widget.deepcopy()
         if not self._state:
             self._set_widget(self._off_widget)
 

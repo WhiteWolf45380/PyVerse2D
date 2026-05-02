@@ -376,8 +376,35 @@ class Widget(ABC):
 
     def deepcopy(self) -> Widget:
         """Renvoie une copie profonde du ``Widget``"""
-        copy = self._copy()
-        copy.children = [wrapper.copy() for wrapper in self._children]
+        copy = self.copy()
+        self.give_hooks(copy)
+        self.give_children(copy)
+        self.give_behaviors(copy)
+
+    def give_state(self, other: Widget) -> None:
+        """Donne une copie de l'état du ``Widget``à un autre ``Widget``"""
+        other._active = self._active
+        other._visible = self._visible
+
+    def give_hooks(self, other: Widget) -> None:
+        """Donne une copie des hooks du ``Widget`` à un autre ``Widget``"""
+        other.on_activate = self._on_activate.copy() if self._on_activate else None
+        other.on_deactivate = self._on_deactivate.copy() if self._on_deactivate else None
+        other.on_show = self._on_show.copy() if self._on_show else None
+        other.on_hide = self._on_hide.copy() if self._on_hide else None
+
+    def give_children(self, other: Widget) -> None:
+        """Donne une copie des enfants du ``Widget`` à un autre ``Widget``"""
+        other.children = [wrapper.copy() for wrapper in self._children]
+
+    def give_behaviors(self, other: Widget) -> None:
+        """Donne une copie des comportements du ``Widget`` à un autre ``Widget``"""
+        for name in self._behaviors:
+            behavior = getattr(self, name)
+            id_ = name[1:]
+            if other.has_behavior(id_):
+                other.remove_behavior(id_)
+            other.add_behavior(behavior)
 
     # ========================================  TRANSFORMATIONS ========================================
     def resize(self, factor: Real) -> None:
@@ -497,23 +524,24 @@ class Widget(ABC):
                 return
         self._behaviors.append(behavior._ID)
 
-    def remove_behavior(self, behavior: Behavior | Type[Behavior]) -> None:
+    def remove_behavior(self, behavior: Behavior | Type[Behavior] | str) -> None:
         """Retire un comportement
 
         Args:
-            behavior: élément ``Behavior`` ou ``Type`` de behavior à retirer
+            behavior: élément ``Behavior`` ou ``Type`` ou identifiant de behavior à retirer
         """
         # Vérifications
-        if getattr(self, f"_{behavior._ID}", None) is None:
+        id_ = behavior if isinstance(behavior, str) else behavior._ID
+        if getattr(self, f"_{id_}", None) is None:
             raise ValueError(f"This widget has no {type(behavior).__name__}")
-        if isinstance(behavior, Behavior) and getattr(self, f"_{behavior._ID}", None) != behavior:
+        if isinstance(behavior, Behavior) and getattr(self, f"_{id_}") != behavior:
             raise ValueError("This widget does not own that behavior")
         
         # Dissociation
         behavior.detach(_from_widget=True)
         self._attr_locks = {attr: p for attr, p in self._attr_locks.items() if p != behavior._PRIORITY}
-        self._behaviors.remove(behavior._ID)
-        setattr(self, f"_{behavior._ID}", None)
+        self._behaviors.remove(id_)
+        setattr(self, f"_{id_}", None)
 
     def get_behavior(self, behavior: type[Behavior] | str) -> Behavior | None:
         """Renvoie un comportement

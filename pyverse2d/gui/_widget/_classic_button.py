@@ -58,9 +58,9 @@ class ClassicButton(Button):
             expect(border, (Border, None))
 
         # Attributs publiques
-        self._background: Surface | Sprite = background.copy()
-        self._label: Label | None = label.copy() if label is not None else None
-        self._border: Border | None = border.copy() if border is not None else None
+        self._background: Surface | Sprite = background.deepcopy()
+        self._label: Label | None = label.deepcopy() if label is not None else None
+        self._border: Border | None = border.deepcopy() if border is not None else None
 
         # Initialisation du bouton
         super().__init__(position, anchor, scale, rotation, opacity, clipping,
@@ -86,7 +86,7 @@ class ClassicButton(Button):
     def background(self, value: Surface | Sprite) -> None:
         assert isinstance(value, (Surface, Sprite)), f"background ({value}) must be a Surface or a Sprite widget"
         self.remove_child(self._background)
-        self._background = self.add_child(value.copy(), name="background", z=0)
+        self._background = self.add_child(value.deepcopy(), name="background", z=0)
         self._invalidate_scissor()
 
     @property
@@ -102,7 +102,7 @@ class ClassicButton(Button):
         assert value is None or isinstance(value, Label), f"label ({value}) must be a Label widget or None"
         if self._label is not None:
             self.remove_child(self._label)
-        self._label = self.add_child(value.copy(), name="label", z=10) if value is not None else None            
+        self._label = self.add_child(value.deepcopy(), name="label", z=10) if value is not None else None            
 
     @property
     def border(self) -> Border | None:
@@ -117,7 +117,7 @@ class ClassicButton(Button):
         assert value is None or isinstance(value, Border), f"border ({value}) must be a Border widget"
         if self._border is not None:
             self.remove_child(self._border)
-        self._border = self.add_child(value.copy(), name="border", z=20) if value is not None else None            
+        self._border = self.add_child(value.deepcopy(), name="border", z=20) if value is not None else None            
 
     @property
     def hitbox(self) -> Shape:
