@@ -2,14 +2,15 @@
 from __future__ import annotations
 
 from ..._internal import expect, expect_callable
-from ..._rendering import Pipeline
-from ...abc import Widget
 from ...math import Point
+
+from ._widget import Widget
 
 from numbers import Real
 from typing import Callable, Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from ..._rendering import Pipeline
     from ...gui import RenderContext
 
 # ======================================== WIDGET ========================================
