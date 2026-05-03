@@ -126,7 +126,7 @@ class PygletLabelRenderer:
             group=self._pipeline.get_group(z=self._z) if self._parent is None else self._parent,
         )
         self._apply_styles()
-        self._refresh_position()
+        self._refresh_transform()
 
     def _apply_styles(self) -> None:
         """Applique les styles set_style en une passe"""
