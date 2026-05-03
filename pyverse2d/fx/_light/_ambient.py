@@ -23,7 +23,7 @@ class Ambient(LightEffect):
 
     _ID: ClassVar[str] = "ambient"
 
-    def __pos_init__(self) -> None:
+    def __post_init__(self) -> None:
         """Transtypage et vérifications"""
         setattr(self, "level", float(self.level))
         setattr(self, "shade", Color(self.shade))

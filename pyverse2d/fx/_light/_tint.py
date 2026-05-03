@@ -23,7 +23,7 @@ class Tint(LightEffect):
 
     _ID: ClassVar[str] = "tint"
 
-    def __pos_init__(self) -> None:
+    def __post_init__(self) -> None:
         """Transtypage et vérifications"""
         setattr(self, "color", Color(self.color))
         setattr(self, "strength", float(self.strength))

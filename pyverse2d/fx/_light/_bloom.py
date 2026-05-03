@@ -24,7 +24,7 @@ class Bloom(LightEffect):
 
     _ID: ClassVar[str] = "bloom"
 
-    def __pos_init__(self) -> None:
+    def __post_init__(self) -> None:
         """Transtypage et vérifications"""
         setattr(self, "radius", abs(float(self.radius)))
         setattr(self, "threshold", float(self.threshold))

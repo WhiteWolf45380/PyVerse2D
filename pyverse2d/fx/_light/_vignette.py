@@ -19,7 +19,7 @@ class Vignette(LightEffect):
 
     _ID: ClassVar[str] = "vignette"
 
-    def __pos_init__(self) -> None:
+    def __post_init__(self) -> None:
         """Transtypage et vérifications"""
         setattr(self, "radius", float(self.radius))
         setattr(self, "color", Color(self.color))
