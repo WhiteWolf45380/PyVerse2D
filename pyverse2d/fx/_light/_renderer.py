@@ -590,7 +590,7 @@ class LightRenderer:
         """
         # Lecture de l'ambiance
         ambient_level = ambient.level
-        ambient_shade = ambient.shade
+        ambient_shade = ambient.shade.rgb
 
         # Vérification des sources
         has_points = bool(points)
@@ -893,7 +893,7 @@ class LightRenderer:
         """
         pipeline.apply_shader(
             self._get_tint_program(),
-            u_tint=tint.color,
+            u_tint=tint.color.rgba,
             u_strength=tint.strength
         )
 
@@ -913,5 +913,5 @@ class LightRenderer:
             self._get_vignette_program(),
             u_strength=vignette.strength,
             u_radius=vignette.radius,
-            u_color=vignette.color,
+            u_color=vignette.color.rgba,
         )
