@@ -7,6 +7,7 @@ from ...asset import Color
 
 from dataclasses import dataclass
 from numbers import Real
+from typing import ClassVar
 
 # ======================================== EFFECT ========================================
 @dataclass(slots=True, frozen=True)
@@ -19,6 +20,8 @@ class Ambient(LightEffect):
     """
     level: Real = 1.0
     color: Color = (0, 0, 0)
+
+    _ID: ClassVar[str] = "ambient"
 
     def __pos_init__(self) -> None:
         """Transtypage et vérifications"""

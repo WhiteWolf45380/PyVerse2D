@@ -7,6 +7,7 @@ from ...asset import Color
 
 from dataclasses import dataclass
 from numbers import Real
+from typing import ClassVar
 
 # ======================================== EFFECT ========================================
 @dataclass(slots=True, frozen=True)
@@ -19,6 +20,8 @@ class Tint(LightEffect):
     """
     color: Color
     strength: Real = 1.0
+
+    _ID: ClassVar[str] = "tint"
 
     def __pos_init__(self) -> None:
         """Transtypage et vérifications"""
