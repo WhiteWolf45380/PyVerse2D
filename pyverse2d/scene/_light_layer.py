@@ -36,7 +36,7 @@ class LightLayer(Layer):
 
     _IS_FX = True
 
-    _DEFAULT_AMBIENT: Ambient = Ambient(level=1.0, color=(1.0, 1.0, 1.0))
+    _DEFAULT_AMBIENT: Ambient = Ambient(level=1.0, shade=(1.0, 1.0, 1.0))
 
     def __init__(
             self,
