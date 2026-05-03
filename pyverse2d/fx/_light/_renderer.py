@@ -47,13 +47,13 @@ _FRAG_AMBIENT = """
 #version 330 core
 uniform sampler2D u_texture;
 uniform float u_ambient;
-uniform vec3 u_ambient_color;
+uniform vec3 u_ambient_shade;
 uniform float u_gamma;
 in vec2 v_uv;
 out vec4 out_color;
 void main() {
     vec4 pixel = texture(u_texture, v_uv);
-    vec3 light = u_ambient_color * u_ambient;
+    vec3 light = mix(u_shade, vec3(1.0), u_ambient);
     light = pow(max(light, vec3(0.0)), vec3(1.0 / u_gamma));
     out_color = vec4(pixel.rgb * light, pixel.a);
 }
@@ -166,7 +166,7 @@ def _build_frag_points(max_lights: int) -> str:
 #version 330 core
 uniform sampler2D u_texture;
 uniform float u_ambient;
-uniform vec3 u_ambient_color;
+uniform vec3 u_ambient_shade;
 uniform float u_exposure;
 uniform float u_gamma;
 uniform int u_count;
@@ -194,7 +194,7 @@ void main() {{
         light_accum += u_colors[i] * u_intensities[i] * falloff;
     }}
 
-    vec3 light = tonemap(u_ambient_color * u_ambient, light_accum, u_exposure);
+    vec3 light = tonemap(mix(u_shade, vec3(1.0), u_ambient), light_accum, u_exposure);
     light = pow(max(light, vec3(0.0)), vec3(1.0 / u_gamma));
     out_color = vec4(pixel.rgb * light, pixel.a);
 }}
@@ -218,7 +218,7 @@ def _build_frag_cones(max_lights: int) -> str:
 #version 330 core
 uniform sampler2D u_texture;
 uniform float u_ambient;
-uniform vec3 u_ambient_color;
+uniform vec3 u_ambient_shade;
 uniform float u_exposure;
 uniform float u_gamma;
 uniform int u_count;
@@ -265,7 +265,7 @@ void main() {{
         light_accum += u_colors[i] * u_intensities[i] * radial_falloff * angular_falloff;
     }}
 
-    vec3 light = tonemap(u_ambient_color * u_ambient, light_accum, u_exposure);
+    vec3 light = tonemap(mix(u_shade, vec3(1.0), u_ambient), light_accum, u_exposure);
     light = pow(max(light, vec3(0.0)), vec3(1.0 / u_gamma));
     out_color = vec4(pixel.rgb * light, pixel.a);
 }}
@@ -291,7 +291,7 @@ def _build_frag_points_cones(max_points: int, max_cones: int) -> str:
 #version 330 core
 uniform sampler2D u_texture;
 uniform float u_ambient;
-uniform vec3 u_ambient_color;
+uniform vec3 u_ambient_shade;
 uniform float u_exposure;
 uniform float u_gamma;
 
@@ -353,7 +353,7 @@ void main() {{
         light_accum += u_cone_colors[i] * u_cone_intensities[i] * radial_falloff * angular_falloff;
     }}
 
-    vec3 light = tonemap(u_ambient_color * u_ambient, light_accum, u_exposure);
+    vec3 light = tonemap(mix(u_shade, vec3(1.0), u_ambient), light_accum, u_exposure);
     light = pow(max(light, vec3(0.0)), vec3(1.0 / u_gamma));
     out_color = vec4(pixel.rgb * light, pixel.a);
 }}
@@ -590,36 +590,36 @@ class LightRenderer:
         """
         # Lecture de l'ambiance
         ambient_level = ambient.level
-        ambient_color = ambient.color
+        ambient_shade = ambient.shade
 
         # Vérification des sources
         has_points = bool(points)
         has_cones = bool(cones)
         if not has_points and not has_cones:
             # Ambiance seule
-            if ambient_level < 1.0 or ambient_color != (1.0, 1.0, 1.0) or gamma != 1.0:
+            if ambient_level < 1.0 or ambient_shade != (1.0, 1.0, 1.0) or gamma != 1.0:
                 pipeline.apply_shader(
                     self._get_ambient_only_program(),
                     u_ambient=ambient_level,
-                    u_ambient_color=ambient_color,
+                    u_shade=ambient_shade,
                     u_gamma=gamma,
                 )
             return
 
         # Répartition
         if has_points and has_cones:
-            self._render_points_cones(pipeline, ambient_level, ambient_color, points, cones, gamma=gamma, exposure=exposure)
+            self._render_points_cones(pipeline, ambient_level, ambient_shade, points, cones, gamma=gamma, exposure=exposure)
         elif has_points:
-            self._render_points(pipeline, ambient_level, ambient_color, points, gamma=gamma, exposure=exposure)
+            self._render_points(pipeline, ambient_level, ambient_shade, points, gamma=gamma, exposure=exposure)
         else:
-            self._render_cones(pipeline, ambient_level, ambient_color, cones, gamma=gamma, exposure=exposure)
+            self._render_cones(pipeline, ambient_level, ambient_shade, cones, gamma=gamma, exposure=exposure)
 
     # ======================================== POINTS ONLY ========================================
     def _render_points(
         self,
         pipeline: Pipeline,
         ambient: float,
-        ambient_color: tuple[float, float, float],
+        ambient_shade: tuple[float, float, float],
         points: list[PointLight],
         *,
         gamma: float = 1.0,
@@ -630,7 +630,7 @@ class LightRenderer:
         Args:
             pipeline: Pipeline de rendu courant
             ambient: Niveau de lumière ambiante globale [0.0, 1.0]
-            ambient_color: Teinte RGB de l'ambient
+            ambient_shade: Couleur d'assombrissement RGB
             points: Liste des point lights à rendre
             gamma: Correction gamma de sortie
             exposure: Exposition pour les lumières dynamiques uniquement
@@ -656,7 +656,7 @@ class LightRenderer:
 
         pipeline.apply_shader(program,
             u_ambient=ambient,
-            u_ambient_color=ambient_color,
+            u_ambient_shade=ambient_shade,
             u_exposure=exposure,
             u_gamma=gamma,
             u_count=len(points),
@@ -672,7 +672,7 @@ class LightRenderer:
         self,
         pipeline: Pipeline,
         ambient: float,
-        ambient_color: tuple[float, float, float],
+        ambient_shade: tuple[float, float, float],
         cones: list[ConeLight],
         *,
         gamma: float = 1.0,
@@ -683,7 +683,7 @@ class LightRenderer:
         Args:
             pipeline: Pipeline de rendu courant
             ambient: Niveau de lumière ambiante globale [0.0, 1.0]
-            ambient_color: Teinte RGB de l'ambient
+            ambient_shade: Couleur d'assombrissement RGB
             cones: Liste des cone lights à rendre
             gamma: Correction gamma de sortie
             exposure: Exposition pour les lumières dynamiques uniquement
@@ -720,7 +720,7 @@ class LightRenderer:
 
         pipeline.apply_shader(program,
             u_ambient=ambient,
-            u_ambient_color=ambient_color,
+            u_ambient_shade=ambient_shade,
             u_exposure=exposure,
             u_gamma=gamma,
             u_count=len(cones),
@@ -739,7 +739,7 @@ class LightRenderer:
         self,
         pipeline: Pipeline,
         ambient: float,
-        ambient_color: tuple[float, float, float],
+        ambient_shade: tuple[float, float, float],
         points: list[PointLight],
         cones: list[ConeLight],
         *,
@@ -751,7 +751,7 @@ class LightRenderer:
         Args:
             pipeline: Pipeline de rendu courant
             ambient: Niveau de lumière ambiante globale [0.0, 1.0]
-            ambient_color: Teinte RGB de l'ambient
+            ambient_shade: Couleur d'assombrissement RGB
             points: Liste des point lights à rendre
             cones: Liste des cone lights à rendre
             gamma: Correction gamma de sortie
@@ -806,7 +806,7 @@ class LightRenderer:
 
         pipeline.apply_shader(program,
             u_ambient=ambient,
-            u_ambient_color=ambient_color,
+            u_ambient_shade=ambient_shade,
             u_exposure=exposure,
             u_gamma=gamma,
             u_point_count=len(points),

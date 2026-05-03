@@ -16,17 +16,17 @@ class Ambient(LightEffect):
     
     Args:
         level: niveau de luminosité *[0, 1]*
-        color: couleur d'assombrissement
+        shade: couleur d'assombrissement *(RGB)*
     """
     level: Real = 1.0
-    color: Color = (0, 0, 0)
+    shade: Color = (0, 0, 0)
 
     _ID: ClassVar[str] = "ambient"
 
     def __pos_init__(self) -> None:
         """Transtypage et vérifications"""
         setattr(self, "level", float(self.level))
-        setattr(self, "color", Color(self.color))
+        setattr(self, "color", Color(self.shade))
 
         if __debug__:
             clamped(self.level)
