@@ -46,14 +46,14 @@ void main() {
 _FRAG_AMBIENT = """
 #version 330 core
 uniform sampler2D u_texture;
-uniform float u_ambient;
+uniform float u_ambient_level;
 uniform vec3 u_ambient_shade;
 uniform float u_gamma;
 in vec2 v_uv;
 out vec4 out_color;
 void main() {
     vec4 pixel = texture(u_texture, v_uv);
-    vec3 light = mix(u_shade, vec3(1.0), u_ambient);
+    vec3 light = mix(u_ambient_shade, vec3(1.0), u_ambient_level);
     light = pow(max(light, vec3(0.0)), vec3(1.0 / u_gamma));
     out_color = vec4(pixel.rgb * light, pixel.a);
 }
@@ -165,7 +165,7 @@ def _build_frag_points(max_lights: int) -> str:
     return f"""
 #version 330 core
 uniform sampler2D u_texture;
-uniform float u_ambient;
+uniform float u_ambient_level;
 uniform vec3 u_ambient_shade;
 uniform float u_exposure;
 uniform float u_gamma;
@@ -194,7 +194,7 @@ void main() {{
         light_accum += u_colors[i] * u_intensities[i] * falloff;
     }}
 
-    vec3 light = tonemap(mix(u_shade, vec3(1.0), u_ambient), light_accum, u_exposure);
+    vec3 light = tonemap(mix(u_ambient_shade, vec3(1.0), u_ambient_level), light_accum, u_exposure);
     light = pow(max(light, vec3(0.0)), vec3(1.0 / u_gamma));
     out_color = vec4(pixel.rgb * light, pixel.a);
 }}
@@ -217,7 +217,7 @@ def _build_frag_cones(max_lights: int) -> str:
     return f"""
 #version 330 core
 uniform sampler2D u_texture;
-uniform float u_ambient;
+uniform float u_ambient_level;
 uniform vec3 u_ambient_shade;
 uniform float u_exposure;
 uniform float u_gamma;
@@ -265,7 +265,7 @@ void main() {{
         light_accum += u_colors[i] * u_intensities[i] * radial_falloff * angular_falloff;
     }}
 
-    vec3 light = tonemap(mix(u_shade, vec3(1.0), u_ambient), light_accum, u_exposure);
+    vec3 light = tonemap(mix(u_ambient_shade, vec3(1.0), u_ambient_level), light_accum, u_exposure);
     light = pow(max(light, vec3(0.0)), vec3(1.0 / u_gamma));
     out_color = vec4(pixel.rgb * light, pixel.a);
 }}
@@ -290,7 +290,7 @@ def _build_frag_points_cones(max_points: int, max_cones: int) -> str:
     return f"""
 #version 330 core
 uniform sampler2D u_texture;
-uniform float u_ambient;
+uniform float u_ambient_level;
 uniform vec3 u_ambient_shade;
 uniform float u_exposure;
 uniform float u_gamma;
@@ -353,7 +353,7 @@ void main() {{
         light_accum += u_cone_colors[i] * u_cone_intensities[i] * radial_falloff * angular_falloff;
     }}
 
-    vec3 light = tonemap(mix(u_shade, vec3(1.0), u_ambient), light_accum, u_exposure);
+    vec3 light = tonemap(mix(u_ambient_shade, vec3(1.0), u_ambient_level), light_accum, u_exposure);
     light = pow(max(light, vec3(0.0)), vec3(1.0 / u_gamma));
     out_color = vec4(pixel.rgb * light, pixel.a);
 }}
@@ -600,8 +600,8 @@ class LightRenderer:
             if ambient_level < 1.0 or ambient_shade != (1.0, 1.0, 1.0) or gamma != 1.0:
                 pipeline.apply_shader(
                     self._get_ambient_only_program(),
-                    u_ambient=ambient_level,
-                    u_shade=ambient_shade,
+                    u_ambient_level=ambient_level,
+                    u_ambient_shade=ambient_shade,
                     u_gamma=gamma,
                 )
             return
@@ -618,7 +618,7 @@ class LightRenderer:
     def _render_points(
         self,
         pipeline: Pipeline,
-        ambient: float,
+        ambient_level: float,
         ambient_shade: tuple[float, float, float],
         points: list[PointLight],
         *,
@@ -629,7 +629,7 @@ class LightRenderer:
 
         Args:
             pipeline: Pipeline de rendu courant
-            ambient: Niveau de lumière ambiante globale [0.0, 1.0]
+            ambient_level: Niveau de lumière ambiante globale [0.0, 1.0]
             ambient_shade: Couleur d'assombrissement RGB
             points: Liste des point lights à rendre
             gamma: Correction gamma de sortie
@@ -655,7 +655,7 @@ class LightRenderer:
         gl.glBindTexture(gl.GL_TEXTURE_2D, atlas_tex)
 
         pipeline.apply_shader(program,
-            u_ambient=ambient,
+            u_ambient_level=ambient_level,
             u_ambient_shade=ambient_shade,
             u_exposure=exposure,
             u_gamma=gamma,
@@ -671,7 +671,7 @@ class LightRenderer:
     def _render_cones(
         self,
         pipeline: Pipeline,
-        ambient: float,
+        ambient_level: float,
         ambient_shade: tuple[float, float, float],
         cones: list[ConeLight],
         *,
@@ -682,7 +682,7 @@ class LightRenderer:
 
         Args:
             pipeline: Pipeline de rendu courant
-            ambient: Niveau de lumière ambiante globale [0.0, 1.0]
+            ambient_level: Niveau de lumière ambiante globale [0.0, 1.0]
             ambient_shade: Couleur d'assombrissement RGB
             cones: Liste des cone lights à rendre
             gamma: Correction gamma de sortie
@@ -719,7 +719,7 @@ class LightRenderer:
         gl.glBindTexture(gl.GL_TEXTURE_2D, atlas_tex)
 
         pipeline.apply_shader(program,
-            u_ambient=ambient,
+            u_ambient_level=ambient_level,
             u_ambient_shade=ambient_shade,
             u_exposure=exposure,
             u_gamma=gamma,
@@ -738,7 +738,7 @@ class LightRenderer:
     def _render_points_cones(
         self,
         pipeline: Pipeline,
-        ambient: float,
+        ambient_level: float,
         ambient_shade: tuple[float, float, float],
         points: list[PointLight],
         cones: list[ConeLight],
@@ -750,7 +750,7 @@ class LightRenderer:
 
         Args:
             pipeline: Pipeline de rendu courant
-            ambient: Niveau de lumière ambiante globale [0.0, 1.0]
+            ambient_level: Niveau de lumière ambiante globale [0.0, 1.0]
             ambient_shade: Couleur d'assombrissement RGB
             points: Liste des point lights à rendre
             cones: Liste des cone lights à rendre
@@ -805,7 +805,7 @@ class LightRenderer:
         gl.glBindTexture(gl.GL_TEXTURE_2D, cone_atlas)
 
         pipeline.apply_shader(program,
-            u_ambient=ambient,
+            u_ambient_level=ambient_level,
             u_ambient_shade=ambient_shade,
             u_exposure=exposure,
             u_gamma=gamma,
