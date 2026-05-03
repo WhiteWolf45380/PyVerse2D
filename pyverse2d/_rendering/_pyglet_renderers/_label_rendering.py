@@ -360,16 +360,23 @@ class PygletLabelRenderer:
     def _refresh_transform(self) -> None:
         """Actualise la transformation monde"""
         transform = self._transform
+        anchor = transform.anchor
 
+        # Rotscale
         self._label.font_size = int(self._text.font.size * transform.scale)
         self._label.rotation = -transform.rotation
 
+        # Décalage dû à l'ancre
+        anchor_dx = anchor.x * self._label.content_width
+        anchor_dy = anchor.y * self._label.content_height
+
+        # Composition
         if self._offset is not None:
-            self._label.x = transform.x + self._offset.x
-            self._label.y = transform.y + self._offset.y
+            self._label.x = transform.x + self._offset.x - anchor_dx
+            self._label.y = transform.y + self._offset.y - anchor_dy
         else:
-            self._label.x = transform.x
-            self._label.y = transform.y
+            self._label.x = transform.x - anchor_dx
+            self._label.y = transform.y - anchor_dy
 
     def _rebuild(self) -> None:
         """Reconstruit le label avec les paramètres courants"""
