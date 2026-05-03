@@ -77,7 +77,6 @@ _FRAG_BLOOM_BLUR = """
 #version 330 core
 uniform sampler2D u_texture;
 uniform vec2 u_direction;
-uniform float u_radius;
 uniform vec2 u_texel;
 in vec2 v_uv;
 out vec4 out_color;
@@ -86,7 +85,7 @@ const float WEIGHTS[5] = float[](0.227027, 0.194595, 0.121622, 0.054054, 0.01621
 
 void main() {
     vec3 result = texture(u_texture, v_uv).rgb * WEIGHTS[0];
-    vec2 step = u_direction * u_texel * u_radius;
+    vec2 step = u_direction * u_texel;
     for (int i = 1; i < 5; i++) {
         result += texture(u_texture, v_uv + step * float(i)).rgb * WEIGHTS[i];
         result += texture(u_texture, v_uv - step * float(i)).rgb * WEIGHTS[i];
@@ -841,7 +840,6 @@ class LightRenderer:
         # Configuration
         scene_fbo = pipeline.fbo
         bloom_fbo = self._get_bloom_fbo(scene_fbo.width, scene_fbo.height)
-        radius_px = pipeline.scale_to_framebuffer(width=bloom.radius)
         texel = (1.0 / scene_fbo.width, 1.0 / scene_fbo.height)
 
         # Sauvegarde de l'original
@@ -856,19 +854,17 @@ class LightRenderer:
             u_threshold=bloom.threshold,
         )
 
-        # Blur horizontal
-        pipeline.apply_shader(self._get_bloom_blur_program(),
-            u_direction=(1.0, 0.0),
-            u_radius=radius_px,
-            u_texel=texel,
-        )
-
-        # Blur vertical
-        pipeline.apply_shader(self._get_bloom_blur_program(),
-            u_direction=(0.0, 1.0),
-            u_radius=radius_px,
-            u_texel=texel,
-        )
+        # Blur gaussien itératif
+        passes = max(1, int(bloom.radius / 2))
+        for _ in range(passes):
+            pipeline.apply_shader(self._get_bloom_blur_program(),
+                u_direction=(1.0, 0.0),
+                u_texel=texel,
+            )
+            pipeline.apply_shader(self._get_bloom_blur_program(),
+                u_direction=(0.0, 1.0),
+                u_texel=texel,
+            )
 
         # Blend additif bloom + original
         gl.glActiveTexture(gl.GL_TEXTURE1)
