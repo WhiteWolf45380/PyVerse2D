@@ -26,9 +26,9 @@ class Bloom(LightEffect):
 
     def __post_init__(self) -> None:
         """Transtypage et vérifications"""
-        setattr(self, "radius", abs(float(self.radius)))
-        setattr(self, "threshold", float(self.threshold))
-        setattr(self, "intensity", float(self.intensity))
+        object.__setattr__(self, "radius", abs(float(self.radius)))
+        object.__setattr__(self, "threshold", float(self.threshold))
+        object.__setattr__(self, "intensity", float(self.intensity))
 
         if __debug__:
             not_null(self.radius)

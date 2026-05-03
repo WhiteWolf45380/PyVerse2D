@@ -25,8 +25,8 @@ class Ambient(LightEffect):
 
     def __post_init__(self) -> None:
         """Transtypage et vérifications"""
-        setattr(self, "level", float(self.level))
-        setattr(self, "shade", Color(self.shade))
+        object.__setattr__(self, "level", float(self.level))
+        object.__setattr__(self, "shade", Color(self.shade))
 
         if __debug__:
             clamped(self.level)

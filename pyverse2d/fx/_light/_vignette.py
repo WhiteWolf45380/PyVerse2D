@@ -21,9 +21,9 @@ class Vignette(LightEffect):
 
     def __post_init__(self) -> None:
         """Transtypage et vérifications"""
-        setattr(self, "radius", float(self.radius))
-        setattr(self, "color", Color(self.color))
-        setattr(self, "strength", float(self.strength))
+        object.__setattr__(self, "radius", float(self.radius))
+        object.__setattr__(self, "color", Color(self.color))
+        object.__setattr__(self, "strength", float(self.strength))
 
         if __debug__:
             clamped(self.radius)
