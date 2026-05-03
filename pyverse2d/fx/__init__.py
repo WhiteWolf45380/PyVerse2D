@@ -1,13 +1,13 @@
 # ======================================== IMPORTS ========================================
 from ._light import (
-    PointLight,
-    ConeLight,
+    PointLight, ConeLight,
+    Ambient, Bloom, Tint, Vignette,
     LightRenderer,
 )
 
 # ======================================== EXPORTS ========================================
 __all__ = [
-    "PointLight",
-    "ConeLight",
+    "PointLight", "ConeLight",
+    "Ambient", "Bloom", "Tint", "Vignette",
     "LightRenderer",
 ]

@@ -17,7 +17,7 @@ from ._ecs import Component, System
 
 from ._gui import Tween, Behavior, Widget, Button
 
-from ._fx import LightSource
+from ._fx import LightSource, LightEffect
 
 from ._layer import Layer
 
@@ -48,6 +48,7 @@ __all__ = [
     "Button",
 
     "LightSource",
+    "LightEffect",
 
     "Layer",
     
