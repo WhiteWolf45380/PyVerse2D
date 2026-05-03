@@ -834,9 +834,11 @@ class LightRenderer:
             pipeline: Pipeline de rendu courant
             bloom: paramètres du saignement
         """
+        # Sortie rapide
         if bloom.radius <= 0.0:
             return
 
+        # Configuration
         scene_fbo = pipeline.fbo
         bloom_fbo = self._get_bloom_fbo(scene_fbo.width, scene_fbo.height)
         radius_px = pipeline.scale_to_framebuffer(width=bloom.radius)
@@ -849,27 +851,32 @@ class LightRenderer:
         scene_fbo.bind()
 
         # Extraction des zones lumineuses
-        pipeline.apply_shader(self._get_bloom_extract_program(),
-            u_threshold=bloom.threshold)
+        pipeline.apply_shader(
+            self._get_bloom_extract_program(),
+            u_threshold=bloom.threshold,
+        )
 
         # Blur horizontal
         pipeline.apply_shader(self._get_bloom_blur_program(),
             u_direction=(1.0, 0.0),
             u_radius=radius_px,
-            u_texel=texel)
+            u_texel=texel,
+        )
 
         # Blur vertical
         pipeline.apply_shader(self._get_bloom_blur_program(),
             u_direction=(0.0, 1.0),
             u_radius=radius_px,
-            u_texel=texel)
+            u_texel=texel,
+        )
 
         # Blend additif bloom + original
         gl.glActiveTexture(gl.GL_TEXTURE1)
         gl.glBindTexture(gl.GL_TEXTURE_2D, bloom_fbo.texture_id)
         pipeline.apply_shader(self._get_bloom_blend_program(),
             u_intensity=bloom.intensity,
-            u_original=1)
+            u_original=1,
+        )
         scene_fbo.bind()
 
     # ======================================== TINT ========================================
