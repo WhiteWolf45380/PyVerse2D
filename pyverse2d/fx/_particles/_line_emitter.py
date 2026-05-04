@@ -23,7 +23,7 @@ class LineEmitter(ParticleEmitter):
         normal: True pour émettre perpendiculairement au segment, False pour direction aléatoire
         active: état initial
     """
-    __slots__ = ("x1", "y1", "x2", "y2", "_normal")
+    __slots__ = ("_p1", "_p2", "_normal")
 
     def __init__(
         self,
