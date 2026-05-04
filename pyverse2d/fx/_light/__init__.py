@@ -1,6 +1,6 @@
 # ======================================== IMPORTS ========================================
-from ._point import PointLight
-from ._cone import ConeLight
+from ._point_light import PointLight
+from ._cone_light import ConeLight
 
 from ._ambient import Ambient
 from ._bloom import Bloom
