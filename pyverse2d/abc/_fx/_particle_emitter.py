@@ -17,8 +17,7 @@ class ParticleEmitter(ABC):
     """Classe abstraite des émetteur de particules
 
     Args:
-        x: position horizontale
-        y: position verticale
+        position: position
         particle: configuration de particule
         max_particles: nombre maximum de particules simultanées
         rate: taux d'émission en particules/seconde
@@ -200,6 +199,7 @@ class ParticleEmitter(ABC):
             return None
 
         t  = np.clip(1.0 - self._lifetimes[alive] / self._max_lifetimes[alive], 0.0, 1.0)
+        t = self._particle.easing(t)
         t4 = t[:, np.newaxis]
 
         sizes  = (self._sizes[alive] * (1.0 - t) + self._sizes_end[alive] * t ).astype(np.float32)

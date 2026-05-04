@@ -1,8 +1,9 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from ..._internal import positive, under
+from ..._internal import positive, under, expect_callable
 from ...asset import Color
+from ...math.easing import linear, EasingFunc
 
 from dataclasses import dataclass
 from typing import Tuple
@@ -21,6 +22,7 @@ class Particle:
         angular_velocity: vitesse angulaire (min, max) en degrés/s
         color_start: couleur initiale
         color_end: couleur finale
+        easing: fonction d'atténuation temporelle
     """
     lifetime: Tuple[Real, Real] = (1.0, 2.0)
     speed: Tuple[Real, Real] = (50.0, 150.0)
@@ -29,6 +31,7 @@ class Particle:
     angular_velocity: Tuple[Real, Real] = (-180.0, 180.0)
     color_start: Color = None
     color_end: Color = None
+    easing: EasingFunc = linear
 
     def __post_init__(self) -> None:
         object.__setattr__(self, 'lifetime', (float(self.lifetime[0]), float(self.lifetime[1])))
@@ -50,3 +53,4 @@ class Particle:
             positive(self.size[1])
             under(self.size[0], self.size[1])
             positive(self.size_end)
+            expect_callable(self.easing)
