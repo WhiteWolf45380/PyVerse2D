@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from ...abc import ParticleEmitter
+from ...math import Point
 
 from ._particle import Particle
 
@@ -14,8 +15,7 @@ class CircleEmitter(ParticleEmitter):
     """Emetteur circulaire: émission depuis le périmètre ou l'intérieur d'un cercle
 
     Args:
-        x: position horizontale du centre
-        y: position verticale du centre
+        position: position du centre
         radius: rayon du cercle en unités monde
         fill: True pour émettre depuis l'intérieur, False pour le périmètre uniquement
         particle: pattern de particule
@@ -27,21 +27,31 @@ class CircleEmitter(ParticleEmitter):
 
     def __init__(
         self,
-        x: Real = 0.0,
-        y: Real = 0.0,
+        position: Point = (0.0, 0.0),
         *,
-        radius: Real = 50.0,
+        radius: Real = 1.0,
         fill: bool = False,
         outward: bool = True,
         particle: Particle = None,
         max_particles: int = 500,
-        rate: Real = 50.0,
+        rate: Real = 0.0,
     ):
-        super().__init__(x, y, particle=particle, max_particles=max_particles, rate=rate)
-        self._radius = float(radius)
-        self._fill = bool(fill)
-        self._outward = bool(outward)
+        # Transtypage
+        radius = float(radius)
+        fill = bool(fill)
+        outward = bool(outward)
 
+        # Initialisation de l'émetteur
+        super().__init__(position, particle=particle, max_particles=max_particles, rate=rate)
+
+        # Attributs publiques
+        self._radius = radius
+        self._fill = fill
+        self._outward = outward
+
+    # ======================================== PROPERTIES ========================================
+
+    # ======================================== INTERNALS ========================================
     def _emit(self, count: int) -> tuple[np.ndarray, np.ndarray]:
         p = self._particle
         angles = np.random.uniform(0.0, 2.0 * math.pi, count)
@@ -54,7 +64,7 @@ class CircleEmitter(ParticleEmitter):
         ox = r * np.cos(angles)
         oy = r * np.sin(angles)
 
-        positions = np.stack([self.x + ox, self.y + oy], axis=1).astype(np.float32)
+        positions = np.stack([self._position.x + ox, self._position.y + oy], axis=1).astype(np.float32)
 
         speeds = np.random.uniform(p.speed[0], p.speed[1], count)
         if self._outward:

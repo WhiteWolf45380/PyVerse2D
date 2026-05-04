@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from ..._rendering import Pipeline
 
-from ._emitter import ParticleEmitter
+from ...abc import ParticleEmitter
 
 import ctypes
 import numpy as np
