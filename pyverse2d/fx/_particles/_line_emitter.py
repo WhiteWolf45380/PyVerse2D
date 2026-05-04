@@ -21,6 +21,7 @@ class LineEmitter(ParticleEmitter):
         max_particles: nombre maximum de particules simultanées
         rate: taux d'émission en particules/seconde
         normal: True pour émettre perpendiculairement au segment, False pour direction aléatoire
+        active: état initial
     """
     __slots__ = ("x1", "y1", "x2", "y2", "_normal")
 
@@ -33,6 +34,7 @@ class LineEmitter(ParticleEmitter):
         particle: Particle = None,
         max_particles: int = 500,
         rate: Real = 50.0,
+        active: bool = False,
     ):
         # Transtypage
         p1 = Point(p1)
@@ -40,7 +42,7 @@ class LineEmitter(ParticleEmitter):
         normal = bool(normal)
 
         # Initialisation de l'émetteur
-        super().__init__(p1, particle=particle, max_particles=max_particles, rate=rate)
+        super().__init__(p1, particle=particle, max_particles=max_particles, rate=rate, active=active)
 
         # Attributs publiques
         self._p1: Point = p1

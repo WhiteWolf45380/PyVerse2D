@@ -20,6 +20,7 @@ class ConeEmitter(ParticleEmitter):
         particle: pattern de particule
         max_particles: nombre maximum de particules simultanées
         rate: taux d'émission en particules/seconde
+        active: état initial
     """
     __slots__ = ("_direction", "_spread")
 
@@ -32,13 +33,14 @@ class ConeEmitter(ParticleEmitter):
         particle: Particle = None,
         max_particles: int = 500,
         rate: Real = 50.0,
+        active: bool = False,
     ):
         # Transtypage
         direction = float(direction)
         spread = float(spread)
 
         # Initialisation de l'émetteur
-        super().__init__(position, particle=particle, max_particles=max_particles, rate=rate)
+        super().__init__(position, particle=particle, max_particles=max_particles, rate=rate, active=active)
 
         # Attributs publiques
         self._direction = direction

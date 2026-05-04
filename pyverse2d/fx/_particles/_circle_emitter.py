@@ -22,6 +22,7 @@ class CircleEmitter(ParticleEmitter):
         particle: pattern de particule
         max_particles: nombre maximum de particules simultanées
         rate: taux d'émission en particules/seconde
+        active: état initial
     """
     __slots__ = ("_radius", "_fill", "_outward")
 
@@ -34,7 +35,8 @@ class CircleEmitter(ParticleEmitter):
         outward: bool = True,
         particle: Particle = None,
         max_particles: int = 500,
-        rate: Real = 0.0,
+        rate: Real = 50.0,
+        active: bool = False,
     ):
         # Transtypage
         radius = abs(float(radius))
@@ -42,7 +44,7 @@ class CircleEmitter(ParticleEmitter):
         outward = bool(outward)
 
         # Initialisation de l'émetteur
-        super().__init__(position, particle=particle, max_particles=max_particles, rate=rate)
+        super().__init__(position, particle=particle, max_particles=max_particles, rate=rate, active=active)
 
         # Attributs publiques
         self._radius = radius
