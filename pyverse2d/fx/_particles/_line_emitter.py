@@ -48,6 +48,20 @@ class LineEmitter(ParticleEmitter):
         self._normal = normal
 
     # ======================================== PROPERTIES ========================================
+    @property
+    def p1(self) -> Point:
+        """Position du premier point
+
+        La position peut être un objet ``Point`` ou n'importe quel tuple ``(x, y)``.
+        """
+        return self._p1
+
+
+    @p1.setter
+    def p1(self, value: Point) -> None:
+        value = Point(value)
+        self._p1 = value
+        self.position = value
 
     # ======================================== INTERNALS ========================================
     def _emit(self, count: int) -> tuple[np.ndarray, np.ndarray]:
@@ -62,8 +76,8 @@ class LineEmitter(ParticleEmitter):
 
         speeds = np.random.uniform(p.speed[0], p.speed[1], count)
         if self._normal:
-            dx  = x2 - x1
-            dy  = y2 - y1
+            dx = x2 - x1
+            dy = y2 - y1
             lng = math.sqrt(dx**2 + dy**2) or 1.0
             nx, ny = -dy / lng, dx / lng
             velocities = np.stack([

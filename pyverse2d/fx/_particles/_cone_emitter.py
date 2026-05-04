@@ -45,6 +45,34 @@ class ConeEmitter(ParticleEmitter):
         self._spread = spread
 
     # ======================================== PROPERTIES ========================================
+    @property
+    def direction(self) -> float:
+        """Angle directionnel du cône
+
+        Cette propriété fixe l'angle du cône d'émissione.
+        L'angle est *en degrés* et la rotation se fait dans le sens trigonométrique *(CCW)*.
+        Mettre cette propriété à ``0.0`` pour orienter le cône vers ``(1.0, 0.0)``.
+        """
+        return self._direction
+    
+    @direction.setter
+    def direction(self, value: Real) -> None:
+        value = float(value)
+        self._direction = value
+
+    @property
+    def spread(self) -> float:
+        """Demi angle du cône
+
+        Cette propriété règle la dispersion de l'émission.
+        Metre cette propriété à ``0.0`` pour une émission en ligne droite.
+        """
+        return self._spread
+    
+    @spread.setter
+    def spread(self, value: Real) -> None:
+        value = float(value)
+        self._spread = value
 
     # ======================================== INTERNALS ========================================
     def _emit(self, count: int) -> tuple[np.ndarray, np.ndarray]:

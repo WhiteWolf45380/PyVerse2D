@@ -18,10 +18,10 @@ class CircleEmitter(ParticleEmitter):
         position: position du centre
         radius: rayon du cercle en unités monde
         fill: True pour émettre depuis l'intérieur, False pour le périmètre uniquement
+        outward: True pour émettre vers l'extérieur, False pour direction aléatoire
         particle: pattern de particule
         max_particles: nombre maximum de particules simultanées
         rate: taux d'émission en particules/seconde
-        outward: True pour émettre vers l'extérieur, False pour direction aléatoire
     """
     __slots__ = ("_radius", "_fill", "_outward")
 
@@ -37,7 +37,7 @@ class CircleEmitter(ParticleEmitter):
         rate: Real = 0.0,
     ):
         # Transtypage
-        radius = float(radius)
+        radius = abs(float(radius))
         fill = bool(fill)
         outward = bool(outward)
 
@@ -50,6 +50,46 @@ class CircleEmitter(ParticleEmitter):
         self._outward = outward
 
     # ======================================== PROPERTIES ========================================
+    @property
+    def radius(self) -> float:
+        """Rayon de l'émetteur
+        
+        Le rayon doit être un ``Réel``.
+        """
+        return self._radius
+    
+    @radius.setter
+    def radius(self, value: Real) -> None:
+        value = abs(float(value))
+        self._radius = value
+
+    @property
+    def fill(self) -> bool:
+        """Emission interne
+        
+        Mettre cette propriété à ``True`` pour émettre des particules depuis l'intérieur de cercle.
+        Mettre cette propriété à ``False`` pour émettre des particules uniquement depuis le périmètre du cercle.
+        """
+        return self._fill
+    
+    @fill.setter
+    def fill(self, value: bool) -> None:
+        value = bool(value)
+        self._fill = value
+
+    @property
+    def outward(self) -> bool:
+        """Direction d'émission
+        
+        Mettre cette propriété à ``True`` pour émettre des particules strictement depuis le centre vers l'extérieur.
+        Mettre cette propriété à ``False`` pour émettre des particules dans des directions aléatoires.
+        """
+        return self._outward
+    
+    @outward.setter
+    def outward(self, value: bool) -> None:
+        value = bool(value)
+        self._outward = value
 
     # ======================================== INTERNALS ========================================
     def _emit(self, count: int) -> tuple[np.ndarray, np.ndarray]:
