@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from .._internal import expect
 from .._rendering import Pipeline, Camera
-from ..abc import Layer
-from ..fx import ParticleEmitter, ParticleRenderer
+from ..abc import Layer, ParticleEmitter
+from ..fx import ParticleRenderer
 
 # ======================================== LAYER ========================================
 class ParticleLayer(Layer):
