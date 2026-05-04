@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, ClassVar, Type
 if TYPE_CHECKING:
     from ...fx import Particle
 
-# ======================================== ABC ========================================
+# ======================================== ABSTRACT CLASS ========================================
 class ParticleEmitter(ABC):
     """Classe abstraite des émetteur de particules
 
