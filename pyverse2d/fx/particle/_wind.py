@@ -23,7 +23,7 @@ class Wind(ParticleModifier):
     """
     __slots__ = (
         "_strength", "_direction", "_variation",
-        "_gust_intensity", "_gust_interval", "_turbulence",
+        "_gust_intensity", "_gust_duration", "_gust_interval", "_turbulence",
         "_fx", "_fy", "_time",
     )
 
