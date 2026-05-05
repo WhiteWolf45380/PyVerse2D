@@ -18,7 +18,7 @@ class ParticleLayer(Layer):
     """
     __slots__ = (
         "_additive",
-        "_emitters", "_modifiers"
+        "_emitters", "_modifiers",
         "_renderer",
     )
 
