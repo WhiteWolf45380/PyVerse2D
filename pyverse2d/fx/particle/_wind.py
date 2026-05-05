@@ -24,7 +24,8 @@ class Wind(ParticleModifier):
     __slots__ = (
         "_strength", "_direction", "_variation",
         "_gust_intensity", "_gust_duration", "_gust_interval", "_turbulence",
-        "_fx", "_fy", "_time",
+        "_gust_timer", "_next_gust",
+        "_fx", "_fy",
     )
 
     def __init__(
@@ -56,7 +57,8 @@ class Wind(ParticleModifier):
         self._turbulence: float = turbulence
 
         # Attributs interne
-        self._time = 0.0
+        self._gust_timer = 0.0              # temps restant de la bourrasque active
+        self._next_gust = gust_interval     # countdown avant prochaine
 
         # Calcul du vecteur directionnel
         self._update_components()
@@ -106,7 +108,6 @@ class Wind(ParticleModifier):
             gust = 0.0
             if self._next_gust <= 0.0:
                 self._gust_timer = self._gust_duration
-                # Intervalle aléatoire pour la prochaine
                 self._next_gust = self._gust_interval * random.uniform(0.5, 1.5)
 
         force = base + gust
