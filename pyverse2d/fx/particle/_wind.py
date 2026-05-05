@@ -6,6 +6,7 @@ from ...abc import ParticleModifier
 import numpy as np
 from numbers import Real
 import math
+import random
 
 # ======================================== MODIFIER ========================================
 class Wind(ParticleModifier):
@@ -14,12 +15,15 @@ class Wind(ParticleModifier):
     Args:
         strength: intensité de base en unités monde/s²
         direction: direction en degrés (0 = droite, 90 = haut)
-        gust_strength: amplitude des rafales [0, 1]
-        gust_frequency: fréquence des rafales en Hz
+        variation: variation continue de fond
+        gust_intensity: multiplicateur de force lors d'une bourrasque
+        gust_duration: durée d'une bourrasque en secondes
+        gust_interval: intervalle moyen entre bourrasques
         turbulence: variation aléatoire par particule
     """
     __slots__ = (
-        "_strength", "_direction", "_gust_strength", "_gust_frequency", "_turbulence",
+        "_strength", "_direction", "_variation",
+        "_gust_intensity", "_gust_interval", "_turbulence",
         "_fx", "_fy", "_time",
     )
 
@@ -27,23 +31,29 @@ class Wind(ParticleModifier):
         self,
         strength: Real = 10.0,
         direction: Real = 0.0,
-        gust_strength: Real = 0.4,
-        gust_frequency: Real = 0.8,
+        variation: Real = 0.2,
+        gust_intensity: Real = 3.0,
+        gust_duration: Real = 0.4,
+        gust_interval: Real = 3.0,
         turbulence: Real = 2.0,
     ):
         # Transtypage
         strength = float(strength)
         direction = float(direction)
-        gust_strength = float(gust_strength)
-        gust_frequency = float(gust_frequency)
+        variation = float(variation)
+        gust_intensity = float(gust_intensity)
+        gust_duration = float(gust_duration)
+        gust_interval = float(gust_interval)
         turbulence = float(turbulence)
 
         # Attributs publiques
-        self._strength = strength
-        self._direction = direction
-        self._gust_strength = gust_strength
-        self._gust_frequency= gust_frequency
-        self._turbulence = turbulence
+        self._strength: float = strength
+        self._direction: float = direction
+        self._variation: float = variation
+        self._gust_intensity: float = gust_intensity
+        self._gust_duration: float = gust_duration
+        self._gust_interval: float = gust_interval
+        self._turbulence: float = turbulence
 
         # Attributs interne
         self._time = 0.0
@@ -80,13 +90,33 @@ class Wind(ParticleModifier):
     def apply(self, dt: float, alive: np.ndarray, positions: np.ndarray, velocities: np.ndarray) -> None:
         self._time += dt
 
-        gust = 1.0 + self._gust_strength * math.sin(self._time * self._gust_frequency * math.tau)
+        # Variation continue de fond — plusieurs fréquences pour casser la périodicité
+        base = (
+            1.0
+            + self._variation * 0.6 * math.sin(self._time * math.tau * 0.3)
+            + self._variation * 0.4 * math.sin(self._time * math.tau * 0.7)
+        )
+
+        # Gestion des bourrasques
+        if self._gust_timer > 0.0:
+            self._gust_timer -= dt
+            gust = self._gust_intensity * math.sin(math.pi * (1.0 - self._gust_timer / self._gust_duration))
+        else:
+            self._next_gust -= dt
+            gust = 0.0
+            if self._next_gust <= 0.0:
+                self._gust_timer = self._gust_duration
+                # Intervalle aléatoire pour la prochaine
+                self._next_gust = self._gust_interval * random.uniform(0.5, 1.5)
+
+        force = base + gust
+
         count = int(alive.sum())
         tx = np.random.uniform(-self._turbulence, self._turbulence, count)
         ty = np.random.uniform(-self._turbulence, self._turbulence, count)
 
-        velocities[alive, 0] += (self._fx * gust + tx) * dt
-        velocities[alive, 1] += (self._fy * gust + ty) * dt
+        velocities[alive, 0] += (self._fx * force + tx) * dt
+        velocities[alive, 1] += (self._fy * force + ty) * dt
 
     # ======================================== INTERNALS ========================================
     def _update_components(self) -> None:
