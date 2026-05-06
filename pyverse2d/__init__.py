@@ -5,6 +5,7 @@ from ._version import __version__
 from ._internal import ProfiledRun as _ProfiledRun
 
 import pyglet
+import sys
 from typing import Callable
 from numbers import Real
 
@@ -173,19 +174,13 @@ def profile(
     if _pipeline is None:
         raise RuntimeError("No window set, try set_window() before profile()")
 
-    import sys
     engine = sys.modules[__name__]
-
-    if time.target_dt is not None and time.target_dt > 0:
-        frames = max(1, int(duration / time.target_dt))
-    else:
-        frames = int(duration * 60) 
 
     _ProfiledRun(
         engine = engine,
         on_update = on_update,
         on_draw = on_draw,
-        frames = frames,
+        duration = duration,
         export_path = export_path,
         deep = deep,
         scene_roots = scene_roots,
