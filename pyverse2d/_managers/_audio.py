@@ -789,7 +789,7 @@ class AudioManager(Manager):
         """
         # Transtypage et vérifications
         volume = float(volume)
-        loop = bool(volume)
+        loop = bool(loop)
         fade_s = float(fade_s)
         playlist_fallback = bool(playlist_fallback)
 
