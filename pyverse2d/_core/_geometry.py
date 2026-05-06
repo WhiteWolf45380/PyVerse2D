@@ -1,3 +1,4 @@
+# ======================================== IMPORTS ========================================
 from __future__ import annotations
 
 from ..abc import Shape
@@ -8,8 +9,11 @@ import math
 import numpy as np
 from numpy.typing import NDArray
 
+# ======================================== GEOMETRY ========================================
 class Geometry:
-    """Objet géométrique positionnel
+    """Objet géométrique avec une transformation monde
+
+    Cet objet possède différents caches internes afin d'optimiser la transformation monde d'un objet géométrique local.
     
     Args:
         shape: géométrie locale ``Shape``
@@ -73,20 +77,6 @@ class Geometry:
         return self._transform
     
     @property
-    def offset(self) -> Vector:
-        """Décalage par rapport au ``Transform``"""
-        return self._offset
-    
-    @property
-    def offset_x(self) -> float:
-        """Décalage horizontal"""
-        return self._offset.x
-    
-    @property
-    def offset_y(self) -> float:
-        """Décalage vertical"""
-    
-    @property
     def position(self) -> tuple[float, float]:
         """Position monde"""
         return (self._transform.x + self._offset.x, self._transform.y + self._offset.y)
@@ -125,6 +115,21 @@ class Geometry:
     def scale(self) -> float:
         """Facteur de redimensionnement"""
         return self._transform.scale
+    
+    @property
+    def offset(self) -> Vector:
+        """Décalage par rapport au ``Transform``"""
+        return self._offset
+    
+    @property
+    def offset_x(self) -> float:
+        """Décalage horizontal"""
+        return self._offset.x
+    
+    @property
+    def offset_y(self) -> float:
+        """Décalage vertical"""
+        return self._offset.y
 
     # ======================================== WORLD TRANSFORM ========================================
     def world_vertices(self) -> NDArray[np.float32]:
@@ -244,10 +249,10 @@ class Geometry:
 
 # ======================================== HELPERS ========================================
 def _anchor_offset(
-        bounding_box: tuple[float, float, float, float],
-        anchor_x: float,
-        anchor_y: float,
-    ) -> NDArray[np.float32]:
+    bounding_box: tuple[float, float, float, float],
+    anchor_x: float,
+    anchor_y: float,
+) -> NDArray[np.float32]:
     """Calcul le décalage généré par l'ancre
     
     Args:
@@ -261,3 +266,8 @@ def _anchor_offset(
          ymin + anchor_y * (ymax - ymin)],
         dtype=np.float32,
     )
+
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "Geometry",
+]

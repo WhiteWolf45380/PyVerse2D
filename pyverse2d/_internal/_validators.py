@@ -323,6 +323,8 @@ def different_from(value: Real, target: object, arg: str = "Argument"):
 
 # ======================================== EXPORTS ========================================
 __all__ = [
+    "typename",
+
     "expect",
     "expect_callable",
     "expect_subclass",
@@ -334,6 +336,7 @@ __all__ = [
     "over",
     "under",
     "clamped",
+
     "inferior_to",
     "superior_to",
     "equal_to",
