@@ -1,6 +1,7 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
+import pyglet
 import time
 import functools
 from contextlib import contextmanager
@@ -319,7 +320,7 @@ class ProfiledRun:
         engine: module engine
         on_update: callback utilisateur habituel
         on_draw: callback utilisateur pour le dessin
-        frames: nombre de frames à capturer avant d'arrêter (None = infini)
+        duration: durée de profiling
         export_path: chemin du fichier de sortie (None = console seulement)
         deep: si True, introspecte et wrappe automatiquement les objets de eng.scene pour descendre au niveau classe/méthode
         scene_roots: liste d'objets supplémentaires à inspecter en mode deep (ex: [eng.physics, eng.audio])
@@ -330,7 +331,7 @@ class ProfiledRun:
         engine,
         on_update: Callable[[float], None] = None,
         on_draw: Callable[[], None] = None,
-        frames: int | None = 500,
+        duration: float = 10,
         export_path: str | None = "profile_report.txt",
         deep: bool = True,
         scene_roots: list | None = None,
@@ -338,11 +339,12 @@ class ProfiledRun:
         self._engine = engine
         self._user_update = on_update
         self._user_draw = on_draw
-        self._max_frames = frames
+        self._duration = duration
         self._export_path = export_path
         self._deep = deep
         self._scene_roots = scene_roots or []
         self._profiler = Profiler()
+        self._start_time = 0.0
 
     # ======================================== ENTRY POINT ========================================
     def run(self) -> None:
@@ -380,6 +382,9 @@ class ProfiledRun:
             _draw_ms[0] = (time.perf_counter() - t0) * 1_000
 
         def _update(raw_dt: float):
+            if prof._frame_count == 0:
+                self._start_time = time.time()
+
             prof.begin_frame()
 
             with prof.track("time.tick"):
@@ -403,20 +408,16 @@ class ProfiledRun:
             prof.end_frame()
 
             # Ajoute le draw de la frame précédente au total
-            # (on_draw est appelé avant _update par pyglet)
             if prof._frame_times:
                 prof._frame_times[-1] += _draw_ms[0]
 
-            if self._max_frames is not None and prof._frame_count >= self._max_frames:
+            if time.time() - self._start_time >= self._duration:
                 self._finish()
 
         eng.time.schedule(_update)
 
         try:
-            import pyglet
-            pyglet.app.run(
-                eng.time.target_dt if eng.time.target_dt is not None else 1 / 9999
-            )
+            pyglet.app.run(eng.time.target_dt if eng.time.target_dt is not None else 1 / 9999)
         except Exception:
             pass
         finally:
