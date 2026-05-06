@@ -422,6 +422,24 @@ class ProfiledRun:
         finally:
             self._finish()
 
+    def _finish(self) -> None:
+        _active_profiler.profiler = None
+        self._profiler.restore_patches()
+
+        report = self._profiler.report()
+        print(report)
+
+        if self._export_path:
+            try:
+                self._profiler.export(self._export_path)
+            except OSError as e:
+                print(f"[Profiler] Could not write file: {e}")
+
+        try:
+            self._engine.stop()
+        except Exception:
+            pass
+
 # ======================================== EXPORTS ========================================
 __all__ = [
     "profile_section",
