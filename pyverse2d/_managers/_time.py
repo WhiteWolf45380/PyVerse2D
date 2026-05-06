@@ -1,7 +1,7 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from .._internal import expect, over, positive, clamped
+from .._internal import expect, over, positive, clamped, profile_section
 from ..abc import Manager, Request
 
 from ._context import ContextManager
@@ -140,6 +140,7 @@ class TimeManager(Manager):
         self._time_scale = positive(float(expect(value, Real)))
 
     # ======================================== COLLECTIONS ========================================
+    @profile_section("manager.time.schedule")
     def schedule(self, func: Callable) -> None:
         """Lance une boucle sur une fonction
         
@@ -188,6 +189,7 @@ class TimeManager(Manager):
         self._timers.append(_TimerRequest(callback=callback, elapsed=0, interval=interval, remaining=limit))
 
     # ======================================== LIFE CYCLE ========================================
+    @profile_section("manager.time.tick")
     def tick(self, raw_dt: float) -> float:
         """Calcul le delta-time affiné
         
@@ -203,6 +205,7 @@ class TimeManager(Manager):
         self._eff_dt = self._dt * self._time_scale
         return self._eff_dt
     
+    @profile_section("manager.time.update")
     def update(self, dt: float) -> None:
         """Actualisation
         
@@ -219,6 +222,7 @@ class TimeManager(Manager):
                     if timer.remaining == 0:
                         self._timers.remove(timer)
 
+    @profile_section("manager.time.flush")
     def flush(self) -> None:
         """Nettoyage"""
         pass

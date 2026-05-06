@@ -633,6 +633,7 @@ class AudioManager(Manager):
         return self._active_sounds
 
     # ======================================== MUSICS ========================================
+    @profile_section("manager.audio.play_music")
     def play_music(
         self,
         music: Music,
@@ -762,6 +763,7 @@ class AudioManager(Manager):
         else:
             self._stop_music_immediate()
 
+    @profile_section("manager.audio.switch_music")
     def switch_music(
             self,
             music: Music,
@@ -849,6 +851,7 @@ class AudioManager(Manager):
         return self._current_music
     
     # ======================================== PLAYLISTS ========================================
+    @profile_section("manager.audio.play_playlist")
     def play_playlist(self, playlist: Playlist) -> None:
         """Lance la lecture d'une playlist
         
@@ -917,6 +920,7 @@ class AudioManager(Manager):
         return self._playlist.playing
 
     # ======================================== CYCLE DE VIE ========================================
+    @profile_section("manager.audio.update")
     def update(self, dt: float) -> None:
         """Actualisation
         

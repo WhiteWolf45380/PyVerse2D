@@ -1,4 +1,10 @@
 # ======================================== IMPORTS ========================================
+from ._profiler import (
+    profile_section,
+    Profiler,
+    ProfiledRun,
+)
+
 from ._validators import (
     typename,
     expect, expect_callable, expect_subclass,
@@ -16,14 +22,12 @@ from ._tools import (
     CallbackList,
 )
 
-from ._profiler import (
-    profile_section,
-    Profiler,
-    ProfiledRun,
-)
-
 # ======================================== EXPORTS ========================================
 __all__ = [
+    "profile_section",
+    "Profiler",
+    "ProfiledRun",
+
     "typename",
     "expect", "expect_callable", "expect_subclass",
     "not_null", "not_in",
@@ -34,8 +38,4 @@ __all__ = [
 
     "Processor",
     "CallbackList",
-
-    "profile_section",
-    "Profiler",
-    "ProfiledRun",
 ]

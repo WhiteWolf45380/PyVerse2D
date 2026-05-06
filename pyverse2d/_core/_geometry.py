@@ -4,6 +4,7 @@ from __future__ import annotations
 from ..abc import Shape
 from ..math import Point, Vector
 from ._transform import Transform
+from .._internal import profile_section
 
 import math
 import numpy as np
@@ -132,6 +133,7 @@ class Geometry:
         return self._offset.y
 
     # ======================================== WORLD TRANSFORM ========================================
+    @profile_section("_core.geometry.world_vertices")
     def world_vertices(self) -> NDArray[np.float32]:
         """Vertices en coordonnées monde"""
         self._check_dirty()
@@ -139,6 +141,7 @@ class Geometry:
             self._compute_world_vertices()
         return self._cache_world_vertices
 
+    @profile_section("_core.geometry.world_bounding_box")
     def world_bounding_box(self) -> tuple[float, float, float, float]:
         """AABB ``(x_min, y_min, x_max, y_max)`` en coordonnées monde"""
         self._check_dirty()
@@ -146,6 +149,7 @@ class Geometry:
             self._compute_world_bounding_box()
         return self._cache_world_bounding_box
 
+    @profile_section("_core.geometry.world_center")
     def world_center(self) -> tuple[float, float]:
         """Centre géométrique monde"""
         self._check_dirty()
@@ -153,6 +157,7 @@ class Geometry:
             self._compute_world_center()
         return self._cache_world_center
 
+    @profile_section("_core.geometry.world_contains")
     def world_contains(self, point: Point) -> bool:
         """Hit-test en coordonnées monde"""
         self._check_dirty()

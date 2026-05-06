@@ -263,35 +263,27 @@ class ProfiledRun:
         @native_window.event
         def on_draw():
             t0 = time.perf_counter()
-            with prof.track("window.clear"):
-                pipeline.window.clear()
-            with prof.track("scene.draw"):
-                eng.scene.draw(pipeline)
+            pipeline.window.clear()
+            eng.scene.draw(pipeline)
             if self._user_draw is not None:
-                with prof.track("on_draw (user)"):
-                    self._user_draw()
+                self._user_draw()
             _draw_ms[0] = (time.perf_counter() - t0) * 1_000
 
         def _update(raw_dt: float):
             prof.begin_frame()
 
-            with prof.track("time.tick"):
-                dt = eng.time.tick(raw_dt)
+            dt = eng.time.tick(raw_dt)
 
             for manager in managers:
-                with prof.track(f"update:{type(manager).__name__}"):
-                    manager.update(dt)
+                manager.update(dt)
 
-            with prof.track("scene.update"):
-                eng.scene.update(dt)
+            eng.scene.update(dt)
 
             if self._user_update is not None:
-                with prof.track("on_update (user)"):
-                    self._user_update(dt)
+                self._user_update(dt)
 
             for manager in managers:
-                with prof.track(f"flush:{type(manager).__name__}"):
-                    manager.flush()
+                manager.flush()
 
             prof.end_frame()
 
