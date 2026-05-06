@@ -96,8 +96,8 @@ class Camera(Space):
         rotation: angle de rotation
     """
     __slots__ = (
-        "_position", "_view_width", "_view_height", "_anchor",
-        "_zoom", "_rotation",
+        "_transform",
+        "_view_width", "_view_height",
        "_state",
     )
 
