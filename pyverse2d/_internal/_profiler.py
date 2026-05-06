@@ -237,8 +237,6 @@ class Profiler:
         lines.append("├" + "─" * (W - 2) + "┤")
 
         if group_by_prefix:
-            # ── Construction de l'arbre ──────────────────────────────────────────
-            # Chaque nœud : [_Stats | None, { segment: nœud }]
             tree: dict = {}
             for name, stats in self._sections.items():
                 node = tree
@@ -250,12 +248,10 @@ class Profiler:
                     node[leaf] = [None, {}]
                 node[leaf][0] = stats
 
-            # ── Agrégats récursifs ───────────────────────────────────────────────
             def t_mean(nd): s, ch = nd; return (s.mean if s else 0.0) + sum(t_mean(c) for c in ch.values())
             def t_peak(nd): s, ch = nd; return max([(s.peak if s else 0.0)] + [t_peak(c) for c in ch.values()])
             def t_p95 (nd): s, ch = nd; return max([(s.p95  if s else 0.0)] + [t_p95 (c) for c in ch.values()])
 
-            # ── Rendu récursif ───────────────────────────────────────────────────
             def render(name: str, node, depth: int, last: bool) -> None:
                 stats, children = node
                 mean = t_mean(node)
@@ -305,14 +301,12 @@ class Profiler:
             f.write(self.report())
         print(f"[Profiler] Report exported → {path}")
 
-
 # ======================================== HELPERS ========================================
 def _mini_bar(pct: float, width: int = 6, ch: str = "█") -> str:
     """Barre de progression ASCII proportionnelle à pct (0-100)."""
     filled = min(width, round(pct / 100 * width))
     empty  = width - filled
     return ch * filled + "·" * empty
-
 
 # ======================================== RUN CONFIGURATION ========================================
 class ProfiledRun:
