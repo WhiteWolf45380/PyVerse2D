@@ -309,12 +309,12 @@ class Camera(Space):
     def copy(self) -> Camera:
         """Crée une copie de la caméra"""
         return Camera(
-            position = self._position,
+            position = self._transform.position,
             view_width = self._view_width,
             view_height = self._view_height,
-            anchor = self._anchor,
-            zoom = self._zoom,
-            rotation = self._rotation,
+            anchor = self._transform.anchor,
+            zoom = self._transform.scale,
+            rotation = self._transform.rotation,
         )
     
     # ======================================== POSITION ========================================
@@ -462,12 +462,12 @@ class Camera(Space):
         # Position
         target_x, target_y = target.x + offset.x, target.y + offset.y
         t = 1 - follow.smoothing ** dt
-        x, y = _step_position(self._position.x, self._position.y, target_x, target_y, t)
+        x, y = _step_position(self._transform.x, self._transform.y, target_x, target_y, t)
         
         # Limitation de vitesse
         if follow.max_speed is not None:
             dx = x - self._transform.x
-            dy = y - self._position.y
+            dy = y - self._transform.y
             max_dist = follow.max_speed * dt
             dist = (dx ** 2 + dy ** 2) ** 0.5
             if dist > max_dist:
