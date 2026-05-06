@@ -90,12 +90,12 @@ class TileLayer(Layer):
         """Préchargement"""
         pass
 
-    @profile_section("tile.layer.draw")
+    @profile_section("scene.tile_layer.draw")
     def _update(self, dt: float) -> None:
         """Actualisation"""
         ...
 
-    @profile_section("tile.layer.draw")
+    @profile_section("scene.tile_layer.draw")
     def _draw(self, pipeline: Pipeline) -> None:
         """Affuchage"""
         if not self._renderer.built:

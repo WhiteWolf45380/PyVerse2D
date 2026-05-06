@@ -132,7 +132,7 @@ class ParticleLayer(Layer):
     def _preload(self):
         """Préchargement spécialisé"""
 
-    @profile_section("particle.layer.update")
+    @profile_section("scene.particle_layer.update")
     def _update(self, dt: float) -> None:
         """Actualisation
         
@@ -142,7 +142,7 @@ class ParticleLayer(Layer):
         for emitter in self._emitters:
             emitter.update(dt, modifiers=(self._modifiers or None))
 
-    @profile_section("particle.layer.draw")
+    @profile_section("scene.particle_layer.draw")
     def _draw(self, pipeline: Pipeline) -> None:
         """Affichage
         

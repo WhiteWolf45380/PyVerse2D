@@ -247,7 +247,7 @@ class LightLayer(Layer):
         """Préchargement spécialisé"""
         pass
 
-    @profile_section("light.layer.update")
+    @profile_section("scene.light_layer.update")
     def _update(self, dt: float) -> None:
         """Actualisation"""
         for source in self._sources:
@@ -259,7 +259,7 @@ class LightLayer(Layer):
             elif state is Activity.DISABLED:
                 self._get_active_list(source).remove(source)
 
-    @profile_section("light.layer.draw")
+    @profile_section("scene.light_layer.draw")
     def _draw(self, pipeline: Pipeline) -> None:
         """Affichage"""
         self._renderer.render_ambient(pipeline, self._ambient or self._DEFAULT_AMBIENT, self._active_points, self._active_cones, gamma=self._gamma, exposure=self._exposure)

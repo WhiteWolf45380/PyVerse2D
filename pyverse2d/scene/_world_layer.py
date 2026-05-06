@@ -43,13 +43,13 @@ class WorldLayer(Layer):
         """Préchargement"""
         pass
 
-    @profile_section("world.layer.update")
+    @profile_section("scene.world_layer.update")
     def _update(self, dt: float):
         """Actualisation du layer"""
         if self._world is not None:
             self._world.update(dt)
 
-    @profile_section("world.layer.draw")
+    @profile_section("scene.world_layer.draw")
     def _draw(self, pipeline: Pipeline):
         """Affichage du layer"""
         if self._world is not None and self._world.has_system(RenderSystem):

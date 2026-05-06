@@ -116,13 +116,13 @@ class GuiLayer(Layer):
         """Préchargement"""
         pass
 
-    @profile_section("gui.layer.update")
+    @profile_section("scene.gui_layer.update")
     def _update(self, dt: float) -> None:
         """Actualisation du layer"""
         for wrapper in reversed(self._wrappers):
             wrapper.widget.update(dt)
 
-    @profile_section("gui.layer.draw")
+    @profile_section("scene.gui_layer.draw")
     def _draw(self, pipeline: Pipeline) -> None:
         """Affichage du layer"""
         context = self._generate_context(pipeline)
