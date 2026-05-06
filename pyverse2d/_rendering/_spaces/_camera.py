@@ -50,7 +50,7 @@ class FollowRequest(Request):
         """Transtypage et vérifications"""
         object.__setattr__(self, "offset", Vector(self.offset))
         object.__setattr__(self, "smoothing", float(self.smoothing))
-        object.__setattr__(self, "max_speed", float(self.max_speed))
+        if self.max_speed is not None:object.__setattr__(self, "max_speed", float(self.max_speed))
 
         if __debug__:
             clamped(self.smoothing, include_max=False)
