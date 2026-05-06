@@ -344,7 +344,6 @@ class ProfiledRun:
         self._deep = deep
         self._scene_roots = scene_roots or []
         self._profiler = Profiler()
-        self._start_time = 0.0
 
     # ======================================== ENTRY POINT ========================================
     def run(self) -> None:
@@ -382,9 +381,6 @@ class ProfiledRun:
             _draw_ms[0] = (time.perf_counter() - t0) * 1_000
 
         def _update(raw_dt: float):
-            if prof._frame_count == 0:
-                self._start_time = time.time()
-
             prof.begin_frame()
 
             with prof.track("time.tick"):
@@ -411,10 +407,8 @@ class ProfiledRun:
             if prof._frame_times:
                 prof._frame_times[-1] += _draw_ms[0]
 
-            if time.time() - self._start_time >= self._duration:
-                self._finish()
-
         eng.time.schedule(_update)
+        eng.time.after(self._duration, self._finish)
 
         try:
             pyglet.app.run(eng.time.target_dt if eng.time.target_dt is not None else 1 / 9999)
