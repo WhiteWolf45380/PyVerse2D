@@ -1,7 +1,7 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from .._internal import expect, positive, expect_callable
+from .._internal import expect, positive, expect_callable, profile_section
 from .._flag import AudioState
 from ..abc import Manager, Request, AudioHandle
 from ..asset import Sound, Music, Playlist, SoundBundle, MusicBundle
@@ -500,6 +500,7 @@ class AudioManager(Manager):
         self._stop_music_immediate()
 
     # ======================================== SOUNDS ========================================
+    @profile_section("manager.audio.play_sound")
     def play_sound(
             self,
             sound: Sound,

@@ -1,9 +1,12 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
+
 from ._version import __version__
+from ._internal import ProfiledRun
 
 import pyglet
 from typing import Callable
+from numbers import Real
 
 # ======================================== PRIMITIVES ========================================
 from . import typing, abc, math, shape, asset
@@ -77,7 +80,7 @@ def set_window(window: Window):
         _pipeline.window.clear()
         scene.draw(_pipeline)
 
-# ======================================== COLLECTIONS ========================================
+# ======================================== INTERFACE ========================================
 def preload(loadable: scene.Scene = None) -> None:
     """Précharge le rendu
 
@@ -149,6 +152,45 @@ def stop():
     # Reset pipeline
     _pipeline = None
 
+def profile(
+    duration: Real = 10.0,
+    on_update: Callable[[float], None] = None,
+    on_draw: Callable[[], None] = None,
+    export_path: str | None = "profile_report.txt",
+    deep: bool = True,
+    scene_roots: list | None = None,
+):
+    """Lance un profiling de la boucle principale sur une durée donnée
+
+    Args:
+        duration: durée du profiling en secondes (défaut : 10 s)
+        on_update: hook d'actualisation utilisateur
+        on_draw: hook d'affichage utilisateur
+        export_path: chemin du rapport exporté (None = console uniquement)
+        deep: introspection automatique des objets de scene
+        scene_roots: objets supplémentaires à inspecter en mode deep
+    """
+    if _pipeline is None:
+        raise RuntimeError("No window set, try set_window() before profile()")
+
+    import sys
+    engine = sys.modules[__name__]
+
+    if time.target_dt is not None and time.target_dt > 0:
+        frames = max(1, int(duration / time.target_dt))
+    else:
+        frames = int(duration * 60) 
+
+    ProfiledRun(
+        engine = engine,
+        on_update = on_update,
+        on_draw = on_draw,
+        frames = frames,
+        export_path = export_path,
+        deep = deep,
+        scene_roots = scene_roots,
+    ).run()
+
 # ======================================== EXPORTS ========================================
 __all__ = [
     "Window",
@@ -204,4 +246,5 @@ __all__ = [
     "preload",
     "run",
     "stop",
+    "profile",
 ]

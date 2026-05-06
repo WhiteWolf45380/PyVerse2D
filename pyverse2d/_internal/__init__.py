@@ -16,6 +16,12 @@ from ._tools import (
     CallbackList,
 )
 
+from ._profiler import (
+    profile_section,
+    Profiler,
+    ProfiledRun,
+)
+
 # ======================================== EXPORTS ========================================
 __all__ = [
     "typename",
@@ -28,4 +34,8 @@ __all__ = [
 
     "Processor",
     "CallbackList",
+
+    "profile_section",
+    "Profiler",
+    "ProfiledRun",
 ]
