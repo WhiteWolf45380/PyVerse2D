@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from ._version import __version__
-from ._internal import ProfiledRun
+from ._internal import ProfiledRun as _ProfiledRun
 
 import pyglet
 from typing import Callable
@@ -181,7 +181,7 @@ def profile(
     else:
         frames = int(duration * 60) 
 
-    ProfiledRun(
+    _ProfiledRun(
         engine = engine,
         on_update = on_update,
         on_draw = on_draw,

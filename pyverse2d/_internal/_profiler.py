@@ -206,6 +206,7 @@ class Profiler:
 
     # ======================================== REPORT ========================================
     def report(self, group_by_prefix: bool = True) -> str:
+        """Génère un rapport de profiling"""
         if not self._frame_times:
             return "No frames recorded."
 
@@ -218,17 +219,12 @@ class Profiler:
 
         W = 80
         def row(*cols, widths):
-            """Formatte une ligne alignée."""
             parts = []
             for i, (col, w) in enumerate(zip(cols, widths)):
-                if i == 0:
-                    parts.append(f"{col:<{w}}")
-                else:
-                    parts.append(f"{col:>{w}}")
-            inner = "  ".join(parts)
-            return f"│  {inner}  │"
+                parts.append(f"{col:<{w}}" if i == 0 else f"{col:>{w}}")
+            return f"│  {'  '.join(parts)}  │"
 
-        COL_W = [30, 9, 9, 9, 7]   # Section, Mean, Peak, P95, %frame
+        COL_W = [30, 9, 9, 9, 7]
 
         lines: list[str] = [""]
         lines.append("┌" + "─" * (W - 2) + "┐")
@@ -240,67 +236,63 @@ class Profiler:
         lines.append(row("Section", "Mean ms", "Peak ms", "P95 ms", "% frame", widths=COL_W))
         lines.append("├" + "─" * (W - 2) + "┤")
 
-        def group_key(name: str) -> str:
-            return name.split(".")[0]
-
-        ranked = sorted(self._sections.items(), key=lambda kv: kv[1].mean, reverse=True)
-
         if group_by_prefix:
-            from collections import defaultdict
-            groups: dict[str, list] = defaultdict(list)
-            for name, stats in ranked:
-                groups[group_key(name)].append((name, stats))
+            # ── Construction de l'arbre ──────────────────────────────────────────
+            # Chaque nœud : [_Stats | None, { segment: nœud }]
+            tree: dict = {}
+            for name, stats in self._sections.items():
+                node = tree
+                parts = name.split(".")
+                for part in parts[:-1]:
+                    node = node.setdefault(part, [None, {}])[1]
+                leaf = parts[-1]
+                if leaf not in node:
+                    node[leaf] = [None, {}]
+                node[leaf][0] = stats
 
-            group_totals = {g: sum(s.mean for _, s in items) for g, items in groups.items()}
-            sorted_groups = sorted(groups.keys(), key=lambda g: group_totals[g], reverse=True)
+            # ── Agrégats récursifs ───────────────────────────────────────────────
+            def t_mean(nd): s, ch = nd; return (s.mean if s else 0.0) + sum(t_mean(c) for c in ch.values())
+            def t_peak(nd): s, ch = nd; return max([(s.peak if s else 0.0)] + [t_peak(c) for c in ch.values()])
+            def t_p95 (nd): s, ch = nd; return max([(s.p95  if s else 0.0)] + [t_p95 (c) for c in ch.values()])
 
-            for g in sorted_groups:
-                items = groups[g]
+            # ── Rendu récursif ───────────────────────────────────────────────────
+            def render(name: str, node, depth: int, last: bool) -> None:
+                stats, children = node
+                mean = t_mean(node)
+                pct  = (mean / mean_frame * 100) if mean_frame > 0 else 0
 
-                if len(items) == 1:
-                    name, stats = items[0]
-                    pct = (stats.mean / mean_frame * 100) if mean_frame > 0 else 0
-                    bar = _mini_bar(pct)
-                    lines.append(row(
-                        f"{name}",
-                        f"{stats.mean:.3f}", f"{stats.peak:.3f}", f"{stats.p95:.3f}",
-                        f"{pct:.1f}% {bar}",
-                        widths=COL_W,
-                    ))
+                # Préfixe visuel selon profondeur
+                if depth == 0:
+                    indent = "▸ " if children else ""
                 else:
-                    group_mean = sum(s.mean for _, s in items)
-                    group_peak = max(s.peak for _, s in items)
-                    group_p95  = max(s.p95  for _, s in items)
-                    pct_group  = (group_mean / mean_frame * 100) if mean_frame > 0 else 0
-                    bar = _mini_bar(pct_group)
+                    connector = "╰" if last else "├"
+                    indent = "  │  " * (depth - 1) + f"  {connector}─ "
 
+                bar = _mini_bar(pct, ch="█" if depth == 0 else "░")
+                lines.append(row(
+                    f"{indent}{name}",
+                    f"{t_mean(node):.3f}", f"{t_peak(node):.3f}", f"{t_p95(node):.3f}",
+                    f"{pct:.1f}% {bar}",
+                    widths=COL_W,
+                ))
+
+                sorted_children = sorted(children.items(), key=lambda kv: t_mean(kv[1]), reverse=True)
+                for i, (child_name, child_node) in enumerate(sorted_children):
+                    render(child_name, child_node, depth + 1, last=(i == len(sorted_children) - 1))
+
+            sorted_top = sorted(tree.items(), key=lambda kv: t_mean(kv[1]), reverse=True)
+            for top_name, top_node in sorted_top:
+                if top_node[1]:  # a des enfants → séparateur
                     lines.append("├" + "─" * (W - 2) + "┤")
-                    lines.append(row(
-                        f"▸ {g}  (total)",
-                        f"{group_mean:.3f}", f"{group_peak:.3f}", f"{group_p95:.3f}",
-                        f"{pct_group:.1f}% {bar}",
-                        widths=COL_W,
-                    ))
+                render(top_name, top_node, depth=0, last=True)
 
-                    for name, stats in sorted(items, key=lambda kv: kv[1].mean, reverse=True):
-                        # Nom court : on retire le préfixe de groupe
-                        short = name[len(g)+1:] if name.startswith(g + ".") else name
-                        pct = (stats.mean / mean_frame * 100) if mean_frame > 0 else 0
-                        child_bar = _mini_bar(pct, ch="░")
-                        lines.append(row(
-                            f"  ╰ {short}",
-                            f"{stats.mean:.3f}", f"{stats.peak:.3f}", f"{stats.p95:.3f}",
-                            f"{pct:.1f}% {child_bar}",
-                            widths=COL_W,
-                        ))
         else:
-            for name, stats in ranked:
+            for name, stats in sorted(self._sections.items(), key=lambda kv: kv[1].mean, reverse=True):
                 pct = (stats.mean / mean_frame * 100) if mean_frame > 0 else 0
-                bar = _mini_bar(pct)
                 lines.append(row(
                     name,
                     f"{stats.mean:.3f}", f"{stats.peak:.3f}", f"{stats.p95:.3f}",
-                    f"{pct:.1f}% {bar}",
+                    f"{pct:.1f}% {_mini_bar(pct)}",
                     widths=COL_W,
                 ))
 
