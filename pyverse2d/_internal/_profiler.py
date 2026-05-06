@@ -5,10 +5,7 @@ import pyglet
 import time
 import functools
 from contextlib import contextmanager
-from typing import Callable, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    pass
+from typing import Callable
 
 # ======================================== LOCAL THREAD ========================================
 import threading
@@ -80,7 +77,6 @@ def profile_section(name: str):
                 return fn(*args, **kwargs)
             with prof.track(name):
                 return fn(*args, **kwargs)
-        wrapper._profile_section = name
         return wrapper
     return decorator
 
@@ -93,9 +89,8 @@ class Profiler:
         self._frame_count: int = 0
         self._frame_start: float = 0.0
         self._frame_times: list[float] = []
-        self._patched: list[tuple[object, str, object]] = []
 
-   # ======================================== CONTEXT ========================================
+    # ======================================== CONTEXT ========================================
     @contextmanager
     def track(self, name: str):
         t0 = time.perf_counter()
@@ -114,96 +109,6 @@ class Profiler:
     def end_frame(self):
         self._frame_count += 1
         self._frame_times.append((time.perf_counter() - self._frame_start) * 1_000)
-
-    # ======================================== DEEP SCENE PATCHING ========================================
-    # Méthodes cibles au niveau objet-scène
-    _TARGET_METHODS = ("update", "draw", "render", "flush", "tick", "fixed_update")
-    # Catégories de sections "parent" déjà trackées
-    _ALREADY_TRACKED_PREFIXES = ("scene.", "update:", "flush:", "on_")
-
-    def instrument_scene(self, scene, prefix: str = "scene") -> None:
-        """Inspecte récursivement *scene* et wrappe les méthodes intéressantes
-
-        Args:
-            scene: l'objet racine
-            prefix: préfixe affiché dans le rapport
-        """
-        self._walk_and_patch(scene, prefix, depth=0, visited=set())
-
-    def _walk_and_patch(self, obj, prefix: str, depth: int, visited: set) -> None:
-        if depth > 4:
-            return
-        obj_id = id(obj)
-        if obj_id in visited:
-            return
-        visited.add(obj_id)
-
-        cls = type(obj)
-        # Ignore les built-ins et types de base
-        if cls.__module__ in ("builtins", "abc") or isinstance(obj, type):
-            return
-
-        cls_name = cls.__name__
-        section_prefix = f"{prefix}.{cls_name}"
-
-        # Wrappe les méthodes cibles définies sur la classe de l'objet
-        for method_name in self._TARGET_METHODS:
-            raw = cls.__dict__.get(method_name)
-            if raw is None:
-                continue
-            bound = getattr(obj, method_name, None)
-            if bound is None or not callable(bound):
-                continue
-            if getattr(bound, "_profile_section", None) is not None:
-                continue
-
-            section_name = f"{section_prefix}.{method_name}"
-            self._patch_method(obj, method_name, section_name)
-
-        # Descend dans les attributs publics qui ressemblent à des sous-systèmes
-        for attr_name, attr_val in vars(obj).items():
-            if attr_name.startswith("_"):
-                continue
-            if callable(attr_val) or isinstance(attr_val, type):
-                continue
-            if isinstance(attr_val, (int, float, str, bool, bytes)):
-                continue
-            if isinstance(attr_val, (list, tuple)):
-                for i, item in enumerate(attr_val):
-                    if not isinstance(item, (int, float, str, bool, type, None.__class__)):
-                        self._walk_and_patch(item, f"{prefix}.{attr_name}", depth + 1, visited)
-            elif isinstance(attr_val, dict):
-                for k, v in attr_val.items():
-                    if not isinstance(v, (int, float, str, bool, type, None.__class__)):
-                        self._walk_and_patch(v, f"{prefix}.{attr_name}", depth + 1, visited)
-            else:
-                self._walk_and_patch(attr_val, section_prefix, depth + 1, visited)
-
-    def _patch_method(self, obj, method_name: str, section_name: str) -> None:
-        """Remplace obj.method_name par une version instrumentée"""
-        original = getattr(obj, method_name)
-        prof = self
-
-        @functools.wraps(original)
-        def patched(*args, **kwargs):
-            with prof.track(section_name):
-                return original(*args, **kwargs)
-
-        patched._profile_section = section_name
-        try:
-            setattr(obj, method_name, patched)
-            self._patched.append((obj, method_name, original))
-        except (AttributeError, TypeError):
-            pass
-
-    def restore_patches(self) -> None:
-        """Restaure toutes les méthodes monkey-patchées"""
-        for obj, method_name, original in self._patched:
-            try:
-                setattr(obj, method_name, original)
-            except Exception:
-                pass
-        self._patched.clear()
 
     # ======================================== REPORT ========================================
     def report(self, group_by_prefix: bool = True) -> str:
@@ -320,10 +225,8 @@ class ProfiledRun:
         engine: module engine
         on_update: callback utilisateur habituel
         on_draw: callback utilisateur pour le dessin
-        duration: durée de profiling
+        duration: durée de profiling en secondes
         export_path: chemin du fichier de sortie (None = console seulement)
-        deep: si True, introspecte et wrappe automatiquement les objets de eng.scene pour descendre au niveau classe/méthode
-        scene_roots: liste d'objets supplémentaires à inspecter en mode deep (ex: [eng.physics, eng.audio])
     """
 
     def __init__(
@@ -333,16 +236,12 @@ class ProfiledRun:
         on_draw: Callable[[], None] = None,
         duration: float = 10,
         export_path: str | None = "profile_report.txt",
-        deep: bool = True,
-        scene_roots: list | None = None,
     ):
         self._engine = engine
         self._user_update = on_update
         self._user_draw = on_draw
         self._duration = duration
         self._export_path = export_path
-        self._deep = deep
-        self._scene_roots = scene_roots or []
         self._profiler = Profiler()
 
     # ======================================== ENTRY POINT ========================================
@@ -357,15 +256,8 @@ class ProfiledRun:
         managers = list(eng._context_manager)
         _active_profiler.profiler = prof
 
-        if self._deep:
-            if hasattr(eng, "scene") and eng.scene is not None:
-                prof.instrument_scene(eng.scene, prefix="scene")
-            for root in self._scene_roots:
-                prof.instrument_scene(root, prefix=type(root).__name__)
-
         native_window = pipeline.window.native
 
-        # Accumule le temps de draw pour l'ajouter à la frame courante
         _draw_ms: list[float] = [0.0]
 
         @native_window.event
@@ -403,7 +295,6 @@ class ProfiledRun:
 
             prof.end_frame()
 
-            # Ajoute le draw de la frame précédente au total
             if prof._frame_times:
                 prof._frame_times[-1] += _draw_ms[0]
 
@@ -418,8 +309,9 @@ class ProfiledRun:
             self._finish()
 
     def _finish(self) -> None:
+        if _active_profiler.profiler is None:
+            return
         _active_profiler.profiler = None
-        self._profiler.restore_patches()
 
         report = self._profiler.report()
         print(report)

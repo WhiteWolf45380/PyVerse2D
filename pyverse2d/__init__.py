@@ -158,8 +158,6 @@ def profile(
     on_update: Callable[[float], None] = None,
     on_draw: Callable[[], None] = None,
     export_path: str | None = "profile_report.txt",
-    deep: bool = True,
-    scene_roots: list | None = None,
 ):
     """Lance un profiling de la boucle principale sur une durée donnée
 
@@ -182,8 +180,6 @@ def profile(
         on_draw = on_draw,
         duration = duration,
         export_path = export_path,
-        deep = deep,
-        scene_roots = scene_roots,
     ).run()
 
 # ======================================== EXPORTS ========================================
