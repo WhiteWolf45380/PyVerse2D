@@ -252,17 +252,19 @@ class Profiler:
             def t_peak(nd): s, ch = nd; return max([(s.peak if s else 0.0)] + [t_peak(c) for c in ch.values()])
             def t_p95 (nd): s, ch = nd; return max([(s.p95  if s else 0.0)] + [t_p95 (c) for c in ch.values()])
 
-            def render(name: str, node, depth: int, last: bool) -> None:
-                stats, children = node
-                mean = t_mean(node)
-                pct  = (mean / mean_frame * 100) if mean_frame > 0 else 0
+            def render(name: str, node, depth: int, last: bool, ancestor_lasts: list) -> None:
+                _, children = node
+                pct = (t_mean(node) / mean_frame * 100) if mean_frame > 0 else 0
 
-                # Préfixe visuel selon profondeur
                 if depth == 0:
                     indent = "▸ " if children else ""
                 else:
+                    continuation = "".join(
+                        "     " if was_last else "  │  "
+                        for was_last in ancestor_lasts[1:]
+                    )
                     connector = "╰" if last else "├"
-                    indent = "  │  " * (depth - 1) + f"  {connector}─ "
+                    indent = continuation + f"  {connector}─ "
 
                 bar = _mini_bar(pct, ch="█" if depth == 0 else "░")
                 lines.append(row(
@@ -274,13 +276,14 @@ class Profiler:
 
                 sorted_children = sorted(children.items(), key=lambda kv: t_mean(kv[1]), reverse=True)
                 for i, (child_name, child_node) in enumerate(sorted_children):
-                    render(child_name, child_node, depth + 1, last=(i == len(sorted_children) - 1))
+                    is_last = i == len(sorted_children) - 1
+                    render(child_name, child_node, depth + 1, is_last, ancestor_lasts + [last])
 
             sorted_top = sorted(tree.items(), key=lambda kv: t_mean(kv[1]), reverse=True)
             for top_name, top_node in sorted_top:
-                if top_node[1]:  # a des enfants → séparateur
+                if top_node[1]:
                     lines.append("├" + "─" * (W - 2) + "┤")
-                render(top_name, top_node, depth=0, last=True)
+                render(top_name, top_node, depth=0, last=True, ancestor_lasts=[])
 
         else:
             for name, stats in sorted(self._sections.items(), key=lambda kv: kv[1].mean, reverse=True):
@@ -351,7 +354,6 @@ class ProfiledRun:
             raise RuntimeError("No window set. Call engine.set_window() before ProfiledRun.run()")
 
         managers = list(eng._context_manager)
-
         _active_profiler.profiler = prof
 
         if self._deep:
@@ -362,8 +364,12 @@ class ProfiledRun:
 
         native_window = pipeline.window.native
 
+        # Accumule le temps de draw pour l'ajouter à la frame courante
+        _draw_ms: list[float] = [0.0]
+
         @native_window.event
         def on_draw():
+            t0 = time.perf_counter()
             with prof.track("window.clear"):
                 pipeline.window.clear()
             with prof.track("scene.draw"):
@@ -371,6 +377,7 @@ class ProfiledRun:
             if self._user_draw is not None:
                 with prof.track("on_draw (user)"):
                     self._user_draw()
+            _draw_ms[0] = (time.perf_counter() - t0) * 1_000
 
         def _update(raw_dt: float):
             prof.begin_frame()
@@ -379,8 +386,7 @@ class ProfiledRun:
                 dt = eng.time.tick(raw_dt)
 
             for manager in managers:
-                name = type(manager).__name__
-                with prof.track(f"update:{name}"):
+                with prof.track(f"update:{type(manager).__name__}"):
                     manager.update(dt)
 
             with prof.track("scene.update"):
@@ -391,11 +397,15 @@ class ProfiledRun:
                     self._user_update(dt)
 
             for manager in managers:
-                name = type(manager).__name__
-                with prof.track(f"flush:{name}"):
+                with prof.track(f"flush:{type(manager).__name__}"):
                     manager.flush()
 
             prof.end_frame()
+
+            # Ajoute le draw de la frame précédente au total
+            # (on_draw est appelé avant _update par pyglet)
+            if prof._frame_times:
+                prof._frame_times[-1] += _draw_ms[0]
 
             if self._max_frames is not None and prof._frame_count >= self._max_frames:
                 self._finish()
@@ -411,24 +421,6 @@ class ProfiledRun:
             pass
         finally:
             self._finish()
-
-    def _finish(self) -> None:
-        _active_profiler.profiler = None
-        self._profiler.restore_patches()
-
-        report = self._profiler.report()
-        print(report)
-
-        if self._export_path:
-            try:
-                self._profiler.export(self._export_path)
-            except OSError as e:
-                print(f"[Profiler] Could not write file: {e}")
-
-        try:
-            self._engine.stop()
-        except Exception:
-            pass
 
 # ======================================== EXPORTS ========================================
 __all__ = [
