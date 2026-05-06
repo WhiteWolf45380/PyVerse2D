@@ -412,8 +412,8 @@ class ProfiledRun:
 
         try:
             pyglet.app.run(eng.time.target_dt if eng.time.target_dt is not None else 1 / 9999)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[Profiler] pyglet exception: {e}")
         finally:
             self._finish()
 
