@@ -29,7 +29,7 @@ class _TimerRequest(Request):
 class TimeManager(Manager):
     """Gestionnaire du temps"""
     __slots__ = (
-        "_clock",
+        "_clock", "_frame",
         "_raw_dt", "_dt", "_eff_dt",
         "_target_fps", "_fps", "_fps_buffer",
         "_time_scale",
@@ -44,6 +44,7 @@ class TimeManager(Manager):
 
         # Horloge
         self._clock: float = 0.0
+        self._frame: int = 0
 
         # Delta time
         self._raw_dt: float = 0.0
@@ -64,9 +65,14 @@ class TimeManager(Manager):
 
     # ======================================== PROPERTIES ========================================
     @property
-    def timer(self) -> float:
+    def clock(self) -> float:
         """Temps écoulé depuis le début de l'éxécution"""
         return self._clock
+    
+    @property
+    def frame(self) -> int:
+        """Nombre de frames écoulés depuis le début de l'éxécution"""
+        return self._frame
 
     @property
     def raw_dt(self) -> float:
@@ -189,6 +195,7 @@ class TimeManager(Manager):
             raw_dt: delta-time brut
         """
         self._clock += raw_dt
+        self._frame += 1
         self._raw_dt = raw_dt
         self._dt = min(_DT_MAX, raw_dt)
         self._fps = 1 / max(self._dt, 10e-8)
