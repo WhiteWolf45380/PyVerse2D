@@ -142,7 +142,8 @@ class Entity:
     
     @property
     def video_player(self) -> VideoPlayer | None:
-        """Composant ``VideoPlayer`` *(lecture)*"""
+        """Composant ``VideoPlayer`` *(lecture seule)*"""
+        return self._video_player
 
     # ======================================== PREDICATES ========================================
     def __eq__(self, other: Entity) -> bool:
