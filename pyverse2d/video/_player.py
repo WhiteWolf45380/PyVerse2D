@@ -300,7 +300,8 @@ class VideoPlayer:
         self._texture = None
         self._duration = None
 
-    def tick(self, dt: float) -> None:
+    # ======================================== LIFE CYCLE ========================================
+    def update(self, dt: float) -> None:
         """Actualisation
 
         Consomme les frames prêtes de la queue et met à jour la texture.
