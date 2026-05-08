@@ -4,13 +4,14 @@ from __future__ import annotations
 from ._player import VideoPlayer
 
 import pyglet.sprite as _sprite
+from pyglet.graphics import Batch, Group
 
 # ======================================== RENDERER ========================================
 class VideoRenderer:
     """Rendu d'un ``VideoPlayer`` dans le batch monde du layer courant"""
 
     @staticmethod
-    def attach(player: VideoPlayer, batch, group) -> _sprite.Sprite:
+    def attach(player: VideoPlayer, batch: Batch, group: Group) -> _sprite.Sprite:
         """Crée et retourne le sprite monde associé au player
 
         Args:
@@ -39,7 +40,6 @@ class VideoRenderer:
         texture = player.texture
         if texture is not None:
             sprite.image = texture
-            sprite.x = player.x
-            sprite.y = player.y
+            sprite.x, sprite.y = player._get_bottomleft()
             sprite.scale_x = player.width / texture.width
             sprite.scale_y = player.height / texture.height

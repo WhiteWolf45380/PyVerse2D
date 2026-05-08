@@ -19,18 +19,26 @@ _BUFFER_SIZE = 8
 class VideoPlayer:
     """Lecteur vidéo monde"""
     __slots__ = (
-        "_position", "_width", "_height",
-        "_video", "_play_volume", "_loop",
+        "_position", "_width", "_height", "_anchor",
+        "_video", "_volume", "_loop",
         "_on_start", "_on_end",
         "_texture", "_frame_queue", "_decode_thread", "_stop_event", "_pause_event",
         "_pts_origin", "_clock_origin", "_duration", "_paused",
     )
 
-    def __init__(self, position: Point, width: int, height: int):
+    def __init__(
+            self, 
+            position: Point,
+            width: int,
+            height: int,
+            anchor: Point = (0.5, 0.5),
+            volume: Real = 1.0,
+        ):
         # Transtypage et vérifications
         position = Point(position)
         width = int(width)
         height = int(height)
+        anchor = Point(anchor)
 
         if __debug__:
             over(width, 0, include=False)
@@ -40,10 +48,12 @@ class VideoPlayer:
         self._position: Point = position
         self._width: int = width
         self._height: int = height
+        self._anchor: Point = anchor
+
+        self._volume: float = 1.0
 
         # Attributs internes
         self._video: Video | None = None
-        self._play_volume: float = 1.0
         self._loop: bool = False
 
         # Hooks
@@ -119,16 +129,29 @@ class VideoPlayer:
         self._height = value
 
     @property
+    def anchor(self) -> Point:
+        """Ancre de positionnement
+        
+        L'ancre peut être un objet ``Point`` ou n'importe quel tuple ``(ax, ay)``.
+        Mettre cette propriété à ``(0.5, 0.5)`` pour que l'ancre soit le centre du lecteur.
+        """
+        return self._anchor
+    
+    @anchor.setter
+    def anchor(self, value: Point) -> None:
+        self._anchor.x, self._anchor.y = value
+
+    @property
     def volume(self) -> float:
-        """Volume de lecture"""
-        return self._play_volume
+        """Volume du lecteur"""
+        return self._volume
 
     @volume.setter
     def volume(self, value: Real) -> None:
         value = float(value)
         if __debug__:
             positive(value)
-        self._play_volume = value
+        self._volume = value
 
     @property
     def texture(self):
@@ -233,7 +256,7 @@ class VideoPlayer:
         self.stop()
 
         # Chargement
-        self._play_volume = volume
+        self._volume = volume
         self._loop = loop
         self._paused = False
 
@@ -401,3 +424,9 @@ class VideoPlayer:
 
             if not loop or stop_event.is_set():
                 break
+
+    def _get_bottomleft(self) -> tuple[float, float]:
+        """Renvoie le coin bas-gauche monde"""
+        x = self._position.x - self._anchor.x * self._width
+        y = self._position.y - self._anchor.y * self._height
+        return (x, y)
