@@ -43,7 +43,7 @@ class Music(Asset):
         volume = float(volume)
 
         if __debug__:
-            positive(self._volume)
+            positive(volume)
 
         # Attributs publiques
         self._path: str = path
