@@ -22,7 +22,7 @@ class Music(Asset):
     __slots__ = (
         "_path", "_volume",
         "_handle", "_state", "_loop",
-        "_sourcs",
+        "_sources",
     )
 
     _AUDIO_MANAGER: AudioManager = None
