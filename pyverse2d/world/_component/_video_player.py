@@ -39,7 +39,8 @@ class VideoPlayer(Component):
         "_on_start", "_on_end",
         "_texture", "_frame_queue", "_audio_queue", "_decode_thread", "_stop_event", "_pause_event",
         "_audio_player", "_audio_ready_queue", "_audio_thread", "_audio_stop_event",
-        "_pts_origin", "_clock_origin", "_duration", "_paused",
+        "_pts_origin", "_clock_origin", "_duration",
+        "_playing", "_paused", "_initialized",
     )
 
     requires = ("Transform",)
