@@ -25,7 +25,9 @@ class PlayerWrapper:
 # ======================================== RENDERER ========================================
 class VideoLayer(Layer):
     """Layer portant des ``VideoPlayer``"""
-    __slots__ = ("_players", "_sprites")
+    __slots__ = (
+        "_wrappers", "_sprites",
+    )
 
     def __init__(self, camera: Camera | None = None):
         # Initialisation du layer
