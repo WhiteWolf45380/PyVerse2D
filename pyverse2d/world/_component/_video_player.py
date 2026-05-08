@@ -365,6 +365,10 @@ class VideoPlayer(Component):
         self._paused = False
         self._playing = True
 
+        # Appel des callbacks
+        if self._on_start:
+            self._on_start.trigger(self, self._video)
+
     def pause(self) -> None:
         """Mise en pause de la lecture"""
         if not self._playing or self._paused:
@@ -389,12 +393,6 @@ class VideoPlayer(Component):
             self._stop_event.set()
         if self._pause_event is not None:
             self._pause_event.set()
-        if self._decode_thread is not None:
-            self._decode_thread.join(timeout=1.0)
-            self._decode_thread = None
-        self._frame_queue = None
-        self._stop_event = None
-        self._pause_event = None
         self._paused = False
         self._playing = False
 

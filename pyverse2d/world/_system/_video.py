@@ -89,10 +89,17 @@ class VideoSystem(System):
             self._consume_frames(vp)
 
             # Fin de lecture
-            if vp._frame_queue is None or vp._frame_queue.empty():
-                if vp._on_end:
-                    vp._on_end.trigger(vp, vp._video)
-                self._stop_player(eid, vp)
+            try:
+                sentinel = vp._frame_queue.get_nowait()
+                if sentinel is None:
+                    # Fin réelle
+                    if vp._on_end:
+                        vp._on_end.trigger(vp, vp._video)
+                    self._stop_player(eid, vp)
+                else:
+                    vp._frame_queue.put_nowait(sentinel)
+            except queue.Empty:
+                pass
 
         # Nettoyage des threads orphelins
         for eid in list(self._threads):
@@ -116,7 +123,7 @@ class VideoSystem(System):
             # Synchronisation des sprites
             renderer = self._sprites.get(eid)
             if renderer is None:
-                self._sprites[renderer] = PygletSpriteRenderer(
+                self._sprites[eid] = PygletSpriteRenderer(
                     image = vp.texture,
                     transform = tr,
                     offset = vp.offset,
@@ -143,7 +150,7 @@ class VideoSystem(System):
             vp: composant ``VideoPlayer``
         """
         # Nettoyage de l'ancien état si besoin
-        self._flush_player(eid, vp)
+        self._stop_player(eid, vp)
 
         # Récupération de la durée
         try:
@@ -189,29 +196,27 @@ class VideoSystem(System):
         audio_thread.start()
         vp._audio_thread = audio_thread
 
-        # Appel des callbacks
-        if vp._on_start:
-            vp._on_start.trigger(vp, vp._video)
+        # Fin d'initialisation
+        vp._initialized = True
 
-    def _flush_player(self, eid: int, vp: VideoPlayer) -> None:
+    def _stop_player(self, eid: int, vp: VideoPlayer) -> None:
         """Signale l'arrêt et join le thread
 
         Args:
             eid: identifiant de l'entité
             vp: composant ``VideoPlayer``
         """
-        if vp._stop_event is not None:
-            vp._stop_event.set()
-        if vp._pause_event is not None:
-            vp._pause_event.set()
-        thread = self._threads.pop(eid, None) or vp._decode_thread
-        if thread is not None:
-            thread.join(timeout=1.0)
+        vp.stop()
+        for thread in (vp._decode_thread, vp._audio_thread):
+            if thread is not None:
+                thread.join(timeout=1.0)
         vp._decode_thread = None
+        vp._audio_thread = None
         vp._frame_queue = None
         vp._audio_queue = None
         vp._stop_event = None
         vp._pause_event = None
+        self._threads.pop(eid, None)
 
     # ======================================== FRAMES ========================================
     def _consume_frames(self, vp: VideoPlayer) -> None:
@@ -275,7 +280,7 @@ class VideoSystem(System):
         if vp._audio_queue is None:
             return
 
-        # Application du volume du volume
+        # Mise à jour du lecteur audio
         player: _media.Player = vp._audio_player
         if spatial_volume != player.volume:
             player.volume = spatial_volume
@@ -308,12 +313,13 @@ class VideoSystem(System):
             vp: composant ``VideoPlayer``
             distance: distance spatiale
         """
+        base = vp.volume * vp._video.volume
         if vp.outer_radius == 0.0 or distance <= vp.inner_radius:
-            return 1.0
+            return base
         if distance > vp.outer_radius:
             return 0.0
         t = (distance - vp.inner_radius) / (vp.outer_radius - vp.inner_radius)
-        return 1.0 - vp.falloff(t)
+        return base * (1.0 - vp.falloff(t))
 
     # ======================================== DECODE ========================================
     @staticmethod
@@ -392,7 +398,13 @@ class VideoSystem(System):
             except Exception:
                 break
 
+            # Fin de lecture
             if not loop or stop_event.is_set():
+                if not stop_event.is_set():
+                    try:
+                        frame_queue.put(None, timeout=1.0)
+                    except queue.Full:
+                        pass
                 break
     
     @staticmethod
@@ -420,12 +432,18 @@ class VideoSystem(System):
         while not stop_event.is_set():
             try:
                 pts, sr, ch, data = audio_queue.get(timeout=0.05)
-                sample_rate = sr
-                channels = ch
-                pcm_buffer.extend(data)
-
             except queue.Empty:
                 continue
+
+            # Recalcul si le format change
+            if sr != sample_rate or ch != channels:
+                sample_rate = sr
+                channels = ch
+                bytes_per_second = sample_rate * channels * bytes_per_sample
+                target_size = int(bytes_per_second * (_AUDIO_CHUNK_MS / 1000.0))
+                pcm_buffer.clear()
+
+            pcm_buffer.extend(data)
 
             # Pas assez de PCM accumulé
             if len(pcm_buffer) < target_size:
@@ -440,12 +458,10 @@ class VideoSystem(System):
                     sample_size=16,
                     sample_rate=sample_rate,
                 )
-
                 source = _media.codecs.StaticMemorySource(
                     chunk,
                     audio_format,
                 )
-
                 ready_queue.put(source, timeout=0.1)
 
             except Exception:
