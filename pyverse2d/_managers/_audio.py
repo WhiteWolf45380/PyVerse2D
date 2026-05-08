@@ -15,6 +15,7 @@ import random
 from dataclasses import dataclass
 from numbers import Real, Integral
 from typing import ClassVar, Type, Callable, Any
+from concurrent.futures import ThreadPoolExecutor
 
 # ======================================== CONSTANTS ========================================
 _CROSSFADE_STEPS = 20
@@ -321,6 +322,7 @@ class AudioManager(Manager):
         self._crossfade: _CrossfadeRequest | None = None
         self._playlist: _PlaylistRequest | None = None
         self._source_cache: dict[str, _media.StaticSource] = {}
+        self._executor: ThreadPoolExecutor = ThreadPoolExecutor(max_workers=2)
 
     # ======================================== PROPERTIES ========================================
     @property
@@ -498,6 +500,8 @@ class AudioManager(Manager):
         """Nettoyage complet"""
         self.stop_sounds()
         self._stop_music_immediate()
+        self._executor.shutdown(wait=False)
+        self._executor = ThreadPoolExecutor(max_workers=2)
 
     # ======================================== SOUNDS ========================================
     @profile_section("manager.audio.play_sound")
@@ -1050,6 +1054,24 @@ class AudioManager(Manager):
             self._playlist.delay_timer = 0.0
             self._play_playlist_next()
 
+    def _reload_source(self, music: Music) -> None:
+        """Recharge une source fraîche pour la musique (appelé depuis l'executor)
+        
+        Args:
+            music: musique à recharger
+        """
+        with music._source_lock:
+            if music._source is not None or music._loading_source:
+                return
+            music._loading_source = True
+
+        source = _media.load(music.path, streaming=True)
+
+        with music._source_lock:
+            if music._source is None:
+                music._source = source
+            music._loading_source = False
+
     def _make_on_stop(self, music: Music, on_end: Callable[[MusicHandle], Any], playlist_fallback: bool) -> Callable:
         """Construit le callback on_stop en fusionnant la logique musique et playlist
         
@@ -1059,12 +1081,12 @@ class AudioManager(Manager):
             playlist_fallback: reprise de la playlist à la fin de lecture
         """
         def on_stop(h: MusicHandle) -> None:
-            music._add_source(h.source)
             self._clear_current_music(music)
             if on_end is not None:
                 on_end(h)
             if playlist_fallback and self._playlist is not None and not self._playlist.playing:
                 self._on_interrupted_music_end(h)
+            self._executor.submit(self._reload_source, music)
         return on_stop
 
     def _cancel_crossfade(self) -> None:
