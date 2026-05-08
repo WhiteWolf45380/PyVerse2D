@@ -154,6 +154,7 @@ class VideoSystem(System):
             vp: composant ``VideoPlayer``
         """
         # Nettoyage de l'ancien état si besoin
+        was_playing = vp._playing
         self._stop_player(eid, vp)
 
         # Récupération de la durée
@@ -202,6 +203,7 @@ class VideoSystem(System):
 
         # Fin d'initialisation
         vp._initialized = True
+        vp._playing = was_playing
 
     def _stop_player(self, eid: int, vp: VideoPlayer) -> None:
         """Signale l'arrêt et join le thread
