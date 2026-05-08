@@ -1031,16 +1031,7 @@ class AudioManager(Manager):
             if self._current_music._handle is not None:
                 self._current_music._handle.stop()
             self._current_music = None
-
-    def _clear_current_music(self, music: Music) -> None:
-        """Nettoie la musique courante si elle correspond à la musique donnée
-        
-        Args:
-            music: musique à tester
-        """
-        if self._current_music is music:
-            self._current_music = None
-
+            
     def _on_interrupted_music_end(self, handle: MusicHandle) -> None:
         """Reprend la playlist après une musique de surcharge
         
@@ -1079,16 +1070,22 @@ class AudioManager(Manager):
             playlist_fallback: reprise de la playlist à la fin de lecture
         """
         def on_stop(h: MusicHandle) -> None:
-            self._clear_current_music(music)
+            self._executor.submit(self._reload_source, music)
             if on_end is not None:
                 on_end(h)
+            if self._current_music is None or h is not self._current_music._handle:
+                return
+            self._current_music = None
             if playlist_fallback and self._playlist is not None and not self._playlist.playing:
                 self._on_interrupted_music_end(h)
-            self._executor.submit(self._reload_source, music)
         return on_stop
 
     def _cancel_crossfade(self) -> None:
         """Annule le cross-fade"""
+        if self._crossfade is not None:
+            cf = self._crossfade
+            if cf.handle_out is not None:
+                cf.handle_out.stop()
         self._crossfade = None
 
     def _refresh_volumes(self) -> None:
