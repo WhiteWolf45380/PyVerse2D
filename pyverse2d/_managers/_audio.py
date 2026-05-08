@@ -1099,7 +1099,7 @@ class AudioManager(Manager):
         if self._crossfade is not None:
             cf = self._crossfade
             if cf.handle_out is not None:
-                cf.handle_out.base_volume = base_musics_volume * cf.handle_in.music.volume
+                cf.handle_out.base_volume = base_musics_volume * cf.handle_out.music.volume
             if cf.handle_in is not None:
                 cf.handle_in.base_volume = base_musics_volume * cf.handle_in.music.volume
         elif self._current_music is not None:
