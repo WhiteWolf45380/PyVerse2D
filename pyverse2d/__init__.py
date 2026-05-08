@@ -58,7 +58,7 @@ audio: AudioManager = AudioManager(_context_manager)
 _context_manager.audio = audio
 
 # ======================================== NODES ========================================
-from . import world, tile, gui, video, fx, scene
+from . import world, tile, gui, fx, scene
 
 # ======================================== SETTERS ========================================
 def set_window(window: Window):
@@ -230,7 +230,6 @@ __all__ = [
     "world",
     "tile",
     "gui",
-    "video",
     "fx",
     "scene",
 

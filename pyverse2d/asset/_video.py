@@ -2,11 +2,12 @@
 from __future__ import annotations
 
 from .._internal import expect
+from ..abc import Asset
 
 from numbers import Real
 
 # ======================================== VIDEO ========================================
-class Video:
+class Video(Asset):
     """Descripteur immuable de vidéo
     
     Args:
