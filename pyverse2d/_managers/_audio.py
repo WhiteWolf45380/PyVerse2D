@@ -138,8 +138,9 @@ class MusicHandle(AudioHandle):
     def stop(self) -> None:
         """Arrête la musique"""
         if self._active:
-            self.music._set_state(AudioState.SLEEPING)
-            self.music._set_handle(None)
+            if self.music._handle is self:
+                self.music._set_state(AudioState.SLEEPING)
+                self.music._set_handle(None)
             self.delete()
 
 # ======================================== GROUPS ========================================
@@ -1003,10 +1004,7 @@ class AudioManager(Manager):
 
         if cf.step >= cf.steps:
             if cf.handle_out is not None:
-                if cf.handle_in is not None and cf.handle_in.music == cf.handle_out.music:
-                    cf.handle_out.delete()
-                else:
-                    cf.handle_out.stop()
+                cf.handle_out.stop()
             if cf.handle_in is not None:
                 cf.handle_in.play_volume = cf.vol_in
             self._crossfade = None
