@@ -678,7 +678,9 @@ class AudioManager(Manager):
             self._playlist.playing = False
 
         # Génération du handle
-        source = music._source or _media.load(music.path, streaming=True)
+        source = music._get_source()
+        if source is None:
+            source = _media.load(music.path, streaming=True)
         player = _media.Player()
         player.loop = loop
         player.queue(source)
@@ -813,10 +815,9 @@ class AudioManager(Manager):
         music_out = self._current_music
 
         # Génération du handle
-        if music == music_out:
+        source = music._get_source()
+        if source is None:
             source = _media.load(music.path, streaming=True)
-        else:
-            source = music._source or _media.load(music.path, streaming=True)
         player = _media.Player()
         player.loop = loop
         player.queue(source)
@@ -1058,6 +1059,7 @@ class AudioManager(Manager):
             playlist_fallback: reprise de la playlist à la fin de lecture
         """
         def on_stop(h: MusicHandle) -> None:
+            music._add_source(h.source)
             self._clear_current_music(music)
             if on_end is not None:
                 on_end(h)

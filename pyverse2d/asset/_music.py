@@ -22,7 +22,7 @@ class Music(Asset):
     __slots__ = (
         "_path", "_volume",
         "_handle", "_state", "_loop",
-        "_source",
+        "_sourcs",
     )
 
     _AUDIO_MANAGER: AudioManager = None
@@ -45,7 +45,7 @@ class Music(Asset):
         self._handle: MusicHandle | None = None
         self._state: AudioState = AudioState.SLEEPING
         self._loop: bool = True
-        self._source: _media.Source | None = None
+        self._sources: list[_media.Source] = []
 
     def __hash__(self) -> int:
         """Renvoie le hash de la musique"""
@@ -95,8 +95,8 @@ class Music(Asset):
     # ======================================== INTERFACE ========================================
     def preload(self) -> None:
         """Précharge la source audio pour éviter le freeze au premier play"""
-        if self._source is None:
-            self._source = _media.load(self._path, streaming=True)
+        if not self._sources:
+            self._sources.append(_media.load(self._path, streaming=True))
 
     def copy(self) -> Music:
         """Renvoie une copie de la musique"""
@@ -137,3 +137,13 @@ class Music(Asset):
     def _set_handle(self, value: MusicHandle | None) -> None:
         """Fixe le handle"""
         self._handle = value
+
+    def _add_source(self, source: _media.StreamingSource) -> None:
+        """Ajoute une source"""
+        self._sources.append(source)
+    
+    def _get_source(self) -> _media.StreamingSource | None:
+        """Renvoie une source libre si possible"""
+        if not self._sources:
+            return None
+        return self._sources.pop(0)
