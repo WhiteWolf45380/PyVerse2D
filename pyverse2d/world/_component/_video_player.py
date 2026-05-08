@@ -32,7 +32,7 @@ class VideoPlayer(Component):
         z: z-order
     """
     __slots__ = (
-        "_width", "_height",
+        "_width", "_height", "_offset",
         "_volume", "_inner_radius", "_outer_radius", "_falloff",
         "_opacity", "_z",
         "_video", "_loop", "_ready",
