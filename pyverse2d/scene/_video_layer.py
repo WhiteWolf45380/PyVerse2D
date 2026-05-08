@@ -56,9 +56,22 @@ class VideoLayer(Layer):
     def players(self) -> tuple[VideoPlayer, ...]:
         """Players actifs *(lecture seule)*"""
         return tuple(self._players)
+    
+    # ======================================== HOOKS ========================================
+    def on_start(self):
+        """Hook d'activation"""
+        pass
+    
+    def on_stop(self):
+        """Hook de désactivation"""
+        pass
 
     # ======================================== CYCLE DE VIE ========================================
-    def update(self, dt: float) -> None:
+    def _preload(self):
+        """Préchargement spécialisé"""
+        pass
+
+    def _update(self, dt: float) -> None:
         """Actualisation des frames courantes
 
         Args:
@@ -69,7 +82,7 @@ class VideoLayer(Layer):
             if sprite is not None:
                 VideoRenderer.update(player, sprite)
 
-    def draw(self, pipeline) -> None:
+    def _draw(self, pipeline) -> None:
         """Rendu de tous les players via le batch monde du pipeline
 
         Les sprites sont attachés au batch/group du layer courant à la première
