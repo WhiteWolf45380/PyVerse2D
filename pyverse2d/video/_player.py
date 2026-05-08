@@ -197,9 +197,14 @@ class VideoPlayer:
         video: Video | None = None,
         volume: Real = 1.0,
         loop: bool = False,
-        on_end: Callable[[VideoPlayer], Any] | None = None,
     ) -> None:
-        """Lance la lecture"""
+        """Lance la lecture
+        
+        Args:
+            video: ``Video`` à lire *(par défaut celle chargée)*
+            volume: volume de lecture
+            loop: relancement automatique de la vidéo
+        """
         if __debug__:
             expect(video, (Video, type(None)))
             positive(float(volume))
@@ -213,7 +218,6 @@ class VideoPlayer:
 
         self._play_volume = float(volume)
         self._loop = bool(loop)
-        self._on_end = on_end
         self._paused = False
 
         # Récupère la durée via PyAV sans garder le container ouvert
