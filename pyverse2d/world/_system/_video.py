@@ -363,6 +363,9 @@ class VideoSystem(System):
                     if audio_stream is not None:
                         streams.append(audio_stream)
 
+                    # Resampler audio (lazy init sur la vraie géométrie du flux)
+                    audio_resampler = None
+
                     for packet in container.demux(*streams):
                         if stop_event.is_set():
                             return
@@ -376,10 +379,14 @@ class VideoSystem(System):
                                 return
 
                             if frame.__class__.__name__ == "VideoFrame":
+                                if frame.pts is None:
+                                    continue
+
                                 pts = float(frame.pts * frame.time_base)
                                 rgb = frame.to_ndarray(format="rgb24")
                                 h, w, _ = rgb.shape
                                 data = rgb.tobytes()
+
                                 while not stop_event.is_set():
                                     try:
                                         frame_queue.put((pts, w, h, data), timeout=0.05)
@@ -388,20 +395,45 @@ class VideoSystem(System):
                                         continue
 
                             elif frame.__class__.__name__ == "AudioFrame":
-                                pts = float(frame.pts * frame.time_base)
-                                frame_s16 = frame.reformat(
-                                    format="s16",
-                                    layout="stereo" if frame.channels >= 2 else "mono",
-                                )
-                                data = bytes(frame_s16.planes[0])
-                                sample_rate = frame_s16.sample_rate
-                                channels = frame_s16.channels
-                                try:
-                                    audio_queue.put_nowait((pts, sample_rate, channels, data))
-                                except queue.Full:
-                                    pass
+                                if frame.pts is None:
+                                    continue
 
-            except Exception:
+                                # Initialisation lazy du resampler
+                                if audio_resampler is None:
+                                    layout = (
+                                        "stereo"
+                                        if len(frame.layout.channels) >= 2
+                                        else "mono"
+                                    )
+
+                                    audio_resampler = av.AudioResampler(
+                                        format="s16",
+                                        layout=layout,
+                                        rate=frame.sample_rate,
+                                    )
+
+                                # resample() peut retourner plusieurs frames
+                                for rf in audio_resampler.resample(frame):
+                                    if rf.pts is None:
+                                        continue
+
+                                    pts = float(rf.pts * rf.time_base)
+                                    data = bytes(rf.planes[0])
+
+                                    try:
+                                        audio_queue.put_nowait(
+                                            (
+                                                pts,
+                                                rf.sample_rate,
+                                                len(rf.layout.channels),
+                                                data,
+                                            )
+                                        )
+                                    except queue.Full:
+                                        pass
+
+            except Exception as e:
+                print(f"[decode_loop] crash: {type(e).__name__}: {e}")
                 break
 
             # Fin de lecture
