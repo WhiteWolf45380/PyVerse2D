@@ -8,7 +8,7 @@ import time
 import pyglet.image as _image
 
 from ..._internal import expect, HasPosition, profile_section
-from ..._rendering import PygletSpriteRenderer, Pipeline
+from ..._rendering import PygletTextureRenderer, Pipeline
 from ...abc import System
 from .._world import World
 from .._component import Transform, VideoPlayer
@@ -47,7 +47,7 @@ class VideoSystem(System):
 
         # Attributs internes
         self._threads: dict[int, threading.Thread] = {}
-        self._sprites: dict[int, PygletSpriteRenderer] = {}
+        self._sprites: dict[int, PygletTextureRenderer] = {}
 
     # ======================================== CONTRACT ========================================
     def __repr__(self) -> str:
@@ -123,10 +123,12 @@ class VideoSystem(System):
             # Synchronisation des sprites
             renderer = self._sprites.get(eid)
             if renderer is None:
-                self._sprites[eid] = PygletSpriteRenderer(
-                    image = vp.texture,
+                self._sprites[eid] = PygletTextureRenderer(
+                    texture = vp.texture,
                     transform = tr,
                     offset = vp.offset,
+                    width = vp.width,
+                    height = vp.height,
                     opacity = vp.opacity,
                     z = vp.z,
                     pipeline = pipeline,
@@ -134,9 +136,11 @@ class VideoSystem(System):
             
             else:
                 renderer.update(
-                    image = vp.texture,
+                    texture = vp.texture,
                     transform = tr,
                     offset = vp.offset,
+                    width = vp.width,
+                    height = vp.height,
                     opacity = vp.opacity,
                     z = vp.z,
                 )
