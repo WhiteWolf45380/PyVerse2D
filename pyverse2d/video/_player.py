@@ -11,7 +11,6 @@ import threading
 import queue
 import time
 from numbers import Real
-from typing import Callable, Any
 
 # ======================================== CONSTANTS ========================================
 _BUFFER_SIZE = 8
@@ -21,12 +20,10 @@ class VideoPlayer:
     """Lecteur vidéo monde"""
     __slots__ = (
         "_position", "_width", "_height",
-        "_video", "_player",
-        "_play_volume", "_loop", "_on_end",
-        "_texture", "_frame_queue",
-        "_decode_thread", "_stop_event",
-        "_pts_origin", "_clock_origin",
-        "_duration", "_paused", "_pause_event",
+        "_video", "_play_volume", "_loop",
+        "_on_start", "_on_end",
+        "_texture", "_frame_queue", "_decode_thread", "_stop_event", "_pause_event",
+        "_pts_origin", "_clock_origin", "_duration", "_paused",
     )
 
     def __init__(self, position: Point, width: int, height: int):
@@ -48,6 +45,9 @@ class VideoPlayer:
         self._video: Video | None = None
         self._play_volume: float = 1.0
         self._loop: bool = False
+
+        # Hooks
+        self._on_start: CallbackList | None = None
         self._on_end: CallbackList | None = None
 
         # Décodage
@@ -131,17 +131,6 @@ class VideoPlayer:
         self._play_volume = value
 
     @property
-    def on_end(self) -> CallbackList:
-        """Hook de fin de lecture"""
-        if self._on_end is None:
-            self._on_end = CallbackList()
-        return self._on_end
-
-    @on_end.setter
-    def on_end(self, value: Callable | None) -> None:
-        self._on_end = value
-
-    @property
     def texture(self):
         """Frame courante comme texture pyglet (None si inactif)"""
         return self._texture
@@ -179,6 +168,27 @@ class VideoPlayer:
     def is_loaded(self) -> bool:
         """Vérifie qu'une vidéo soit chargée"""
         return self._video is not None
+    
+    # ======================================== HOOKS ========================================
+    @property
+    def on_start(self) -> CallbackList:
+        """Hook de début de lecture
+        
+        Le callback reçoit deux arguments: ``VideoPlayer`` et ``Video``
+        """
+        if self._on_start is None:
+            self._on_start = CallbackList()
+        return self._on_start
+
+    @property
+    def on_end(self) -> CallbackList:
+        """Hook de fin de lecture
+        
+        Le callback reçoit deux arguments: ``VideoPlayer`` et ``Video``
+        """
+        if self._on_end is None:
+            self._on_end = CallbackList()
+        return self._on_end
 
     # ======================================== INTERFACE ========================================
     def load(self, video: Video) -> None:
@@ -205,34 +215,43 @@ class VideoPlayer:
             volume: volume de lecture
             loop: relancement automatique de la vidéo
         """
-        if __debug__:
-            expect(video, (Video, type(None)))
-            positive(float(volume))
+        # Transtypage et vérifications
+        volume = float(volume)
+        loop = bool(loop)
 
+        if __debug__:
+            expect(video, (Video, None))
+            positive(volume)
+
+        # Fallback video
         if video is not None:
             self._video = video
         if self._video is None:
             return
 
+        # Nettoyage de l'ancien état
         self.stop()
 
-        self._play_volume = float(volume)
-        self._loop = bool(loop)
+        # Chargement
+        self._play_volume = volume
+        self._loop = loop
         self._paused = False
 
-        # Récupère la durée via PyAV sans garder le container ouvert
+        # Récupèration de la durée
         with av.open(self._video.path) as _c:
             vs = next((s for s in _c.streams if s.type == "video"), None)
             self._duration = float(vs.duration * vs.time_base) if (vs and vs.duration) else None
 
+        # Configuration initiale
         self._frame_queue = queue.Queue(maxsize=_BUFFER_SIZE)
         self._stop_event = threading.Event()
         self._pause_event = threading.Event()
-        self._pause_event.set()  # non-bloquant au départ
+        self._pause_event.set()
 
         self._pts_origin = 0.0
         self._clock_origin = time.perf_counter()
 
+        # Lancement du décodage dans un thread secondaire
         self._decode_thread = threading.Thread(
             target=self._decode_loop,
             args=(self._video.path, self._frame_queue, self._stop_event, self._pause_event, self._loop),
@@ -240,25 +259,32 @@ class VideoPlayer:
         )
         self._decode_thread.start()
 
+        # Appel des callbacks
+        if self._on_start:
+            self._on_start.trigger(self, self._video)
+
     def pause(self) -> None:
+        """Mise en pause de la lecture"""
         if not self.is_playing() or self._paused:
             return
-        self._pts_origin = self.time   # sauvegarde le PTS courant
-        self._pause_event.clear()      # bloque le thread de décodage
+        self._pts_origin = self.time 
+        self._pause_event.clear()
         self._paused = True
 
     def unpause(self) -> None:
+        """Reprends la lecture"""
         if not self._paused:
             return
-        self._clock_origin = time.perf_counter()  # rebase l'horloge
+        self._clock_origin = time.perf_counter()
         self._pause_event.set()
         self._paused = False
 
     def stop(self) -> None:
+        """Arrête la lecture"""
         if self._stop_event is not None:
             self._stop_event.set()
         if self._pause_event is not None:
-            self._pause_event.set()  # débloque le thread pour qu'il puisse se terminer
+            self._pause_event.set()
         if self._decode_thread is not None:
             self._decode_thread.join(timeout=1.0)
             self._decode_thread = None
@@ -268,30 +294,31 @@ class VideoPlayer:
         self._paused = False
 
     def clear(self) -> None:
+        """Nettoie l'état courant"""
         self.stop()
         self._video = None
         self._texture = None
         self._duration = None
 
     def tick(self, dt: float) -> None:
-        """Actualisation — à appeler chaque frame depuis le thread principal
+        """Actualisation
 
         Consomme les frames prêtes de la queue et met à jour la texture.
-        Déclenche le callback ``on_end`` si la vidéo est terminée.
 
         Args:
             dt: delta-time
         """
+        # Pas de lecture en cours
         if self._frame_queue is None or self._paused:
             return
 
+        # Mise à jour
         now = self.time
         last_ready: bytes | None = None
         last_pts: float = 0.0
         last_size: tuple[int, int] = (0, 0)
 
-        # Draine toutes les frames dont le PTS est dépassé,
-        # ne garde que la plus récente pour éviter l'accumulation
+        # Consommation des frames
         while True:
             try:
                 pts, w, h, data = self._frame_queue.get_nowait()
@@ -303,10 +330,10 @@ class VideoPlayer:
                 last_pts = pts
                 last_size = (w, h)
             else:
-                # Frame trop en avance : on la remet et on arrête
                 self._frame_queue.put((pts, w, h, data))
                 break
-
+        
+        # Génération de la texture
         if last_ready is not None:
             w, h = last_size
             img = _image.ImageData(w, h, "RGB", last_ready, pitch=-w * 3)
@@ -314,10 +341,10 @@ class VideoPlayer:
             self._pts_origin = last_pts
             self._clock_origin = time.perf_counter()
 
-        # Fin de lecture : queue vide + thread mort
+        # Fin de lecture
         if not self.is_playing() and (self._frame_queue is None or self._frame_queue.empty()):
-            if self._on_end is not None:
-                self._on_end(self)
+            if self._on_end:
+                self._on_end.trigger(self, self._video)
             self.stop()
 
     # ======================================== INTERNALS ========================================
@@ -329,7 +356,7 @@ class VideoPlayer:
         pause_event: threading.Event,
         loop: bool,
     ) -> None:
-        """Thread de décodage — ne touche jamais au thread principal
+        """Thread de décodage
 
         Args:
             path: chemin vers le fichier vidéo
@@ -344,7 +371,7 @@ class VideoPlayer:
                 if video_stream is None:
                     break
 
-                # Optimisation : décodage multi-thread côté FFmpeg
+                # Décodage multi-thread
                 video_stream.thread_type = "AUTO"
 
                 for frame in container.decode(video=0):
@@ -358,7 +385,7 @@ class VideoPlayer:
 
                     pts = float(frame.pts * frame.time_base)
 
-                    # Conversion RGB24 — plus rapide que RGBA pour pyglet
+                    # Conversion RGB24
                     rgb_frame = frame.to_ndarray(format="rgb24")
                     h, w, _ = rgb_frame.shape
                     data = rgb_frame.tobytes()
