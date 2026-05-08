@@ -287,7 +287,7 @@ class AudioManager(Manager):
     __slots__ = (
         "_master_volume", "_music_volume",
         "_active_sounds", "_current_music", "_crossfade", "_playlist",
-        "_source_cache",
+        "_source_cache", "_executor",
     )
 
     _ID: ClassVar[str] = "audio"
