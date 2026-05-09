@@ -277,13 +277,23 @@ class VideoPlayer(Component):
     def time(self) -> float:
         """Position temporelle courante de la lecture, en secondes
 
-        Retourne ``0.0`` si la lecture est arrêtée.
+        Retourne ``0.0`` si la lecture est arrêtée, en pause avant le premier
+        tick audio, ou si l'horloge n'a pas encore été armée par ``VideoSystem``.
+
+        L'horloge est armée dans ``VideoSystem._update_audio()`` au moment exact
+        de ``player.play()``, et non à l'initialisation des ressources.
+        Cela garantit que ``t = 0`` vidéo et ``t = 0`` audio sont quasiment
+        alignés, éliminant le décalage permanent entre les deux flux.
+
         En pause, retourne la position figée au moment de la mise en pause.
         """
         if not self.is_playing():
             return 0.0
         if self._paused:
             return self._pts_origin
+        # _play_start_wall == 0.0 : player.play() pas encore appelé, on attend.
+        if self._play_start_wall == 0.0:
+            return 0.0
         return time.perf_counter() - self._play_start_wall
 
     @property
