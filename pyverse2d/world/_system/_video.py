@@ -216,6 +216,15 @@ class VideoSystem(System):
         for thread in (vp._decode_thread, vp._audio_thread):
             if thread is not None:
                 thread.join(timeout=1.0)
+
+        if vp._audio_player is not None:
+            try:
+                vp._audio_player.pause()
+                vp._audio_player.delete()
+            except Exception:
+                pass
+            vp._audio_player = None
+        
         vp._decode_thread = None
         vp._audio_thread = None
         vp._frame_queue = None
@@ -268,7 +277,6 @@ class VideoSystem(System):
         img = _image.ImageData(w, h, "RGB", last_ready, pitch=-w * 3)
         vp._texture = img.get_texture()
         vp._pts_origin = last_pts
-        vp._clock_origin = time.perf_counter()
 
     # ======================================== AUDIO ========================================
     def _update_audio(
@@ -491,15 +499,12 @@ class VideoSystem(System):
             del pcm_buffer[:target_size]
 
             try:
-                audio_format = _media.codecs.AudioFormat(
+                audio_format = _media.AudioFormat(
                     channels=channels,
                     sample_size=16,
                     sample_rate=sample_rate,
                 )
-                source = _media.codecs.StaticMemorySource(
-                    chunk,
-                    audio_format,
-                )
+                source = _media.StaticMemorySource(chunk, audio_format)
                 ready_queue.put(source, timeout=0.1)
 
             except Exception:
