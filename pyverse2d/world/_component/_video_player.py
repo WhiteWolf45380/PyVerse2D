@@ -117,7 +117,7 @@ class VideoPlayer(Component):
 
         # Horloge
         self._paused_time: float = 0.0
-
+    
         self._duration: float | None = None
 
         # État
@@ -280,11 +280,8 @@ class VideoPlayer(Component):
             return 0.0
         if self._paused:
             return self._paused_time
-        if self._audio_player is not None:
-            try:
-                return self._audio_player.time
-            except Exception:
-                pass
+        if self._audio_feed is not None:
+            return self._audio_feed.playback_time
         return 0.0
 
     @property
