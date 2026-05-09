@@ -41,7 +41,9 @@ class VideoPlayer(Component):
         "_stop_event", "_pause_event",
         "_end_event", "_loop_event",
         "_audio_player", "_audio_feed", "_audio_started",
+        "_prev_audio_feed",
         "_paused_time",
+        "_loop_time_offset",
         "_duration",
         "_playing", "_paused", "_initialized",
     )
@@ -60,7 +62,6 @@ class VideoPlayer(Component):
             opacity: Real = 1.0,
             z: int = 0,
         ):
-        # Transtypage et vérifications
         width = int(width)
         height = int(height)
         offset = Vector(offset)
@@ -77,7 +78,6 @@ class VideoPlayer(Component):
             expect_callable(falloff)
             clamped(opacity)
 
-        # Attributs publics
         self._width: int = width
         self._height: int = height
         self._offset: Vector = offset
@@ -90,15 +90,12 @@ class VideoPlayer(Component):
         self._opacity: float = opacity
         self._z: int = z
 
-        # Attributs internes
         self._video: Video | None = None
         self._loop: bool = False
 
-        # Hooks
         self._on_start: CallbackList | None = None
         self._on_end: CallbackList | None = None
 
-        # Décodage
         self._texture = None
         self._pending_frame: tuple | None = None
 
@@ -110,17 +107,16 @@ class VideoPlayer(Component):
         self._end_event: threading.Event | None = None
         self._loop_event: threading.Event | None = None
 
-        # Audio
         self._audio_player: _media.Player | None = None
         self._audio_feed = None
         self._audio_started: bool = False
+        self._prev_audio_feed = None
 
-        # Horloge
         self._paused_time: float = 0.0
-    
+        self._loop_time_offset: float = 0.0
+
         self._duration: float | None = None
 
-        # État
         self._playing: bool = False
         self._paused: bool = False
         self._initialized: bool = False
@@ -275,13 +271,18 @@ class VideoPlayer(Component):
 
     @property
     def time(self) -> float:
-        """Position temporelle courante de la lecture, en secondes"""
+        """Position temporelle courante de la lecture, en secondes
+
+        Basée sur le ``playback_time`` du feed audio courant (monotonic ancré
+        au premier sample réel consommé par OpenAL) + offset cumulé des loops
+        précédents. Retourne la position dans le fichier vidéo courant.
+        """
         if not self._playing:
             return 0.0
         if self._paused:
             return self._paused_time
         if self._audio_feed is not None:
-            return self._audio_feed.playback_time
+            return self._loop_time_offset + self._audio_feed.playback_time
         return 0.0
 
     @property
@@ -372,7 +373,6 @@ class VideoPlayer(Component):
     def pause(self) -> None:
         """Met la lecture en pause
 
-        Fige la clock audio à la position courante et suspend OpenAL.
         Sans effet si la lecture est arrêtée ou déjà en pause.
         """
         if not self._playing or self._paused:
@@ -402,10 +402,7 @@ class VideoPlayer(Component):
                 pass
 
     def stop(self) -> None:
-        """Arrête la lecture et signale le thread de décodage
-
-        Le nettoyage complet des ressources est délégué à ``VideoSystem._stop_player()``.
-        """
+        """Arrête la lecture et signale le thread de décodage"""
         if not self._playing:
             return
         if self._stop_event is not None:
@@ -423,4 +420,6 @@ class VideoPlayer(Component):
         self._pending_frame = None
         self._duration = None
         self._audio_started = False
+        self._prev_audio_feed = None
+        self._loop_time_offset = 0.0
         self._initialized = False

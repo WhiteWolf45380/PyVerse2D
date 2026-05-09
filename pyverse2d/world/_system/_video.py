@@ -4,6 +4,7 @@ from __future__ import annotations
 import av
 import queue
 import threading
+import time as _time
 import pyglet.image as _image
 import pyglet.media as _media
 import pyglet.media.codecs as _codecs
@@ -15,32 +16,28 @@ from .._world import World
 from .._component import Transform, VideoPlayer
 
 # ======================================== CONSTANTS ========================================
-# Capacité maximale de la queue de frames vidéo
-_VIDEO_BUFFER: int = 16
+_VIDEO_BUFFER:     int   = 16
+_AUDIO_RATE:       int   = 44100
+_AUDIO_CH:         int   = 2
+_AUDIO_BUFFER_MAX: int   = 4 * _AUDIO_RATE * _AUDIO_CH * 2
+_AUDIO_PREBUFFER:  float = 0.6
 
-# Format audio de sortie
-_AUDIO_RATE: int = 44100
-_AUDIO_CH: int = 2
 
-# Taille maximale du buffer audio
-_AUDIO_BUFFER_MAX: int = 2 * _AUDIO_RATE * _AUDIO_CH * 2
+# ======================================== NO-SEEK PLAYER ========================================
+class _NoSeekPlayer(_media.Player):
+    """Player pyglet qui ne tente pas de seek() à la fin d'un StreamingSource."""
 
-# Secondes de PCM à accumuler avant de démarrer la lecture des frames
-_AUDIO_PREBUFFER: float = 0.2
+    def __init__(self) -> None:
+        super().__init__()
+        self.loop = False
+
+    def on_eos(self) -> None:
+        pass
+
 
 # ======================================== AUDIO FEED ========================================
-import time as _time
-
 class _AudioFeed(_media.StreamingSource):
-    """Source audio streaming thread-safe pour pyglet/OpenAL.
-
-    La clock de playback est basée sur ``time.monotonic()`` capturé au premier
-    ``push()`` réel, ce qui évite la dérive liée à la consommation OpenAL.
-
-    Args:
-        sample_rate: fréquence d'échantillonnage (défaut : ``_AUDIO_RATE``)
-        channels: nombre de canaux audio (défaut : ``_AUDIO_CH``)
-    """
+    """Source PCM streaming"""
 
     def __init__(self, sample_rate: int = _AUDIO_RATE, channels: int = _AUDIO_CH) -> None:
         self.audio_format = _codecs.AudioFormat(
@@ -48,171 +45,82 @@ class _AudioFeed(_media.StreamingSource):
             sample_size=16,
             sample_rate=sample_rate,
         )
-        self._buf: bytearray = bytearray()
-        self._lock: threading.Lock = threading.Lock()
-        self._done: bool = False
-        self._underruns: int = 0
-        self._drops: int = 0
-        self._start_time: float | None = None  # monotonic au premier push réel
-
-    def start(self) -> None:
-        """Ancre la clock au moment du play() réel."""
-        with self._lock:
-            if self._start_time is None:
-                self._start_time = _time.monotonic()
-
-    def reset_clock(self) -> None:
-        """Remet la clock à zéro (utilisé au loop sans recréer le player)."""
-        with self._lock:
-            self._start_time = _time.monotonic()
+        self._buf:         bytearray         = bytearray()
+        self._lock:        threading.Lock    = threading.Lock()
+        self._done:        bool              = False
+        self._start_mono:  float | None      = None
+        self._loop_offset: float             = 0.0
+        self._queued:      bool              = False
 
     def push(self, data: bytes) -> None:
-        """Pousse du PCM brut dans le buffer interne.
-
-        Args:
-            data: octets PCM s16 stéréo à bufferiser
-        """
         with self._lock:
-            if len(self._buf) + len(data) > _AUDIO_BUFFER_MAX:
-                self._drops += 1
-                return
-            self._buf.extend(data)
+            if len(self._buf) + len(data) <= _AUDIO_BUFFER_MAX:
+                self._buf.extend(data)
 
     def mark_done(self) -> None:
-        """Signale la fin définitive du flux"""
         with self._lock:
             self._done = True
 
     @property
-    def playback_time(self) -> float:
-        """Temps écoulé depuis le premier chunk PCM reçu, en secondes."""
+    def started(self) -> bool:
+        """``True`` dès que le premier sample réel a été consommé par OpenAL."""
         with self._lock:
-            if self._start_time is None:
+            return self._start_mono is not None
+
+    @property
+    def playback_time(self) -> float:
+        """Secondes écoulées depuis le premier vrai sample consommé par OpenAL."""
+        with self._lock:
+            if self._start_mono is None:
                 return 0.0
-            return _time.monotonic() - self._start_time
+            return _time.monotonic() - self._start_mono
 
     @property
     def buffered_seconds(self) -> float:
-        """Secondes de PCM actuellement en attente dans le buffer."""
         bps = self.audio_format.sample_rate * self.audio_format.channels * 2
         with self._lock:
             return len(self._buf) / bps
 
-    @property
-    def underruns(self) -> int:
-        """Nombre d'underruns détectés depuis la création du feed"""
-        return self._underruns
-
-    @property
-    def drops(self) -> int:
-        """Nombre de chunks audio droppés pour cause de buffer saturé"""
-        return self._drops
-
     def get_audio_data(self, num_bytes: int, compensation_time: float = 0.0):
-        """Fournit ``num_bytes`` octets PCM à OpenAL
-
-        Args:
-            num_bytes: quantité d'octets demandée
-            compensation_time: ignoré (API pyglet)
-
-        Returns:
-            ``AudioData`` prêt pour OpenAL, ou ``None`` en fin de flux
-        """
         with self._lock:
             available = len(self._buf)
+
+            if available == 0 and self._done:
+                return None
+
             if available == 0:
-                if self._done:
-                    return None
-                self._underruns += 1
-                data = bytes(num_bytes)
-            else:
-                n = min(num_bytes, available)
-                data = bytes(self._buf[:n])
-                del self._buf[:n]
-                if n < num_bytes:
-                    data += bytes(num_bytes - n)
+                sr  = self.audio_format.sample_rate
+                ch  = self.audio_format.channels
+                dur = num_bytes / (sr * ch * 2)
+                return _codecs.AudioData(b"\x00" * num_bytes, num_bytes, 0.0, dur, [])
 
-        sr = self.audio_format.sample_rate
-        ch = self.audio_format.channels
-        duration = num_bytes / (sr * ch * 2)
-        return _codecs.AudioData(data, len(data), 0.0, duration, [])
+            if self._start_mono is None:
+                self._start_mono = _time.monotonic()
 
+            n    = min(num_bytes, available)
+            data = bytes(self._buf[:n])
+            del self._buf[:n]
 
-class _AudioFeedProxy:
-    """Proxy thread-safe autour d'un ``_AudioFeed``.
-
-    Le thread de décodage garde une référence permanente à ce proxy.
-    Le main thread peut swapper l'implémentation interne (``swap()``) sans
-    que le thread de décodage ait à être notifié ou recréé.
-    """
-
-    def __init__(self, feed: _AudioFeed) -> None:
-        self._feed = feed
-        self._lock = threading.Lock()
-
-    def push(self, data: bytes) -> None:
-        with self._lock:
-            self._feed.push(data)
-
-    def start(self) -> None:
-        with self._lock:
-            self._feed.start()
-
-    def reset_clock(self) -> None:
-        with self._lock:
-            self._feed.reset_clock()
-
-    def mark_done(self) -> None:
-        with self._lock:
-            self._feed.mark_done()
-
-    @property
-    def buffered_seconds(self) -> float:
-        with self._lock:
-            return self._feed.buffered_seconds
-
-    @property
-    def playback_time(self) -> float:
-        with self._lock:
-            return self._feed.playback_time
-
-    def swap(self, new_feed: _AudioFeed) -> None:
-        """Remplace l'implémentation interne atomiquement."""
-        with self._lock:
-            self._feed = new_feed
-
-    @property
-    def current(self) -> _AudioFeed:
-        """Retourne le feed actif (pour le queuer sur un nouveau player)."""
-        with self._lock:
-            return self._feed
+        sr  = self.audio_format.sample_rate
+        ch  = self.audio_format.channels
+        dur = n / (sr * ch * 2)
+        return _codecs.AudioData(data, n, 0.0, dur, [])
 
 # ======================================== SYSTEM ========================================
 class VideoSystem(System):
-    """Système gérant les composants ``VideoPlayer``
+    """Système gérant les composants ``VideoPlayer``"""
 
-    Args:
-        origin: référentiel de position pour le calcul d'atténuation spatiale *(typiquement la caméra)*
-    """
-    __slots__ = (
-        "_origin",
-        "_threads", "_sprites",
-    )
+    __slots__ = ("_origin", "_threads", "_sprites")
 
-    order = 95
-    exclusive = True
+    order      = 95
+    exclusive  = True
     renderable = True
 
-    def __init__(self, origin: HasPosition):
-        # Vérifications
+    def __init__(self, origin: HasPosition) -> None:
         if __debug__:
             expect(origin, HasPosition)
-
-        # Attributs publiques
-        self._origin: HasPosition = origin
-
-        # Attributs internes
-        self._threads: dict[int, threading.Thread] = {}
+        self._origin:  HasPosition                      = origin
+        self._threads: dict[int, threading.Thread]      = {}
         self._sprites: dict[int, PygletTextureRenderer] = {}
 
     # ======================================== CONTRACT ========================================
@@ -225,10 +133,6 @@ class VideoSystem(System):
     # ======================================== PROPERTIES ========================================
     @property
     def origin(self) -> HasPosition:
-        """Référentiel d'écoute des sons
-
-        Cette propriété définie le point de référence spatial pour l'atténuation du volume sonore.
-        """
         return self._origin
 
     @origin.setter
@@ -237,41 +141,42 @@ class VideoSystem(System):
             expect(value, HasPosition)
         self._origin = value
 
+    def _video_time(self, vp: VideoPlayer) -> float:
+        if vp._audio_feed is None:
+            return vp._loop_time_offset
+        return vp._loop_time_offset + vp._audio_feed.playback_time
+
     # ======================================== LIFE CYCLE ========================================
     @profile_section("world.video.update")
     def update(self, world: World, dt: float) -> None:
-        """Met à jour tous les ``VideoPlayer`` actifs du monde
-
-        Args:
-            world: monde ECS courant
-            dt: delta-temps depuis la dernière mise à jour
-        """
         active_eids: set[int] = set()
 
         for entity in world.query(VideoPlayer):
-            vp: VideoPlayer = entity.video_player
-            tr: Transform   = entity.transform
-            eid = entity.id
+            vp:  VideoPlayer = entity.video_player
+            tr:  Transform   = entity.transform
+            eid: int         = entity.id
             active_eids.add(eid)
 
-            # Initialisation si une vidéo vient d'être chargée
             if vp._video and not vp._initialized:
                 self._load_player(eid, vp)
 
-            # Pas en lecture active
             if not vp.is_playing() or vp.is_paused():
                 continue
 
-            # Volume spatial basé sur la distance à l'origine
-            distance = ((tr.x - self._origin.x) ** 2 + (tr.y - self._origin.y) ** 2) ** 0.5
-            spatial_volume = self._compute_volume(vp, distance)
+            dist = ((tr.x - self._origin.x) ** 2 + (tr.y - self._origin.y) ** 2) ** 0.5
+            spatial_volume = self._compute_volume(vp, dist)
 
             self._update_audio(vp, spatial_volume)
             self._check_signals(eid, vp)
+
             if not vp._audio_started:
-                continue  # prebuffer pas atteint, on ne consomme pas encore de frames
+                continue
+
+            if not vp._audio_feed.started:
+                continue
+
             self._consume_frames(vp)
-        # Nettoyage des threads dont l'entité n'existe plus dans le monde
+
         for eid in list(self._threads):
             if eid not in active_eids:
                 thread = self._threads.pop(eid)
@@ -279,14 +184,6 @@ class VideoSystem(System):
 
     @profile_section("world.video.draw")
     def draw(self, world: World, pipeline: Pipeline) -> None:
-        """Dessine la texture courante de chaque ``VideoPlayer``
-
-        Crée le renderer au premier appel, puis le met à jour à chaque frame.
-
-        Args:
-            world: monde ECS courant
-            pipeline: pipeline de rendu cible
-        """
         for entity in world.query(VideoPlayer):
             eid = entity.id
             vp  = entity.video_player
@@ -308,16 +205,9 @@ class VideoSystem(System):
 
     # ======================================== PLAYER LIFECYCLE ========================================
     def _load_player(self, eid: int, vp: VideoPlayer) -> None:
-        """Initialise toutes les ressources de décodage pour une entité
-
-        Args:
-            eid: identifiant de l'entité
-            vp: composant ``VideoPlayer`` de l'entité
-        """
         was_playing = vp._playing
         self._stop_player(eid, vp)
 
-        # Durée totale
         try:
             with av.open(vp._video.path) as c:
                 vs = next((s for s in c.streams if s.type == "video"), None)
@@ -325,32 +215,44 @@ class VideoSystem(System):
         except Exception:
             vp._duration = None
 
-        # Queue vidéo
-        vp._frame_queue   = queue.Queue(maxsize=_VIDEO_BUFFER)
-        vp._pending_frame = None
+        vp._audio_player = _NoSeekPlayer()
 
-        # Events de contrôle du thread
-        vp._stop_event  = threading.Event()
-        vp._pause_event = threading.Event()
-        vp._pause_event.set()
+        self._start_decode_pass(eid, vp, first=True)
 
-        # Signaux de fin et de boucle
+        vp._initialized = True
+        vp._playing     = was_playing
+
+    def _start_decode_pass(self, eid: int, vp: VideoPlayer, *, first: bool) -> None:
+        """Lance une passe de décodage (première ou loop).
+
+        first=True  → initialise aussi la queue vidéo et les events globaux.
+        first=False → réutilise queue et stop/pause events ; crée juste
+                      un nouveau feed et thread pour cette passe.
+        """
+        if first:
+            vp._frame_queue      = queue.Queue(maxsize=_VIDEO_BUFFER)
+            vp._pending_frame    = None
+            vp._stop_event       = threading.Event()
+            vp._pause_event      = threading.Event()
+            vp._pause_event.set()
+            vp._audio_started    = False
+            vp._loop_time_offset = 0.0
+            vp._prev_audio_feed  = None
+
+        feed = _AudioFeed(_AUDIO_RATE, _AUDIO_CH)
+        feed._loop_offset  = vp._loop_time_offset
+        vp._audio_feed     = feed
+        vp._audio_player.queue(feed)
+
         vp._end_event  = threading.Event()
         vp._loop_event = threading.Event()
 
-        # Feed audio et player OpenAL
-        feed             = _AudioFeed(_AUDIO_RATE, _AUDIO_CH)
-        vp._audio_feed   = _AudioFeedProxy(feed)
-        vp._audio_player = _media.Player()
-        vp._audio_player.queue(feed)
-
-        # Thread de décodage — reçoit le proxy, pas le feed direct
         thread = threading.Thread(
             target=self._decode_loop,
             args=(
                 vp._video.path,
                 vp._frame_queue,
-                vp._audio_feed,   # proxy : référence stable même après loop
+                feed,
                 vp._stop_event,
                 vp._pause_event,
                 vp._end_event,
@@ -360,28 +262,19 @@ class VideoSystem(System):
             daemon=True,
         )
         thread.start()
-        vp._decode_thread = thread
+        vp._decode_thread  = thread
         self._threads[eid] = thread
 
-        vp._initialized   = True
-        vp._playing       = was_playing
-        vp._audio_started = False
-
     def _stop_player(self, eid: int, vp: VideoPlayer) -> None:
-        """Arrête proprement la lecture et libère toutes les ressources
-
-        Args:
-            eid: identifiant de l'entité
-            vp: composant ``VideoPlayer`` de l'entité
-        """
         vp.stop()
 
         if vp._decode_thread is not None:
             vp._decode_thread.join(timeout=1.0)
+            vp._decode_thread = None
 
-        # mark_done APRÈS join
-        if vp._audio_feed is not None:
-            vp._audio_feed.mark_done()
+        for feed in (getattr(vp, "_prev_audio_feed", None), vp._audio_feed):
+            if feed is not None:
+                feed.mark_done()
 
         if vp._audio_player is not None:
             try:
@@ -391,28 +284,24 @@ class VideoSystem(System):
                 pass
             vp._audio_player = None
 
-        vp._audio_feed    = None
-        vp._decode_thread = None
-        vp._frame_queue   = None
-        vp._pending_frame = None
-        vp._stop_event    = None
-        vp._pause_event   = None
-        vp._end_event     = None
-        vp._loop_event    = None
-        vp._audio_started = False
+        vp._audio_feed      = None
+        vp._prev_audio_feed = None
+        vp._decode_thread   = None
+        vp._frame_queue     = None
+        vp._pending_frame   = None
+        vp._stop_event      = None
+        vp._pause_event     = None
+        vp._end_event       = None
+        vp._loop_event      = None
+        vp._audio_started   = False
         self._threads.pop(eid, None)
 
     # ======================================== SIGNALS ========================================
     def _check_signals(self, eid: int, vp: VideoPlayer) -> None:
-        """Vérifie les signaux de fin et de boucle émis par le thread de décodage
-
-        Args:
-            eid: identifiant de l'entité
-            vp: composant ``VideoPlayer`` de l'entité
-        """
         if vp._loop_event is not None and vp._loop_event.is_set():
             vp._loop_event.clear()
-            self._reset_for_loop(vp)
+            self._prepare_loop(eid, vp)
+            return
 
         if vp._end_event is not None and vp._end_event.is_set():
             vp._end_event.clear()
@@ -420,48 +309,71 @@ class VideoSystem(System):
                 vp._on_end.trigger(vp, vp._video)
             self._stop_player(eid, vp)
 
-    def _reset_for_loop(self, vp: VideoPlayer) -> None:
-        """Remet à zéro les ressources audio et vidéo pour un rebouclage propre.
+    def _prepare_loop(self, eid: int, vp: VideoPlayer) -> None:
+        """Prépare la transition seamless vers la passe suivante."""
+        if vp._decode_thread is not None:
+            vp._decode_thread.join(timeout=1.0)
+            vp._decode_thread = None
 
-        Le player OpenAL est conservé pour éviter toute interruption audible.
-        Seul le feed interne du proxy est swappé — le thread de décodage
-        continue d'écrire dans le proxy sans être notifié.
-
-        Args:
-            vp: composant ``VideoPlayer`` à réinitialiser
-        """
-        # Swapper le feed : nouveau buffer vide, même proxy
-        new_feed = _AudioFeed(_AUDIO_RATE, _AUDIO_CH)
         if vp._audio_feed is not None:
-            vp._audio_feed.swap(new_feed)
+            vp._audio_feed.mark_done()
+            vp._audio_feed = None
 
-        # Requeuer le nouveau feed sur le player existant
-        if vp._audio_player is not None:
+        vp._loop_time_offset = self._video_time(vp)
+
+        while True:
             try:
-                vp._audio_player.queue(new_feed)
+                vp._frame_queue.get_nowait()
+            except queue.Empty:
+                break
+        vp._pending_frame = None
+
+        try:
+            vp._audio_player.pause()
+            vp._audio_player.delete()
+        except Exception:
+            pass
+        vp._audio_player    = _NoSeekPlayer()
+        vp._audio_started   = False
+        vp._prev_audio_feed = None
+
+        self._start_decode_pass(eid, vp, first=False)
+
+    # ======================================== AUDIO ========================================
+    def _update_audio(self, vp: VideoPlayer, spatial_volume: float) -> None:
+        player = vp._audio_player
+        if player is None:
+            return
+
+        if player.volume != spatial_volume:
+            player.volume = spatial_volume
+
+        if not vp._audio_started:
+            if vp._audio_feed is None:
+                return
+            if vp._audio_feed.buffered_seconds < _AUDIO_PREBUFFER:
+                return
+            try:
+                if not vp._audio_feed._queued:
+                    player.queue(vp._audio_feed)
+                    vp._audio_feed._queued = True
+                player.play()
+                vp._audio_started = True
             except Exception:
                 pass
+            return
 
-        # Remettre la clock à zéro via le proxy (qui pointe déjà sur new_feed)
-        if vp._audio_feed is not None:
-            vp._audio_feed.reset_clock()
-
-        vp._pending_frame = None
-        # reset_clock() ancre la clock du nouveau feed au moment exact du reset,
-        # synchrone avec le thread qui va repartir de PTS=0
-        # _audio_started reste True : le player continue sans interruption
+        if vp._prev_audio_feed is not None:
+            vp._prev_audio_feed.mark_done()
+            vp._prev_audio_feed = None
 
     # ======================================== FRAMES ========================================
     def _consume_frames(self, vp: VideoPlayer) -> None:
-        """Dépile et affiche les frames dont le PTS est échu
-
-        Args:
-            vp: composant ``VideoPlayer`` à mettre à jour
-        """
-        if vp._frame_queue is None:
+        if vp._frame_queue is None or vp._audio_feed is None:
             return
 
-        now = vp.time
+        now = self._video_time(vp)
+
         if vp._pending_frame is not None:
             pts, w, h, data = vp._pending_frame
             if pts > now:
@@ -470,15 +382,12 @@ class VideoSystem(System):
             vp._pending_frame = None
 
         last_eligible: tuple | None = None
-
         while True:
             try:
                 item = vp._frame_queue.get_nowait()
             except queue.Empty:
                 break
-
             pts, w, h, data = item
-
             if pts <= now:
                 last_eligible = (pts, w, h, data)
             else:
@@ -491,64 +400,15 @@ class VideoSystem(System):
 
     @staticmethod
     def _blit_frame(vp: VideoPlayer, w: int, h: int, data: bytes) -> None:
-        """Met à jour la texture GPU à partir des données d'une frame
-
-        Réutilise la texture existante si les dimensions sont inchangées (``blit_into``).
-        Crée une nouvelle texture uniquement à la première frame ou si la résolution change.
-
-        Args:
-            vp: composant ``VideoPlayer`` cible
-            w: largeur de la frame en pixels
-            h: hauteur de la frame en pixels
-            data: données RGB brutes (24 bits par pixel, ligne de haut en bas)
-        """
         img = _image.ImageData(w, h, "RGB", data, pitch=-w * 3)
-
         if vp._texture is not None and vp._texture.width == w and vp._texture.height == h:
             vp._texture.blit_into(img, 0, 0, 0)
         else:
             vp._texture = img.get_texture()
 
-    # ======================================== AUDIO ========================================
-    def _update_audio(self, vp: VideoPlayer, spatial_volume: float) -> None:
-        """Met à jour le volume OpenAL et démarre le player une unique fois par session.
-
-        Attend qu'au moins ``_AUDIO_PREBUFFER`` secondes de PCM soient buffurisées
-        avant de démarrer, pour éviter un désync frames/audio au lancement.
-
-        Args:
-            vp: composant ``VideoPlayer`` cible
-            spatial_volume: volume final après atténuation spatiale
-        """
-        player = vp._audio_player
-        if player is None:
-            return
-
-        if player.volume != spatial_volume:
-            player.volume = spatial_volume
-
-        if not vp._audio_started:
-            if vp._audio_feed.buffered_seconds < _AUDIO_PREBUFFER:
-                return  # pas encore assez de PCM, on attend
-            try:
-                player.play()
-                vp._audio_feed.start()
-                vp._audio_started = True
-            except Exception:
-                pass
-
     # ======================================== SPATIAL VOLUME ========================================
     @staticmethod
     def _compute_volume(vp: VideoPlayer, distance: float) -> float:
-        """Calcule le volume final après atténuation spatiale
-
-        Args:
-            vp: composant ``VideoPlayer``
-            distance: distance en unités monde entre le ``Transform`` et l'``origin``
-
-        Returns:
-            Volume final dans l'intervalle *[0, base_volume]*
-        """
         base = vp.volume * vp._video.volume
         if vp.outer_radius == 0.0 or distance <= vp.inner_radius:
             return base
@@ -569,96 +429,79 @@ class VideoSystem(System):
         loop_event: threading.Event,
         loop: bool,
     ) -> None:
-        """Thread de décodage AV
+        """Thread de décodage AV — une seule passe par instance.
 
-        Args:
-            path: chemin vers le fichier vidéo
-            frame_queue: queue de frames vidéo ``(pts, w, h, bytes)``
-            audio_feed: feed PCM pour le player OpenAL
-            stop_event: levé pour interrompre le thread immédiatement
-            pause_event: effacé pendant la pause, levé à la reprise
-            end_event: levé à la fin définitive de la lecture
-            loop_event: levé avant chaque rebouclage
-            loop: si ``True``, reboucle indéfiniment jusqu'à ``stop_event``
+        En mode loop : pose ``loop_event`` et s'arrête SANS mark_done.
+        Le main thread appellera mark_done sur ce feed plus tard, quand
+        le nouveau feed suivant sera prêt (transition seamless).
+
+        En mode non-loop : mark_done puis end_event.
         """
+        pts_offset      = audio_feed._loop_offset
         audio_resampler = av.AudioResampler(
             format="s16",
             layout="stereo",
             rate=_AUDIO_RATE,
         )
 
-        while not stop_event.is_set():
-            try:
-                with av.open(path) as container:
-                    video_stream = next((s for s in container.streams if s.type == "video"), None)
-                    audio_stream = next((s for s in container.streams if s.type == "audio"), None)
+        try:
+            with av.open(path) as container:
+                video_stream = next((s for s in container.streams if s.type == "video"), None)
+                audio_stream = next((s for s in container.streams if s.type == "audio"), None)
 
-                    if video_stream is None:
-                        break
-
-                    video_stream.thread_type = "AUTO"
-                    streams = [video_stream]
-                    if audio_stream is not None:
-                        streams.append(audio_stream)
-
-                    for packet in container.demux(*streams):
-                        if stop_event.is_set():
-                            return
-                        pause_event.wait()
-                        if stop_event.is_set():
-                            return
-
-                        for frame in packet.decode():
-                            if stop_event.is_set():
-                                return
-
-                            if isinstance(frame, av.VideoFrame):
-                                if frame.pts is None:
-                                    continue
-                                pts  = float(frame.pts * frame.time_base)
-                                rgb  = frame.to_ndarray(format="rgb24")
-                                h, w, _ = rgb.shape
-                                data = rgb.tobytes()
-                                while not stop_event.is_set():
-                                    try:
-                                        frame_queue.put((pts, w, h, data), timeout=0.05)
-                                        break
-                                    except queue.Full:
-                                        continue
-
-                            elif isinstance(frame, av.AudioFrame):
-                                if frame.pts is None:
-                                    continue
-                                for rf in audio_resampler.resample(frame):
-                                    if rf.pts is None:
-                                        continue
-                                    audio_feed.push(bytes(rf.planes[0]))
-
-            except Exception as e:
-                print(f"[decode_loop] crash: {type(e).__name__}: {e}")
-                break
-
-            if stop_event.is_set():
-                return
-
-            if loop:
-                loop_event.set()
-                # Attendre que le main thread ait traité le reset (loop_event.clear())
-                while loop_event.is_set() and not stop_event.is_set():
-                    _time.sleep(0.005)
-                if stop_event.is_set():
+                if video_stream is None:
+                    end_event.set()
                     return
-                # Vider la queue vidéo pour que les nouvelles frames repartent de PTS=0
-                while True:
-                    try:
-                        frame_queue.get_nowait()
-                    except queue.Empty:
-                        break
-                audio_resampler = av.AudioResampler(
-                    format="s16",
-                    layout="stereo",
-                    rate=_AUDIO_RATE,
-                )
-            else:
-                end_event.set()
-                break
+
+                video_stream.thread_type = "AUTO"
+                streams = [video_stream]
+                if audio_stream is not None:
+                    streams.append(audio_stream)
+
+                for packet in container.demux(*streams):
+                    if stop_event.is_set():
+                        return
+                    pause_event.wait()
+                    if stop_event.is_set():
+                        return
+
+                    for frame in packet.decode():
+                        if stop_event.is_set():
+                            return
+
+                        if isinstance(frame, av.VideoFrame):
+                            if frame.pts is None:
+                                continue
+                            pts     = float(frame.pts * frame.time_base) + pts_offset
+                            rgb     = frame.to_ndarray(format="rgb24")
+                            h, w, _ = rgb.shape
+                            data    = rgb.tobytes()
+                            while not stop_event.is_set():
+                                try:
+                                    frame_queue.put((pts, w, h, data), timeout=0.05)
+                                    break
+                                except queue.Full:
+                                    continue
+
+                        elif isinstance(frame, av.AudioFrame):
+                            if frame.pts is None:
+                                continue
+                            for rf in audio_resampler.resample(frame):
+                                if rf.pts is None:
+                                    continue
+                                audio_feed.push(rf.to_ndarray().tobytes())
+
+        except Exception as e:
+            print(f"[decode_loop] crash: {type(e).__name__}: {e}")
+            audio_feed.mark_done()
+            end_event.set()
+            return
+
+        if stop_event.is_set():
+            return
+
+        if loop:
+            loop_event.set()
+        else:
+            audio_feed.mark_done()
+            end_event.set()
