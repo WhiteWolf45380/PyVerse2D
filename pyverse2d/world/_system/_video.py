@@ -277,6 +277,7 @@ class VideoSystem(System):
         img = _image.ImageData(w, h, "RGB", last_ready, pitch=-w * 3)
         vp._texture = img.get_texture()
         vp._pts_origin = last_pts
+        vp._clock_origin = time.perf_counter()
 
     # ======================================== AUDIO ========================================
     def _update_audio(
@@ -507,5 +508,5 @@ class VideoSystem(System):
                 source = _media.StaticMemorySource(chunk, audio_format)
                 ready_queue.put(source, timeout=0.1)
 
-            except Exception:
-                continue
+            except Exception as e:
+                print(f"[audio_build_loop] crash: {type(e).__name__}: {e}")

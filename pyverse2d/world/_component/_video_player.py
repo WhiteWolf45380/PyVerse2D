@@ -275,10 +275,6 @@ class VideoPlayer(Component):
             return 0.0
         if self._paused:
             return self._pts_origin
-        # Si le player audio est actif, on s'aligne dessus
-        if self._audio_player is not None and self._audio_player.playing:
-            return self._audio_player.time
-        # Fallback sur l'horloge software
         return self._pts_origin + (time.perf_counter() - self._clock_origin)
 
     @property
