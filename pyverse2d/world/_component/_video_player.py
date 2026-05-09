@@ -9,7 +9,6 @@ from ...math.easing import EasingFunc, linear
 
 import threading
 import queue
-import time
 from numbers import Real
 
 import pyglet.media as _media
@@ -42,7 +41,8 @@ class VideoPlayer(Component):
         "_stop_event", "_pause_event",
         "_end_event", "_loop_event",
         "_audio_player", "_audio_feed", "_audio_started",
-        "_play_start_wall", "_pts_origin", "_duration",
+        "_paused_time",
+        "_duration",
         "_playing", "_paused", "_initialized",
     )
 
@@ -116,8 +116,8 @@ class VideoPlayer(Component):
         self._audio_started: bool = False
 
         # Horloge
-        self._play_start_wall: float = 0.0
-        self._pts_origin: float = 0.0
+        self._paused_time: float = 0.0
+
         self._duration: float | None = None
 
         # État
@@ -275,26 +275,14 @@ class VideoPlayer(Component):
 
     @property
     def time(self) -> float:
-        """Position temporelle courante de la lecture, en secondes
-
-        Retourne ``0.0`` si la lecture est arrêtée, en pause avant le premier
-        tick audio, ou si l'horloge n'a pas encore été armée par ``VideoSystem``.
-
-        L'horloge est armée dans ``VideoSystem._update_audio()`` au moment exact
-        de ``player.play()``, et non à l'initialisation des ressources.
-        Cela garantit que ``t = 0`` vidéo et ``t = 0`` audio sont quasiment
-        alignés, éliminant le décalage permanent entre les deux flux.
-
-        En pause, retourne la position figée au moment de la mise en pause.
-        """
-        if not self.is_playing():
+        """Position temporelle courante de la lecture, en secondes"""
+        if not self._playing:
             return 0.0
         if self._paused:
-            return self._pts_origin
-        # _play_start_wall == 0.0 : player.play() pas encore appelé, on attend.
-        if self._play_start_wall == 0.0:
-            return 0.0
-        return time.perf_counter() - self._play_start_wall
+            return self._paused_time
+        if self._audio_feed is not None:
+            return self._audio_feed.playback_time
+        return 0.0
 
     @property
     def duration(self) -> float | None:
@@ -384,12 +372,12 @@ class VideoPlayer(Component):
     def pause(self) -> None:
         """Met la lecture en pause
 
-        Fige l'horloge à la position courante et suspend l'audio.
+        Fige la clock audio à la position courante et suspend OpenAL.
         Sans effet si la lecture est arrêtée ou déjà en pause.
         """
         if not self._playing or self._paused:
             return
-        self._pts_origin = self.time
+        self._paused_time = self.time
         self._pause_event.clear()
         self._paused = True
         if self._audio_player is not None:
@@ -401,12 +389,10 @@ class VideoPlayer(Component):
     def unpause(self) -> None:
         """Reprend la lecture depuis la position de pause
 
-        Réajuste l'horloge pour compenser le temps écoulé en pause.
         Sans effet si la lecture est arrêtée ou non en pause.
         """
         if not self._playing or not self._paused:
             return
-        self._play_start_wall = time.perf_counter() - self._pts_origin
         self._pause_event.set()
         self._paused = False
         if self._audio_player is not None:

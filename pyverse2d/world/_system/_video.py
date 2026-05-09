@@ -23,19 +23,12 @@ _VIDEO_BUFFER: int = 16
 _AUDIO_RATE: int = 44100
 _AUDIO_CH: int = 2
 
-# Taille maximale du buffer audio interne, en octets.
-# Correspond à 2 secondes de PCM s16 stéréo à 44 100 Hz.
-# Au-delà, push() droppe silencieusement : le decode attend OpenAL.
-_AUDIO_BUFFER_MAX: int = 2 * _AUDIO_RATE * _AUDIO_CH * 2  # ≈ 352 Ko
+# Taille maximale du buffer audio
+_AUDIO_BUFFER_MAX: int = 2 * _AUDIO_RATE * _AUDIO_CH * 2
 
 # ======================================== AUDIO FEED ========================================
 class _AudioFeed(_media.StreamingSource):
     """Source audio streaming thread-safe pour pyglet/OpenAL
-
-    Reçoit du PCM brut depuis le thread de décodage via ``push()``, et le fournit à OpenAL via ``get_audio_data()``.
-
-    Le buffer interne est borné à ``_AUDIO_BUFFER_MAX`` octets (≈ 2 s de PCM).
-    Si le buffer est plein, ``push()`` droppe silencieusement les données excédentaires.
 
     Args:
         sample_rate: fréquence d'échantillonnage (défaut : ``_AUDIO_RATE``)
@@ -53,12 +46,11 @@ class _AudioFeed(_media.StreamingSource):
         self._done: bool = False
         self._underruns: int = 0
         self._drops: int = 0
+        # Compteur d'octets PCM consommés par OpenAL — base de la clock maître.
+        self._bytes_consumed: int = 0
 
     def push(self, data: bytes) -> None:
         """Pousse du PCM brut dans le buffer interne
-
-        Si le buffer atteint ``_AUDIO_BUFFER_MAX``, les données sont droppées
-        et ``_drops`` est incrémenté — évite toute croissance mémoire non bornée.
 
         Args:
             data: octets PCM s16 stéréo à bufferiser
@@ -70,13 +62,16 @@ class _AudioFeed(_media.StreamingSource):
             self._buf.extend(data)
 
     def mark_done(self) -> None:
-        """Signale la fin définitive du flux
-
-        Doit être appelé APRÈS ``join()`` du thread de décodage pour garantir
-        qu'aucune donnée n'arrive plus après le signal.
-        """
+        """Signale la fin définitive du flux"""
         with self._lock:
             self._done = True
+
+    @property
+    def playback_time(self) -> float:
+        """Position de lecture réelle, en secondes"""
+        bps = self.audio_format.sample_rate * self.audio_format.channels * 2
+        with self._lock:
+            return self._bytes_consumed / bps
 
     @property
     def underruns(self) -> int:
@@ -89,12 +84,7 @@ class _AudioFeed(_media.StreamingSource):
         return self._drops
 
     def get_audio_data(self, num_bytes: int, compensation_time: float = 0.0):
-        """Fournit ``num_bytes`` octets PCM à OpenAL
-
-        En cas de buffer vide :
-
-        * si le flux est terminé : retourne ``None`` (fin de source)
-        * sinon : retourne du silence et incrémente le compteur d'underruns
+        """Fournit ``num_bytes`` octets PCM à OpenAL et avance la clock maître
 
         Args:
             num_bytes: quantité d'octets demandée
@@ -116,6 +106,7 @@ class _AudioFeed(_media.StreamingSource):
                 del self._buf[:n]
                 if n < num_bytes:
                     data += bytes(num_bytes - n)
+            self._bytes_consumed += num_bytes
 
         sr = self.audio_format.sample_rate
         ch = self.audio_format.channels
@@ -260,27 +251,22 @@ class VideoSystem(System):
             vp._duration = None
 
         # Queue vidéo
-        vp._frame_queue  = queue.Queue(maxsize=_VIDEO_BUFFER)
+        vp._frame_queue   = queue.Queue(maxsize=_VIDEO_BUFFER)
         vp._pending_frame = None
 
         # Events de contrôle du thread
-        vp._stop_event   = threading.Event()
-        vp._pause_event  = threading.Event()
+        vp._stop_event  = threading.Event()
+        vp._pause_event = threading.Event()
         vp._pause_event.set()
 
         # Signaux de fin et de boucle
-        vp._end_event    = threading.Event()
-        vp._loop_event   = threading.Event()
+        vp._end_event  = threading.Event()
+        vp._loop_event = threading.Event()
 
         # Feed audio et player OpenAL
         vp._audio_feed   = _AudioFeed(_AUDIO_RATE, _AUDIO_CH)
         vp._audio_player = _media.Player()
         vp._audio_player.queue(vp._audio_feed)
-
-        # Horloge : armée à 0.0 ici, réglée sur perf_counter() dans _update_audio()
-        # au moment exact de player.play() — voir VideoPlayer.time.
-        vp._play_start_wall = 0.0
-        vp._pts_origin      = 0.0
 
         # Thread de décodage
         thread = threading.Thread(
@@ -317,7 +303,7 @@ class VideoSystem(System):
         if vp._decode_thread is not None:
             vp._decode_thread.join(timeout=1.0)
 
-        # mark_done APRÈS join : garantit qu'aucune donnée n'arrive plus dans le feed.
+        # mark_done APRÈS join
         if vp._audio_feed is not None:
             vp._audio_feed.mark_done()
 
@@ -350,16 +336,39 @@ class VideoSystem(System):
         """
         if vp._loop_event is not None and vp._loop_event.is_set():
             vp._loop_event.clear()
-            # Réinitialise l'horloge : les PTS repartent à 0 côté décodeur.
-            vp._play_start_wall = time.perf_counter()
-            vp._pts_origin      = 0.0
-            vp._pending_frame   = None
+            self._reset_for_loop(vp)
 
         if vp._end_event is not None and vp._end_event.is_set():
             vp._end_event.clear()
             if vp._on_end:
                 vp._on_end.trigger(vp, vp._video)
             self._stop_player(eid, vp)
+
+    def _reset_for_loop(self, vp: VideoPlayer) -> None:
+        """Remet à zéro les ressources audio et vidéo pour un rebouclage propre
+
+        Args:
+            vp: composant ``VideoPlayer`` à réinitialiser
+        """
+        # Flush audio
+        if vp._audio_player is not None:
+            try:
+                vp._audio_player.pause()
+                vp._audio_player.delete()
+            except Exception:
+                pass
+            vp._audio_player = None
+
+        vp._audio_feed = _AudioFeed(_AUDIO_RATE, _AUDIO_CH)
+        vp._audio_player = _media.Player()
+        vp._audio_player.queue(vp._audio_feed)
+        vp._audio_started = False
+
+        # Flush vidéo
+        if vp._frame_queue is not None:
+            with vp._frame_queue.mutex:
+                vp._frame_queue.queue.clear()
+        vp._pending_frame = None
 
     # ======================================== FRAMES ========================================
     def _consume_frames(self, vp: VideoPlayer) -> None:
@@ -421,7 +430,7 @@ class VideoSystem(System):
 
     # ======================================== AUDIO ========================================
     def _update_audio(self, vp: VideoPlayer, spatial_volume: float) -> None:
-        """Met à jour le volume OpenAL et arme l'horloge au démarrage réel de l'audio
+        """Met à jour le volume OpenAL et démarre le player une unique fois par session
 
         Args:
             vp: composant ``VideoPlayer`` cible
@@ -437,8 +446,6 @@ class VideoSystem(System):
         if not vp._audio_started:
             try:
                 player.play()
-                # HORLOGE ARMÉE ICI — même instant que le démarrage OpenAL.
-                vp._play_start_wall = time.perf_counter()
                 vp._audio_started = True
             except Exception:
                 pass
@@ -549,6 +556,7 @@ class VideoSystem(System):
 
             if loop:
                 loop_event.set()
+                time.sleep(0.05)
                 audio_resampler = av.AudioResampler(
                     format="s16",
                     layout="stereo",
