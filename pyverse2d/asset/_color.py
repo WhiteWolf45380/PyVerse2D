@@ -53,14 +53,6 @@ class Color(tuple, Asset):
         r, g, b, a = self
         return f"Color(r={r:.3f}, g={g:.3f}, b={b:.3f}, a={a:.3f})"
 
-    def __copy__(self) -> Color:
-        """Renvoie une copie de la couleur"""
-        return self  # immuable, inutile de copier
-
-    def copy(self) -> Color:
-        """Renvoie une copie de la couleur"""
-        return self
-
     # ======================================== GETTERS ========================================
     @property
     def r(self) -> float:
