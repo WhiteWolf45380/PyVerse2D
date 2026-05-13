@@ -1,7 +1,7 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from ..._internal import positive
+from ..._internal import over
 from ...abc import Bundle
 
 from .._font import Font
@@ -26,7 +26,7 @@ class FontBundle(Bundle):
         size = int(size)
 
         if __debug__:
-            positive(size)
+            over(size, 0, include=False)
 
         # Attributs publiques
         self._size: int = size
@@ -45,7 +45,7 @@ class FontBundle(Bundle):
     def size(self, value: Integral) -> None:
         value = int(value)
         if __debug__:
-            positive(value)
+            over(value, 0, include=False)
         self._size = value
 
     # ======================================== INTERFACE ========================================

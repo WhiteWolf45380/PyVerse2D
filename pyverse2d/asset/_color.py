@@ -1,14 +1,15 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
+
 from ..abc import Asset
+
 from typing import Union, Tuple
 
-
+# ======================================== ASSET ========================================
 class Color(tuple, Asset):
-    """
-    Descripteur de couleur immuable.
-    Stockée en float [0.0; 1.0] en interne.
-    Accepte les composantes soit en float [0.0; 1.0], soit en int [0; 255].
+    """Descripteur de couleur immuable
+
+    Accepte les composantes soit en float *[0.0; 1.0]*, soit en int *[0; 255]*.
 
     Supports:
         Color(Color)
@@ -63,37 +64,37 @@ class Color(tuple, Asset):
     # ======================================== GETTERS ========================================
     @property
     def r(self) -> float:
-        """Renvoie la composante rouge [0.0; 1.0]"""
+        """Renvoie la composante rouge *[0.0; 1.0]*"""
         return self[0]
 
     @property
     def g(self) -> float:
-        """Renvoie la composante verte [0.0; 1.0]"""
+        """Renvoie la composante verte *[0.0; 1.0]*"""
         return self[1]
 
     @property
     def b(self) -> float:
-        """Renvoie la composante bleue [0.0; 1.0]"""
+        """Renvoie la composante bleue *[0.0; 1.0]*"""
         return self[2]
 
     @property
     def a(self) -> float:
-        """Renvoie la composante alpha [0.0; 1.0]"""
+        """Renvoie la composante alpha *[0.0; 1.0]*"""
         return self[3]
 
     @property
     def rgb(self) -> Tuple[float, float, float]:
-        """Renvoie les composantes RGB en float [0.0; 1.0]"""
+        """Renvoie les composantes RGB en float *[0.0; 1.0]*"""
         return self[0], self[1], self[2]
 
     @property
     def rgba(self) -> Tuple[float, float, float, float]:
-        """Renvoie les composantes RGBA en float [0.0; 1.0]"""
+        """Renvoie les composantes RGBA en float *[0.0; 1.0]*"""
         return self[0], self[1], self[2], self[3]
 
     @property
     def rgb8(self) -> Tuple[int, int, int]:
-        """Renvoie les composantes RGB en int [0; 255]"""
+        """Renvoie les composantes RGB en int *[0; 255]*"""
         return (
             int(round(self[0] * 255)),
             int(round(self[1] * 255)),
@@ -102,7 +103,7 @@ class Color(tuple, Asset):
 
     @property
     def rgba8(self) -> Tuple[int, int, int, int]:
-        """Renvoie les composantes RGBA en int [0; 255]"""
+        """Renvoie les composantes RGBA en int *[0; 255]*"""
         return (
             int(round(self[0] * 255)),
             int(round(self[1] * 255)),
@@ -112,17 +113,17 @@ class Color(tuple, Asset):
 
     # ======================================== PUBLIC METHODS ========================================
     def with_alpha(self, a: Union[int, float]) -> Color:
-        """
-        Renvoie une nouvelle Color avec un alpha différent
+        """Renvoie une nouvelle Color avec un alpha différent
 
         Args:
-            a(int | float): nouvelle valeur alpha
+            a: nouvelle valeur alpha
         """
         return Color(self[0], self[1], self[2], self._to_float(a, "alpha", "with_alpha"))
 
     # ======================================== INTERNALS ========================================
     @staticmethod
     def _to_float(v: Union[int, float], name: str, argument: str) -> float:
+        """Normalisation en float d'une composante de couleur"""
         if isinstance(v, int):
             if not (0 <= v <= 255):
                 raise ValueError(f"{argument}: {name} out of range ({v})")
