@@ -93,7 +93,7 @@ class Wind(ParticleModifier):
     def apply(self, dt: float, alive: np.ndarray, positions: np.ndarray, velocities: np.ndarray) -> None:
         self._time += dt
 
-        # Variation continue de fond — plusieurs fréquences pour casser la périodicité
+        # Variation continue de fond
         base = (
             1.0
             + self._variation * 0.6 * math.sin(self._time * math.tau * 0.3)
