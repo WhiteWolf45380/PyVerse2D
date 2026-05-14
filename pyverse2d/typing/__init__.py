@@ -9,7 +9,8 @@ from ._math import (
 )
 
 from ._rendering import (
-    BorderAlign,
+    BorderAlign, HorizontalAlign,
+    VideoScale,
 )
 
 # ======================================== EXPORTS ========================================
@@ -19,5 +20,6 @@ __all__ = [
 
     "Vertex",
 
-    "BorderAlign",
+    "BorderAlign", "HorizontalAlign",
+    "VideoScale",
 ]
