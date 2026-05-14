@@ -4,7 +4,7 @@ from __future__ import annotations
 from ..typing import EasingFunc
 
 import numpy as np
-from typing import Callable, TypeAlias
+from typing import Callable
 
 # ======================================== TAG ========================================
 _EASING_TAG: object = object()
