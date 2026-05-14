@@ -279,3 +279,8 @@ class FocusBehavior(Behavior):
             point: ``Point`` à vérifier
         """
         return self._owner.collidespoint(point)
+    
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "FocusBehavior",
+]

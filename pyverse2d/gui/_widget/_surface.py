@@ -159,3 +159,8 @@ class Surface(Widget):
         if self._shape_renderer is not None:
             self._shape_renderer.delete()
             self._shape_renderer = None
+
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "Surface",
+]

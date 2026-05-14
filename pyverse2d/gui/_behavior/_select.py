@@ -175,3 +175,8 @@ class SelectBehavior(Behavior):
             point: ``Point`` à vérifier
         """
         return self._owner.collidespoint(point)
+    
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "SelectBehavior",
+]

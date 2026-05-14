@@ -227,3 +227,8 @@ class Sprite(Widget):
         """Destruction du widget et se détache du parent"""
         self._image_renderer.delete()
         self._image_renderer = None
+
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "Sprite",
+]

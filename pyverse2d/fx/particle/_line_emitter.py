@@ -90,3 +90,8 @@ class LineEmitter(ParticleEmitter):
             velocities = np.stack([speeds * np.cos(angles), speeds * np.sin(angles)], axis=1).astype(np.float32)
 
         return positions, velocities
+    
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "LineEmitter",
+]

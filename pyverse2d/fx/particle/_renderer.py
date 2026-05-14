@@ -167,3 +167,8 @@ class ParticleRenderer:
 
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
         program.stop()
+
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "ParticleRenderer",
+]

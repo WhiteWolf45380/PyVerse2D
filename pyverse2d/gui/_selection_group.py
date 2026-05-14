@@ -211,3 +211,8 @@ class SelectionGroup:
     def get_selected(self) -> list[Widget]:
         """Renvoie la liste des membres sélectionnés"""
         return self._selected
+    
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "SelectionGroup",
+]

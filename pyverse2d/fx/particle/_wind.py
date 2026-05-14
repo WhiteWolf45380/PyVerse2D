@@ -126,3 +126,8 @@ class Wind(ParticleModifier):
         rad = math.radians(self._direction)
         self._fx = self._strength * math.cos(rad)
         self._fy = self._strength * math.sin(rad)
+
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "Wind",
+]

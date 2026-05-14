@@ -3,7 +3,8 @@ from __future__ import annotations
 
 from ..._internal import different_from
 from ...abc import Tween
-from ...math.easing import EasingFunc, linear
+from ...math.easing import linear
+from ...typing import EasingFunc
 
 from numbers import Real
 
@@ -27,3 +28,8 @@ class ScaleTween(Tween):
 
         # Initialisation de l'interpolation
         super().__init__("scale", target_value, duration, easing)
+
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "ScaleTween",
+]

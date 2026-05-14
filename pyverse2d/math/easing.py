@@ -1,12 +1,13 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
+from ..typing import EasingFunc
+
 import numpy as np
-from typing import Callable
+from typing import Callable, TypeAlias
 
 # ======================================== TAG ========================================
-_EASING_TAG = object()
-EasingFunc = Callable[[float], float]
+_EASING_TAG: object = object()
 
 def easing(func: EasingFunc) -> Callable[[float], float]:
     """Décore une fonction comme fonction d'easing"""

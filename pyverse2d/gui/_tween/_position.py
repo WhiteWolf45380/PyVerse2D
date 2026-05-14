@@ -3,7 +3,8 @@ from __future__ import annotations
 
 from ...abc import Tween
 from ...math import Point
-from ...math.easing import EasingFunc, linear
+from ...math.easing import linear
+from ...typing import EasingFunc
 
 from numbers import Real
 
@@ -27,3 +28,8 @@ class PositionTween(Tween):
 
     def interpolate(self, base: Point, target: Point, p: float):
         return (base.x + (target.x - base.x) * p, base.y + (target.y - base.y) * p)
+    
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "PositionTween",
+]

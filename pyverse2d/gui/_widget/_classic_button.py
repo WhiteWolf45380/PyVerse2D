@@ -25,7 +25,7 @@ class ClassicButton(Button):
         anchor: ancre relative locale
         scale: facteur de redimensionnement
         rotation: angle de rotation        
-        opacity: opacité [0, 1]
+        opacity: opacité *[0, 1]*
         clipping: rendu des widgets enfants strictement dans le AABB de la hitbox
         callback: action au clique
         condition: condition d'action
@@ -154,3 +154,8 @@ class ClassicButton(Button):
             id = self._id,
             give_id = self._give_id,
         )
+    
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "ClassicButton",
+]

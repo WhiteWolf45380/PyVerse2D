@@ -28,3 +28,8 @@ class RenderContext:
     opacity: float          # opacité cumulée
     group: Group            # groupe courant
     z: int                  # z-order relatif
+
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "RenderContext",
+]

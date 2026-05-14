@@ -3,7 +3,8 @@ from __future__ import annotations
 
 from ...abc import Tween
 from ...asset import Color
-from ...math.easing import EasingFunc, linear
+from ...math.easing import linear
+from ...typing import EasingFunc
 
 from numbers import Real
 
@@ -32,3 +33,8 @@ class ColorTween(Tween):
         b = base.b + (target.b - base.g) * p
         a = base.a + (target.a - base.a) * p
         return (r, g, b, a)
+    
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "ColorTween",
+]

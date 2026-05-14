@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 from ...abc import Tween
-from ...math.easing import EasingFunc, linear
+from ...math.easing import linear
+from ...typing import EasingFunc
 
 from numbers import Real
 
@@ -23,3 +24,8 @@ class RotationTween(Tween):
         
         # Initialisation de l'interpolation
         super().__init__("rotation", target_value, duration, easing)
+
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "RotationTween",
+]
