@@ -187,9 +187,7 @@ def ease_in_out_elastic(t: float) -> float:
 
 # ======================================== BOUNCE ========================================
 def _bounce_out(t: float) -> float:
-    """Simule plusieurs rebonds successifs (4 au total) d'amplitude
-    décroissante. Non exposé directement car utilisé par les trois variantes.
-    """
+    """Simule plusieurs rebonds successifs d'amplitude décroissante"""
     n, d = 7.5625, 2.75
     t1 = t - np.where(t < 1/d, 0.0, np.where(t < 2/d, 1.5/d, np.where(t < 2.5/d, 2.25/d, 2.625/d)))
     base = n * t1 ** 2
@@ -197,26 +195,17 @@ def _bounce_out(t: float) -> float:
 
 @easing
 def ease_in_bounce(t: float) -> float:
-    """
-    Enchaîne plusieurs micro-rebonds croissants avant de s'élancer.
-    Comme une balle qui rebondit avant d'être lancée — rare en pratique.
-    """
+    """Enchaîne plusieurs micro-rebonds croissants avant de s'élancer"""
     return 1 - _bounce_out(1 - t)
 
 @easing
 def ease_out_bounce(t: float) -> float:
-    """
-    Rebondit 4 fois à l'arrivée avec une amplitude décroissante avant de se stabiliser.
-    Comme une balle qui tombe et s'immobilise. Le bounce le plus utilisé.
-    """
+    """Rebondit 4 fois à l'arrivée avec une amplitude décroissante avant de se stabiliser"""
     return _bounce_out(t)
 
 @easing
 def ease_in_out_bounce(t: float) -> float:
-    """
-    Rebonds au départ ET à l'arrivée. Très agité, à réserver aux animations
-    humoristiques ou très dynamiques.
-    """
+    """Rebonds au départ et à l'arrivée"""
     return np.where(t < 0.5,
         (1 - _bounce_out(1 - 2 * t)) / 2,
         (1 + _bounce_out(2 * t - 1)) / 2
