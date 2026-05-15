@@ -127,12 +127,12 @@ class RegularPolygon(Shape):
         """Vérifie la convexité"""
         return True
 
-    # ======================================== PUBLIC METHODS ========================================
+    # ======================================== INTERFACE ========================================
     def copy(self) -> RegularPolygon:
         """Renvoie une copie du polygone régulier"""
         return RegularPolygon(self._sides, self._radius)
 
-# ======================================== FAÇADES ========================================
+# ======================================== SUBCLASSES ========================================
 class RegularTriangle(RegularPolygon):
     """Forme géométrique 2D : Triangle équilatéral"""
     __slots__ = tuple()
@@ -187,3 +187,13 @@ class RegularOctagon(RegularPolygon):
 
     def copy(self) -> RegularOctagon:
         return RegularOctagon(self._radius)
+    
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "RegularPolygon",
+    
+    "RegularTriangle",
+    "RegularPentagon",
+    "RegularHexagon",
+    "RegularOctagon",
+]

@@ -165,7 +165,12 @@ class RoundedRect(Shape):
         """Vérifie la convexité"""
         return True
 
-    # ======================================== PUBLIC METHODS ========================================
+    # ======================================== INTERFACE ========================================
     def copy(self) -> RoundedRect:
         """Renvoie une copie du rectangle arrondi"""
         return RoundedRect(self._width, self._height, self._radius)
+    
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "RoundedRect",
+]

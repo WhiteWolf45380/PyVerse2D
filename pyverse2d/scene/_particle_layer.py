@@ -184,3 +184,8 @@ class ParticleLayer(Layer):
         ctx = pipeline.scissor_world(*self._scissor) if self._scissor else nullcontext()
         with ctx:
             self._renderer.render(pipeline, self._emitters, self._additive)
+
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "ParticleLayer",
+]

@@ -106,7 +106,12 @@ class Circle(Shape):
         """Vérifie la convexité"""
         return True
 
-    # ======================================== COLLECTIONS ========================================
+    # ======================================== INTERFACE ========================================
     def copy(self) -> Circle:
         """Renvoie une copie du cercle"""
         return Circle(self._radius)
+    
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "Circle",
+]

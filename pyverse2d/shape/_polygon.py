@@ -110,7 +110,12 @@ class Polygon(Shape):
         """Vérifie la convexité"""
         return self._convex
 
-    # ======================================== PUBLIC METHODS ========================================
+    # ======================================== INTERFACE ========================================
     def copy(self) -> Polygon:
         """Renvoie une copie du polygone"""
         return Polygon(*[Point(float(v[0]), float(v[1])) for v in self._source_vertices])
+    
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "Point",
+]

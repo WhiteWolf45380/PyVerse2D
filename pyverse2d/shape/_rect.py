@@ -136,7 +136,12 @@ class Rect(Shape):
         """Vérifie la convexité"""
         return True
 
-    # ======================================== PUBLIC METHODS ========================================
+    # ======================================== INTERFACE ========================================
     def copy(self) -> Rect:
         """Renvoie une copie du rectangle"""
         return Rect(self._width, self._height)
+    
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "Rect",
+]

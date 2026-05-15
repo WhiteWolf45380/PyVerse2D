@@ -142,3 +142,8 @@ class Capsule(Shape):
     def copy(self) -> Capsule:
         """Renvoie une copie de la capsule"""
         return Capsule(self._radius, self._height)
+    
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "Capsule",
+]

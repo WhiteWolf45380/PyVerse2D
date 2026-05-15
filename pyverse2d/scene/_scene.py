@@ -229,3 +229,8 @@ class Scene:
         mouse._clear_world_position()
         coord: CoordinatesManager = Pipeline.get_coord()
         coord.clear_context()
+
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "Scene",
+]

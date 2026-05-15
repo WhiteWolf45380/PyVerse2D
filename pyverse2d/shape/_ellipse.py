@@ -115,7 +115,12 @@ class Ellipse(Shape):
         """Vérifie la convexité"""
         return True
 
-    # ======================================== COLLECTIONS ========================================
+    # ======================================== INTERFACE ========================================
     def copy(self) -> Ellipse:
         """Renvoie une copie de l'ellipse"""
         return Ellipse(self._rx, self._ry)
+
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "Ellipse",
+]

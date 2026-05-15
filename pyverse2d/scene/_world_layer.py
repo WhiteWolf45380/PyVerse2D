@@ -69,3 +69,8 @@ class WorldLayer(Layer):
             pipeline: ``Pipeline``de rendu courant
         """
         self._world.draw(pipeline)
+
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "WorldLayer",
+]

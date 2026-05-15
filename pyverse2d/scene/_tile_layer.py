@@ -157,3 +157,8 @@ class TileLayer(Layer):
             self._renderer.begin()
             self._renderer.draw_visible(cc_min, cc_max, cr_min, cr_max)
             self._renderer.end()
+
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "TileLayer",
+]

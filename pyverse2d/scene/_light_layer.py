@@ -301,3 +301,8 @@ class LightLayer(Layer):
         if __debug__:
             if not effect_type in _SUPPORTED_EFFECTS: raise RuntimeError(f"This Layer does not support {effect_type.__name__} effect")
         return f"_{effect_type.id()}"
+    
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "LightLayer",
+]
