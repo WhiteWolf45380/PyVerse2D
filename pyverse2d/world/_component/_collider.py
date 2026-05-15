@@ -28,7 +28,7 @@ class Collider(Component):
         "_contacts", "_coyote_elapsed", "_dirty_shape",
     )
 
-    requires: ClassVar[tuple[str]] = ("Transform",)
+    requires: ClassVar[tuple[str, ...]] = ("Transform",)
 
     _COYOTE_TIME: ClassVar[float] = 0.1  # temps avant perte du contact
 
@@ -193,3 +193,8 @@ class Collider(Component):
         if other is self._contacts:
             return self._contacts[other]
         return None
+    
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "Collider",
+]

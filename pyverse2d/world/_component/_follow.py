@@ -40,7 +40,7 @@ class Follow(Component):
         "_arrived"
     )
 
-    requires: ClassVar[tuple[str]] = ("Transform",)
+    requires: ClassVar[tuple[str, ...]] = ("Transform",)
 
     _ENTITY_CLS: Type[Entity] = None
 
@@ -323,3 +323,8 @@ class Follow(Component):
     def is_arrived(self) -> bool:
         """Vérifie que la cible soit atteinte"""
         return self._arrived
+
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "Follow",
+]
