@@ -202,10 +202,10 @@ class TileMap(Positionable):
         """Renvoie la plage de tuiles ``(col_min, row_min, col_max, row_max)`` couvrant la région monde
 
         Args:
-            x(float): coin gauche de la région
-            y(float): coin bas de la région
-            width(float): largeur de la région
-            height(float): hauteur de la région
+            x: coin gauche de la région
+            y: coin bas de la région
+            width: largeur de la région
+            height: hauteur de la région
         """
         ox, oy = self.origin
         col_min = max(0, int((x - ox) // self._tile_width))
