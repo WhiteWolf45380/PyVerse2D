@@ -259,27 +259,6 @@ class VideoPlayer(RendererComponent):
         self._falloff = value or linear
 
     @property
-    def opacity(self) -> float:
-        """Opacité d'affichage du lecteur, dans l'intervalle *[0, 1]*"""
-        return self._opacity
-
-    @opacity.setter
-    def opacity(self, value: Real) -> None:
-        value = float(value)
-        if __debug__:
-            clamped(value)
-        self._opacity = value
-
-    @property
-    def z(self) -> int:
-        """Z-order d'affichage (ordre de superposition des rendus)"""
-        return self._z
-
-    @z.setter
-    def z(self, value: int) -> None:
-        self._z = int(value)
-
-    @property
     def texture(self):
         """Texture pyglet de la frame courante (``None`` si inactif ou non initialisé)"""
         return self._texture
