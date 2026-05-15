@@ -33,7 +33,7 @@ class ParticleLayer(Layer):
         super().__init__(camera)
 
         # Attributs publiques
-        self._additive: bool = bool(additive)
+        self._additive: bool = additive
         self._scissor: tuple[float, float, float, float] = None
 
         # Attributs internes
@@ -51,7 +51,8 @@ class ParticleLayer(Layer):
 
     @additive.setter
     def additive(self, value: bool) -> None:
-        self._additive = bool(value)
+        value = bool(value)
+        self._additive = value
 
     # ======================================== EMITTERS ========================================
     def add_emitter(self, emitter: ParticleEmitter) -> None:
