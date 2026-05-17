@@ -4,7 +4,7 @@ from __future__ import annotations
 from ..abc import MathObject
 
 from numbers import Real
-from typing import Iterator, ClassVar
+from typing import Iterator, ClassVar, overload
 from math import acos, sqrt
 
 # ======================================== OBJET ========================================
