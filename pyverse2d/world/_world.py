@@ -123,7 +123,7 @@ class World:
                 raise ValueError(f"{T.__name__} conflicts with {conflict}")
         
         for i in range(len(self._all_systems)):
-            if system._ORDER < self._all_systems[i].order:
+            if system._ORDER < self._all_systems[i]._ORDER:
                 self._all_systems.insert(i, system)
                 return
         self._all_systems.append(system)
