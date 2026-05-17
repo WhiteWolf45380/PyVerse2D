@@ -180,3 +180,8 @@ def _closest_sector_angle(current: float, angle: float, cone: float, cone_gap: f
         diff_pos = abs(_angle_diff(current, angle + cone))
         diff_neg = abs(_angle_diff(current, angle - cone))
         return angle + cone if diff_pos <= diff_neg else angle - cone
+    
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "SteeringSystem",
+]

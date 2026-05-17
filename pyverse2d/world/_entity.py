@@ -339,3 +339,8 @@ class Entity:
             tag: label à vérifier
         """
         return expect(tag, str) in self._tags
+    
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "Entity",
+]

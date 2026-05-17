@@ -195,3 +195,8 @@ class World:
                 entity.on_kill.remove(remove_entity)
 
         return remove_entity
+    
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "World",
+]

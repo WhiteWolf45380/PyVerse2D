@@ -609,3 +609,8 @@ class VideoSystem(System):
         if vp._audio_feed is None:
             return vp._loop_time_offset
         return vp._loop_time_offset + vp._audio_feed.playback_time
+    
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "VideoSystem",
+]

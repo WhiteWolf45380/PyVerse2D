@@ -90,3 +90,8 @@ class SoundSystem(System):
                 if handle is not None:
                     se._add_handle(handle)
             se._to_play.clear()
+
+# ======================================== EXPORTS ========================================
+__all__ = [
+    "SoundSystem",
+]
