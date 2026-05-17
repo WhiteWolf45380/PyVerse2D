@@ -260,22 +260,23 @@ class PygletTextureRenderer:
             return
 
         img = self._sprite.image
+        sx, sy = self._effective_scales(img)
 
-        # Anchor
-        img.anchor_x = int(self._transform.anchor_x * img.width)
-        img.anchor_y = int(self._transform.anchor_y * img.height)
+        # Ancrage
+        anchor_offset_x = self._transform.anchor_x * img.width  * sx
+        anchor_offset_y = self._transform.anchor_y * img.height * sy
 
         # Position
-        if self._offset is None:
-            self._sprite.x, self._sprite.y = self._transform.position
-        else:
-            self._sprite.x = self._transform.x + self._offset.x
-            self._sprite.y = self._transform.y + self._offset.y
+        base_x = self._transform.x if self._offset is None else self._transform.x + self._offset.x
+        base_y = self._transform.y if self._offset is None else self._transform.y + self._offset.y
 
-        # Échelle
-        self._sprite.scale_x, self._sprite.scale_y = self._effective_scales(img)
+        # Position composée
+        self._sprite.x = base_x - anchor_offset_x
+        self._sprite.y = base_y - anchor_offset_y
 
-        # Rotation
+        # Roscale
+        self._sprite.scale_x = sx
+        self._sprite.scale_y = sy
         self._sprite.rotation = -self._transform.rotation
 
     def _effective_scales(self, img) -> tuple[float, float]:
