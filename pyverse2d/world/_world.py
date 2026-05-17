@@ -109,21 +109,21 @@ class World:
         T = type(expect(system, System))
 
         # Exclusivité
-        if system.exclusive and self.has_system(T):
+        if system._IS_EXCLUSIVE and self.has_system(T):
             raise ValueError(f"Can only have 1 {T.__name__} component")
 
         # Prérequis
-        for req in system.requires:
+        for req in system._REQUIRES:
             if not any(type(s).__name__ == req for s in self._all_systems):
                 raise ValueError(f"{T.__name__} requires {req}")
 
         # Conflits
-        for conflict in system.conflicts:
+        for conflict in system._CONFLICTS:
             if any(type(s).__name__ == conflict for s in self._all_systems):
                 raise ValueError(f"{T.__name__} conflicts with {conflict}")
         
         for i in range(len(self._all_systems)):
-            if system.order < self._all_systems[i].order:
+            if system._ORDER < self._all_systems[i].order:
                 self._all_systems.insert(i, system)
                 return
         self._all_systems.append(system)
@@ -178,7 +178,7 @@ class World:
             pipeline: ``Pipeline`` de rendu courant
         """
         for system in self._all_systems:
-            if system.renderable:
+            if system._IS_RENDERABLE:
                 system.draw(self, pipeline)
 
     # ======================================== INTERNALS ========================================

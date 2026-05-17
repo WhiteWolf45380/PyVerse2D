@@ -231,12 +231,12 @@ class Entity:
             raise ValueError(f"Can only have 1 {T.__name__} component")
 
         # Prérequis
-        for req in component.requires:
+        for req in component._REQUIRES:
             if not any(c.__name__ == req for c in all_types):
                 raise ValueError(f"{T.__name__} requires {req}")
 
         # Conflits
-        for conflict in component.conflicts:
+        for conflict in component._CONFLICTS:
             if any(c.__name__ == conflict for c in all_types):
                 raise ValueError(f"{T.__name__} conflicts with {conflict}")
             
