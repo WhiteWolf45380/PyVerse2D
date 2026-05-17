@@ -8,7 +8,7 @@ from ..abc import Component
 from ._component import *
 
 import uuid
-from typing import Type
+from typing import Type, overload
 
 # ======================================== CONSTANTS ========================================
 _COMPONENTS: dict[Component, str] = {
@@ -243,6 +243,12 @@ class Entity:
         setattr(self, _COMPONENTS[T], component)
         return self
     
+    @overload
+    def remove(self, component_type: Type[Component]) -> None: ...
+
+    @overload
+    def remove(self, component_id: str) -> None: ...
+    
     def remove(self, component_type: Type[Component] | str) -> None:
         """Supprime un composant de l'entité
 
@@ -263,6 +269,12 @@ class Entity:
         for component in _COMPONENTS.values():
             setattr(self, component, None)
     
+    @overload
+    def get(self, component_type: Type[Component]) -> Component: ...
+
+    @overload
+    def get(self, component_id: str) -> Component: ...
+    
     def get(self, component_type: Type[Component] | str) -> Component:
         """Renvoie un composant de l'entité
 
@@ -280,6 +292,12 @@ class Entity:
     def get_all_types(self) -> tuple[Component, ...]:
         """Renvoie l'ensemble des types de composant possédés"""
         return tuple(T for T in _COMPONENTS if getattr(self, _COMPONENTS[T]) is not None)
+    
+    @overload
+    def has(self, component_type: Type[Component]) -> bool: ...
+
+    @overload
+    def has(self, component_id: str) -> bool: ...
     
     def has(self, component_type: Type[Component] | str) -> bool:
         """Vérifie la possession d'un composant
