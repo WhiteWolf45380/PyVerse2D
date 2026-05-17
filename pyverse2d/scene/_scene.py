@@ -175,7 +175,8 @@ class Scene:
             if not layer.is_active():
                 continue
             layer.update(dt)
-        self._on_update.trigger()
+        if self._on_update:
+            self._on_update.trigger()
         self._clear_context()
 
     @profile_section("scene.draw")
@@ -196,7 +197,8 @@ class Scene:
             pipeline.flush()
         pipeline.end()
 
-        self._on_draw.trigger()
+        if self._on_draw:
+            self._on_draw.trigger()
         self._clear_context()
 
     # ======================================== INTERNALS ========================================
