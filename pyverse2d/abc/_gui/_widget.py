@@ -20,13 +20,7 @@ from typing import Type, TYPE_CHECKING, ClassVar
 if TYPE_CHECKING:
     from ..._rendering import Pipeline
     from ...scene import GuiLayer
-    from ...gui import (
-        RenderContext,
-        ClickBehavior,
-        HoverBehavior,
-        SelectBehavior,
-        FocusBehavior,
-    )
+    from ...gui import RenderContext, ClickBehavior, HoverBehavior, SelectBehavior, FocusBehavior
 
 # ======================================== GROUP ========================================
 class WidgetGroup(Group):
@@ -100,6 +94,7 @@ class Widget(ABC, Transformable):
         scale: facteur de redimensionnement
         rotation: angle de rotation
         opacity: opacité
+        clipping: limitation du rendu au AABB du widget
     """
     __slots__ = (
         "_layer", "_parent", "_children",

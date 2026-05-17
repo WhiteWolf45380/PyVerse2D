@@ -16,7 +16,7 @@ class SoundSystem(System):
     Ce système est automatiquement ajouté à la scène.
 
     Args:
-        origin: référentiel de position pour les sons (généralement la caméra)
+        origin: référentiel de position pour les sons *(généralement la caméra)*
     """
     __slots__ = ("_origin",)
 
