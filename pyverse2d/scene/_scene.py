@@ -7,7 +7,6 @@ from .._rendering import Pipeline, Camera, Viewport
 from .._managers import CoordinatesManager, MouseManager
 from ..abc import Layer
 
-from typing import Callable
 import bisect
 
 # ======================================== SCENE ========================================
@@ -176,8 +175,7 @@ class Scene:
             if not layer.is_active():
                 continue
             layer.update(dt)
-        for fn in self._update_callbacks:
-            fn(dt)
+        self._on_update.trigger()
         self._clear_context()
 
     @profile_section("scene.draw")
@@ -198,8 +196,7 @@ class Scene:
             pipeline.flush()
         pipeline.end()
 
-        for fn in self._draw_callbacks:
-            fn()
+        self._on_draw.trigger()
         self._clear_context()
 
     # ======================================== INTERNALS ========================================
