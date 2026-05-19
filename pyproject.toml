@@ -43,7 +43,7 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/WhiteWolf45380/pyverse2d"
+Homepage = "https://pypi.org/project/pyverse2d/"
 Repository = "https://github.com/WhiteWolf45380/pyverse2d"
 Issues = "https://github.com/WhiteWolf45380/pyverse2d/issues"
 
