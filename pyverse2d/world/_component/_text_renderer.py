@@ -31,7 +31,7 @@ class TextRenderer(RendererComponent):
     """
     __slots__ = (
         "_text", "_offset",
-        "_color", "_bold", "_italic",
+        "_color", "_weight", "_italic",
         "_multiline", "_align", "_width",
     )
     
