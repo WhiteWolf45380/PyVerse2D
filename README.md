@@ -12,16 +12,16 @@ PyVerse2D gives you a complete ECS-based runtime: physics, lighting, particles, 
 
 ## Features
 
-- **ECS architecture** — entities, components, and systems with dependency/conflict validation
-- **Physics engine** — rigid bodies, gravity, collision detection and resolution (circles, capsules, polygons, ellipses, rounded rects)
-- **Rendering pipeline** — layered scenes, cameras with letterboxing, viewport transforms, z-ordering
-- **Lighting system** — ambient, point lights, cone lights, bloom, vignette, tint
-- **Particle system** — line, circle, cone and point emitters with modifiers (wind, drag, gravity, attractor)
-- **Tilemap support** — Tiled TMX loader, automatic collision injection, parallax cameras
-- **GUI system** — widgets, tweens, behaviors (click, hover, focus, select), toggle buttons, scrollbars, labels
-- **Asset management** — images, animations, fonts, sounds, music, playlists, video
-- **Input system** — keyboard, mouse, combo listeners, repeat and condition support
-- **Built-in profiler** — frame-accurate profiling with export
+- **ECS architecture** - entities, components, and systems with dependency/conflict validation
+- **Physics engine** - rigid bodies, gravity, collision detection and resolution (circles, capsules, polygons, ellipses, rounded rects)
+- **Rendering pipeline** - layered scenes, cameras with letterboxing, viewport transforms, z-ordering
+- **Lighting system** - ambient, point lights, cone lights, bloom, vignette, tint
+- **Particle system** - line, circle, cone and point emitters with modifiers (wind, drag, gravity, attractor)
+- **Tilemap support** - Tiled TMX loader, automatic collision injection, parallax cameras
+- **GUI system** - widgets, tweens, behaviors (click, hover, focus, select), toggle buttons, scrollbars, labels
+- **Asset management** - images, animations, fonts, sounds, music, playlists, video
+- **Input system** - keyboard, mouse, combo listeners, repeat and condition support
+- **Built-in profiler** - frame-accurate profiling with export
 
 ---
 
@@ -101,7 +101,7 @@ pv.run()
 
 ### Window & screen
 
-`LogicalScreen` defines the virtual resolution your game is designed for. `Window` wraps the OS window and handles letterboxing automatically — your game scales cleanly to any physical window size.
+`LogicalScreen` defines the virtual resolution your game is designed for. `Window` wraps the OS window and handles letterboxing automatically: your game scales cleanly to any physical window size.
 
 ```python
 screen = LogicalScreen(1920, 1080)   # virtual canvas
@@ -123,7 +123,7 @@ main_scene.add_layer(scene.GuiLayer(), z=100)              # UI on top
 
 ### Entities & components
 
-An `Entity` is a container of components. Components are plain data objects — logic lives in systems.
+An `Entity` is a container of components. Components are plain data objects, logic lives in systems.
 
 ```python
 player = world.Entity(
@@ -279,7 +279,7 @@ def on_update(dt: float):
     pass
 
 def on_draw():
-    # your extra draw logic (runs before scene.draw)
+    # your extra draw logic
     pass
 
 pv.preload()
@@ -294,17 +294,17 @@ pv.run(on_update=on_update, on_draw=on_draw)
 
 ```
 pyverse2d/
-├── abc/           # Abstract base classes (Space, Component, System, Asset…)
-├── asset/         # Image, Animation, Font, Sound, Music, Video, Text, Playlist
+├── abc/            # Abstract base classes (Space, Component, System, Asset…)
+├── asset/          # Image, Animation, Font, Sound, Music, Video, Text, Playlist
 ├── fx/
-│   ├── light/     # Ambient, PointLight, ConeLight, Bloom, Vignette, Tint
-│   └── particle/  # Emitters (Line, Circle, Cone, Point) + Modifiers
-├── gui/           # Widgets, Tweens, Behaviors, SelectionGroup
-├── math/          # Point, Vector, Line, easing functions, vertex helpers
-├── scene/         # Scene, WorldLayer, TileLayer, GuiLayer, LightLayer, ParticleLayer
-├── shape/         # Circle, Rect, RoundedRect, Ellipse, Capsule, Polygon, RegularPolygon
-├── tile/          # Tiled TMX loader, CollisionMapper, TileMap
-├── typing/        # Type aliases
+│   ├── light/      # Ambient, PointLight, ConeLight, Bloom, Vignette, Tint
+│   └── particle/   # Emitters (Line, Circle, Cone, Point) + Modifiers
+├── gui/            # Widgets, Tweens, Behaviors, SelectionGroup
+├── math/           # Point, Vector, Line, easing functions, vertex helpers
+├── scene/          # Scene, WorldLayer, TileLayer, GuiLayer, LightLayer, ParticleLayer
+├── shape/          # Circle, Rect, RoundedRect, Ellipse, Capsule, Polygon, RegularPolygon
+├── tile/           # Tiled TMX loader, CollisionMapper, TileMap
+├── typing/         # Type aliases
 └── world/
     ├── _component/ # Transform, Collider, RigidBody, Renderers, Animator, Follow…
     └── _system/    # Physics, Gravity, Collision, Render, Animation, Steering, Sound, Video
