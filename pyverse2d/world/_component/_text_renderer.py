@@ -52,7 +52,7 @@ class TextRenderer(RendererComponent):
         visible: bool = True,
     ):
         # Initialisation du composant de rendu
-        super().__int__(opacity, z, visible)
+        super().__init__(opacity, z, visible)
 
         # Transtypage et vérifications
         offset = Vector(offset)
