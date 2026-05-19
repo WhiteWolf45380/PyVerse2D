@@ -5,7 +5,7 @@
 PyVerse2D gives you a complete ECS-based runtime: physics, lighting, particles, tilemaps, GUI, audio... behind a clean and minimal API.
 
 [![PyPI version](https://img.shields.io/pypi/v/pyverse2d)](https://pypi.org/project/pyverse2d/)
-[![Python](https://img.shields.io/pypi/pyversions/pyverse2d)](https://pypi.org/project/pyverse2d/)
+[![Python](https://img.shields.io/pypi/pyversions/pyverse2d?cacheSeconds=60)](https://pypi.org/project/pyverse2d/)
 [![License](https://img.shields.io/github/license/WhiteWolf45380/PyVerse2D)](LICENSE)
 
 ---
