@@ -44,6 +44,8 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/WhiteWolf45380/pyverse2d"
+Repository = "https://github.com/WhiteWolf45380/pyverse2d"
+Issues = "https://github.com/WhiteWolf45380/pyverse2d/issues"
 
 [project.entry-points."pyinstaller40"]
 hook-dirs = "pyverse2d.hooks:get_hook_dirs"
@@ -53,12 +55,7 @@ where = ["."]
 include = ["pyverse2d*"]
 
 [tool.setuptools.package-data]
-"pyverse2d._assets" = [
-    "*.ttf",
-    "*.png",
-    "*.wav",
-    "*.ogg",
-    "*.jpg"
-]
+pyverse2d = ["_assets/*"]
 
-"pyverse2d.hooks" = ["*.py"]
+[tool.setuptools]
+include-package-data = true
