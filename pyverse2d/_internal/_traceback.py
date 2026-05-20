@@ -41,7 +41,7 @@ def excepthook(exc_type: type[BaseException], exc: BaseException, tb: TracebackT
         )
 
         if line:
-            print(f"   >>> {line}")
+            print(f"    {line}")
 
     print(f"{exc_type.__name__}: {exc}")
 
