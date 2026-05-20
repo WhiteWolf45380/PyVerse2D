@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from ...abc import PostFxEffect
+from ._mask import MaskData
 
 from typing import TYPE_CHECKING, ClassVar, Type
 
@@ -37,13 +38,14 @@ class SpecializedPostFxRenderer:
     def clear_shader_cache(cls) -> None:
         """Libère les ``ShaderProgram`` mis en cache"""
 
-    def apply(self, pipeline: Pipeline, effect: PostFxEffect, intensity: float = 1.0) -> None:
+    def apply(self, pipeline: Pipeline, effect: PostFxEffect, mask: MaskData) -> None:
         """Applique l'effet sur le framebuffer courant
-
+    
         Args:
             pipeline: ``Pipeline`` de rendu courant
             effect: paramètres de l'effet
-            intensity: intensité du blend *[0, 1]*
+            mask: données de masque spatial (position, forme, blend) en coordonnées
+                  framebuffer ; utiliser ``MASK_FULL`` pour un effet plein écran
         """
 
 # ======================================== EXPORTS ========================================

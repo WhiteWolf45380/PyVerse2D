@@ -6,6 +6,7 @@ from ..._rendering import Pipeline
 from ...abc import PostFxEffect
 
 from ._specialized_renderer import SpecializedPostFxRenderer
+from ._mask import MaskData, GLSL_MASK
 
 from dataclasses import dataclass
 from numbers import Real
@@ -25,7 +26,7 @@ void main() {
 }
 """
 
-_FRAG = """
+_FRAG = f"""
 #version 330 core
 uniform sampler2D u_texture;
 uniform float u_amplitude_x;
@@ -36,13 +37,16 @@ uniform float u_time;
 in vec2 v_uv;
 out vec4 out_color;
 
-void main() {
+{GLSL_MASK}
+
+void main() {{
     const float TAU = 6.28318530718;
-    float dx = u_amplitude_x * sin(v_uv.y * u_frequency_x * TAU + u_time);
-    float dy = u_amplitude_y * sin(v_uv.x * u_frequency_y * TAU + u_time);
+    float mask = compute_mask();
+    float dx = u_amplitude_x * mask * sin(v_uv.y * u_frequency_x * TAU + u_time);
+    float dy = u_amplitude_y * mask * sin(v_uv.x * u_frequency_y * TAU + u_time);
     vec2 distorted = clamp(v_uv + vec2(dx, dy), 0.0, 1.0);
     out_color = texture(u_texture, distorted);
-}
+}}
 """
 
 # ======================================== EFFECT ========================================
@@ -66,7 +70,6 @@ class Wave(PostFxEffect):
     _ID: ClassVar[str] = "wave"
 
     def __post_init__(self) -> None:
-        """Transtypage et vérifications"""
         object.__setattr__(self, "amplitude_x", float(self.amplitude_x))
         object.__setattr__(self, "amplitude_y", float(self.amplitude_y))
         object.__setattr__(self, "frequency_x", float(self.frequency_x))
@@ -76,7 +79,7 @@ class Wave(PostFxEffect):
         if __debug__:
             positive(self.amplitude_x)
             positive(self.amplitude_y)
-            positive(self.frequency_x, include=False)
+            over(self.frequency_x, 0, include=False)
             over(self.frequency_y, 0, include=False)
             over(self.speed, 0, include=False)
 
@@ -88,7 +91,6 @@ class WavePostFxRenderer(SpecializedPostFxRenderer):
     _HANDLES: ClassVar[frozenset[type[PostFxEffect]]] = frozenset({Wave})
 
     _program: ClassVar[ShaderProgram | None] = None
-
     _time: ClassVar[float] = 0.0
 
     @classmethod
@@ -112,25 +114,26 @@ class WavePostFxRenderer(SpecializedPostFxRenderer):
         """Libère le ``ShaderProgram`` mis en cache"""
         cls._program = None
 
-    def apply(self, pipeline: Pipeline, effect: Wave, intensity: float) -> None:
+    def apply(self, pipeline: Pipeline, effect: Wave, mask: MaskData) -> None:
         """Applique la distorsion ondulatoire
 
         Args:
             pipeline: ``Pipeline`` de rendu courant
             effect: paramètres de l'onde
-            intensity: intensité du blend *[0, 1]*
+            mask: données de masque spatial
         """
         pipeline.apply_shader(
             self._get_program(),
-            u_amplitude_x=effect.amplitude_x * intensity,
-            u_amplitude_y=effect.amplitude_y * intensity,
+            u_amplitude_x=effect.amplitude_x,
+            u_amplitude_y=effect.amplitude_y,
             u_frequency_x=effect.frequency_x,
             u_frequency_y=effect.frequency_y,
             u_time=self._time * effect.speed,
+            **mask.as_uniforms(),
         )
 
 # ======================================== EXPORTS ========================================
 __all__ = [
     "Wave",
-    "WaveFxRenderer",
+    "WavePostFxRenderer",
 ]

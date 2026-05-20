@@ -6,6 +6,7 @@ from ..._rendering import Pipeline
 from ...abc import PostFxEffect
 
 from ._specialized_renderer import SpecializedPostFxRenderer
+from ._mask import MaskData, GLSL_MASK
 
 from dataclasses import dataclass
 from numbers import Real
@@ -26,20 +27,24 @@ void main() {
 }
 """
 
-_FRAG = """
+_FRAG = f"""
 #version 330 core
 uniform sampler2D u_texture;
 uniform vec2 u_offset;
 in vec2 v_uv;
 out vec4 out_color;
 
-void main() {
-    float r = texture(u_texture, clamp(v_uv + u_offset, 0.0, 1.0)).r;
+{GLSL_MASK}
+
+void main() {{
+    float mask = compute_mask();
+    vec2 off = u_offset * mask;
+    float r = texture(u_texture, clamp(v_uv + off, 0.0, 1.0)).r;
     float g = texture(u_texture, v_uv).g;
-    float b = texture(u_texture, clamp(v_uv - u_offset, 0.0, 1.0)).b;
+    float b = texture(u_texture, clamp(v_uv - off, 0.0, 1.0)).b;
     float a = texture(u_texture, v_uv).a;
     out_color = vec4(r, g, b, a);
-}
+}}
 """
 
 # ======================================== EFFECT ========================================
@@ -75,7 +80,7 @@ class ChromaticPostFxRenderer(SpecializedPostFxRenderer):
 
     @classmethod
     def _get_program(cls) -> ShaderProgram:
-        """Retourne (en le créant si nécessaire) le shader d'aberration chromatique"""
+        """Retourne *(en le créant si nécessaire)* le shader d'aberration chromatique"""
         if cls._program is None:
             cls._program = ShaderProgram(Shader(_VERT, 'vertex'), Shader(_FRAG, 'fragment'))
         return cls._program
@@ -85,26 +90,26 @@ class ChromaticPostFxRenderer(SpecializedPostFxRenderer):
         """Libère le ``ShaderProgram`` mis en cache"""
         cls._program = None
 
-    def apply(self, pipeline: Pipeline, effect: Chromatic, intensity: float) -> None:
+    def apply(self, pipeline: Pipeline, effect: Chromatic, mask: MaskData) -> None:
         """Applique l'aberration chromatique
 
         Args:
             pipeline: ``Pipeline`` de rendu courant
             effect: paramètres de l'aberration
-            intensity: intensité du blend *[0, 1]*
+            mask: données de masque spatial
         """
         theta = math.radians(effect.angle)
-        strength = effect.strength * intensity
-        dx = strength * math.cos(theta)
-        dy = strength * math.sin(theta)
+        dx = effect.strength * math.cos(theta)
+        dy = effect.strength * math.sin(theta)
 
         pipeline.apply_shader(
             self._get_program(),
             u_offset=(dx, dy),
+            **mask.as_uniforms(),
         )
 
 # ======================================== EXPORTS ========================================
 __all__ = [
     "Chromatic",
-    "ChromaticFxRenderer",
+    "ChromaticPostFxRenderer",
 ]

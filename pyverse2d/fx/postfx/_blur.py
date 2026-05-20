@@ -6,6 +6,7 @@ from ..._rendering import Pipeline
 from ...abc import PostFxEffect
 
 from ._specialized_renderer import SpecializedPostFxRenderer
+from ._mask import MaskData, GLSL_MASK
 
 from pyglet.graphics.shader import Shader, ShaderProgram
 
@@ -25,7 +26,7 @@ void main() {
 }
 """
 
-_FRAG = """
+_FRAG = f"""
 #version 330 core
 uniform sampler2D u_texture;
 uniform vec2 u_direction;
@@ -34,19 +35,23 @@ uniform float u_radius;
 in vec2 v_uv;
 out vec4 out_color;
 
-void main() {
+{GLSL_MASK}
+
+void main() {{
     vec3 result = vec3(0.0);
     float total = 0.0;
     int steps = int(u_radius);
     vec2 step_uv = u_direction * u_texel;
-    for (int i = -steps; i <= steps; i++) {
+    for (int i = -steps; i <= steps; i++) {{
         float t = float(i) / max(u_radius, 1.0);
         float w = exp(-t * t * 4.5);
         result += texture(u_texture, v_uv + step_uv * float(i)).rgb * w;
         total  += w;
-    }
-    out_color = vec4(result / total, texture(u_texture, v_uv).a);
-}
+    }}
+    vec4 original = texture(u_texture, v_uv);
+    float mask = compute_mask();
+    out_color = vec4(mix(original.rgb, result / total, mask), original.a);
+}}
 """
 
 # ======================================== EFFECT ========================================
@@ -59,7 +64,7 @@ class Blur(PostFxEffect):
         passes: nombre d'itérations du flou *(>= 1)*
     """
     radius: Real = 4.0
-    passes: Integral  = 1
+    passes: Integral = 1
 
     _ID: ClassVar[str] = "blur"
 
@@ -83,7 +88,7 @@ class BlurPostFxRenderer(SpecializedPostFxRenderer):
 
     @classmethod
     def _get_program(cls) -> ShaderProgram:
-        """Retourne (en le créant si nécessaire) le shader de flou gaussien"""
+        """Retourne *(en le créant si nécessaire)* le shader de flou gaussien"""
         if cls._program is None:
             cls._program = ShaderProgram(Shader(_VERT, 'vertex'), Shader(_FRAG, 'fragment'))
         return cls._program
@@ -93,33 +98,35 @@ class BlurPostFxRenderer(SpecializedPostFxRenderer):
         """Libère le ``ShaderProgram`` mis en cache"""
         cls._program = None
 
-    def apply(self, pipeline: Pipeline, effect: Blur, intensity: float) -> None:
+    def apply(self, pipeline: Pipeline, effect: Blur, mask: MaskData) -> None:
         """Applique le flou gaussien séparable multi-passes
 
         Args:
             pipeline: ``Pipeline`` de rendu courant
             effect: paramètres du flou
-            intensity: intensité du blend *[0, 1]*
+            mask: données de masque spatial
         """
         fbo = pipeline.fbo
         texel = (1.0 / fbo.width, 1.0 / fbo.height)
         program = self._get_program()
-        radius = effect.radius * intensity
+        mask_uniforms = mask.as_uniforms()
 
         for _ in range(effect.passes):
             pipeline.apply_shader(program,
                 u_direction=(1.0, 0.0),
                 u_texel=texel,
-                u_radius=radius,
+                u_radius=effect.radius,
+                **mask_uniforms,
             )
             pipeline.apply_shader(program,
                 u_direction=(0.0, 1.0),
                 u_texel=texel,
-                u_radius=radius,
+                u_radius=effect.radius,
+                **mask_uniforms,
             )
 
 # ======================================== EXPORTS ========================================
 __all__ = [
     "Blur",
-    "BlurFxRenderer",
+    "BlurPostFxRenderer",
 ]

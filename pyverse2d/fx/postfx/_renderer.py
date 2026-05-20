@@ -6,20 +6,14 @@ from ...abc import PostFxEffect
 from ...shape import Circle, Rect
 
 from ._specialized_renderer import SpecializedPostFxRenderer
+from ._mask import MaskData, MASK_FULL
 from ._zone import PostFxZone
 
 from typing import Type, ClassVar
 
 # ======================================== RENDERER ========================================
 class PostFxRenderer:
-    """Renderer central des effets post-processing
-
-    Maintient un registre de ``SpecializedPostFxRenderer`` qui s'enregistrent
-    automatiquement via ``SpecializedPostFxRenderer.__init_subclass__``.
-
-    Le dispatch est entièrement polymorphique : ajouter un nouvel effet
-    ne nécessite aucune modification de cette classe.
-    """
+    """Renderer central des effets post-processing"""
     __slots__ = tuple()
 
     _registry: ClassVar[dict[Type[PostFxEffect], SpecializedPostFxRenderer]] = {}
@@ -38,10 +32,7 @@ class PostFxRenderer:
 
     @classmethod
     def clear_shader_cache(cls) -> None:
-        """Libère tous les ``ShaderProgram`` mis en cache par les renderers enregistrés.
-
-        À appeler lors d'un changement de contexte OpenGL ou d'un hot-reload.
-        """
+        """Libère tous les ``ShaderProgram`` mis en cache par les renderers enregistrés"""
         seen: set[int] = set()
         for renderer in cls._registry.values():
             rid = id(renderer)
@@ -59,35 +50,35 @@ class PostFxRenderer:
         """
         for zone in zones:
             if zone.is_unbounded():
-                self._render_zone(pipeline, zone, intensity=1.0)
+                self._render_zone(pipeline, zone, MASK_FULL)
             else:
-                intensity = self._compute_intensity(pipeline, zone)
-                if intensity <= 0.0:
+                mask = self._build_mask(pipeline, zone)
+                if mask is None:
                     continue
-                self._render_zone(pipeline, zone, intensity)
+                self._render_zone(pipeline, zone, mask)
 
-    def _render_zone(self, pipeline: Pipeline, zone: PostFxZone, intensity: float) -> None:
+    def _render_zone(self, pipeline: Pipeline, zone: PostFxZone, mask: MaskData) -> None:
         """Applique la chaîne d'effets d'une zone
 
         Args:
             pipeline: ``Pipeline`` de rendu courant
             zone: zone à rendre
-            intensity: intensité du blend *[0, 1]*
+            mask: données de masque spatial à transmettre aux shaders
         """
         for effect in zone.get_effects():
             renderer = self._registry.get(type(effect))
             if renderer is not None:
-                renderer.apply(pipeline, effect, intensity)
+                renderer.apply(pipeline, effect, mask)
 
-    def _compute_intensity(self, pipeline: Pipeline, zone: PostFxZone) -> float:
-        """Calcule l'intensité de blend d'une zone bounded
+    def _build_mask(self, pipeline: Pipeline, zone: PostFxZone) -> MaskData | None:
+        """Construit le ``MaskData`` d'une zone bounded en coordonnées framebuffer.
 
         Args:
             pipeline: ``Pipeline`` de rendu courant
             zone: zone bounded à évaluer
 
         Returns:
-            float: intensité *[0, 1]*
+            ``MaskData`` si la zone est visible, ``None`` sinon
         """
         cx, cy = pipeline.world_to_framebuffer(zone.x, zone.y)
         sx, sy = pipeline.screen.center
@@ -96,13 +87,15 @@ class PostFxRenderer:
             case Circle():
                 r = pipeline.scale_to_framebuffer(zone.shape.radius)
                 dist = ((sx - cx) ** 2 + (sy - cy) ** 2) ** 0.5
-                inner_r = r
-                outer_r = r + zone.blend
-                if dist >= outer_r:
-                    return 0.0
-                if dist <= inner_r:
-                    return 1.0
-                return 1.0 - (dist - inner_r) / zone.blend
+                if dist >= r + zone.blend:
+                    return None
+                return MaskData(
+                    type=1,
+                    center_x=cx,
+                    center_y=cy,
+                    radius=r,
+                    blend=zone.blend,
+                )
 
             case Rect():
                 hw, hh = pipeline.scale_to_framebuffer(width=zone.shape.half_width, height=zone.shape.half_height)
@@ -110,13 +103,21 @@ class PostFxRenderer:
                 dy = max(abs(sy - cy) - hh, 0.0)
                 dist = (dx ** 2 + dy ** 2) ** 0.5
                 if zone.blend <= 0.0:
-                    return 1.0 if dx == 0.0 and dy == 0.0 else 0.0
-                if dist >= zone.blend:
-                    return 0.0
-                return 1.0 - dist / zone.blend
+                    if dx > 0.0 or dy > 0.0:
+                        return None
+                elif dist >= zone.blend:
+                    return None
+                return MaskData(
+                    type=2,
+                    center_x=cx,
+                    center_y=cy,
+                    half_w=hw,
+                    half_h=hh,
+                    blend=zone.blend,
+                )
 
             case _:
-                return 1.0
+                return MASK_FULL
 
 # ======================================== EXPORTS ========================================
 __all__ = [
