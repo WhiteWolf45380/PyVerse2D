@@ -1,8 +1,8 @@
 # ======================================== IMPORTS ========================================
 import sys
-import traceback
 import linecache
 from pathlib import Path
+from types import TracebackType
 
 # ======================================== CONSTANTS ========================================
 _ENGINE_ROOT: Path = Path(__file__).resolve().parent.parent
@@ -12,7 +12,7 @@ _enabled: bool = False
 _original_excepthook = sys.excepthook
 
 # ======================================== EXCPECT HOOK ========================================
-def excepthook(exc_type: type[BaseException], exc: BaseException, tb: traceback.TracebackType | None):
+def excepthook(exc_type: type[BaseException], exc: BaseException, tb: TracebackType | None):
     """Hook d'exception"""
     if not _is_engine_related(tb):
         return sys.__excepthook__(exc_type, exc, tb)
@@ -69,7 +69,7 @@ def set_enabled(value: bool):
         disable()
 
 # ======================================== INTERNALS ========================================
-def _is_engine_related(tb: traceback.TracebackType) -> bool:
+def _is_engine_related(tb: TracebackType) -> bool:
     """Vérification que l'erreur est relative à l'engine"""
     while tb:
         filename = Path(tb.tb_frame.f_code.co_filename)
@@ -81,7 +81,7 @@ def _is_engine_related(tb: traceback.TracebackType) -> bool:
         tb = tb.tb_next
     return False
 
-def _should_hide(tb: traceback.TracebackType) -> bool:
+def _should_hide(tb: TracebackType) -> bool:
     """Tri des frames"""
     frame = tb.tb_frame
     if frame.f_locals.get("__tracebackhide__"):
