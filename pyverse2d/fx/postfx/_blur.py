@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from ..._internal import positive
 from ..._rendering import Pipeline
-from ...abc import FxEffect, FxRenderer
+from ...abc import PostFxEffect, SpecializedPostFxRenderer
 
 from pyglet.graphics.shader import Shader, ShaderProgram
 
@@ -49,7 +49,7 @@ void main() {
 
 # ======================================== EFFECT ========================================
 @dataclass(slots=True, frozen=True)
-class Blur(FxEffect):
+class Blur(PostFxEffect):
     """Effet post-processing: flou gaussien
 
     Args:
@@ -71,11 +71,11 @@ class Blur(FxEffect):
             positive(self.passes, include=False)
 
 # ======================================== RENDERER ========================================
-class BlurFxRenderer(FxRenderer):
+class BlurFxRenderer(SpecializedPostFxRenderer):
     """Renderer spécialisé pour l'effet ``Blur``"""
     __slots__ = tuple()
 
-    _HANDLES: ClassVar[frozenset[type[FxEffect]]] = frozenset({Blur})
+    _HANDLES: ClassVar[frozenset[type[PostFxEffect]]] = frozenset({Blur})
 
     _program: ClassVar[ShaderProgram | None] = None
 

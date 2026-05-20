@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from ..._internal import positive
 from ..._rendering import Pipeline
-from ...abc import FxEffect, FxRenderer
+from ...abc import PostFxEffect, SpecializedPostFxRenderer
 
 from dataclasses import dataclass
 from numbers import Real
@@ -45,7 +45,7 @@ void main() {
 
 # ======================================== EFFECT ========================================
 @dataclass(slots=True, frozen=True)
-class Wave(FxEffect):
+class Wave(PostFxEffect):
     """Effet post-processing: distorsion ondulatoire
 
     Args:
@@ -79,11 +79,11 @@ class Wave(FxEffect):
             positive(self.speed, include=False)
 
 # ======================================== RENDERER ========================================
-class WaveFxRenderer(FxRenderer):
+class WaveFxRenderer(SpecializedPostFxRenderer):
     """Renderer spécialisé pour l'effet ``Wave``"""
     __slots__ = tuple()
 
-    _HANDLES: ClassVar[frozenset[type[FxEffect]]] = frozenset({Wave})
+    _HANDLES: ClassVar[frozenset[type[PostFxEffect]]] = frozenset({Wave})
 
     _program: ClassVar[ShaderProgram | None] = None
 

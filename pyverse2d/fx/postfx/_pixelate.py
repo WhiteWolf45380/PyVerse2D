@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from ..._internal import positive
 from ..._rendering import Pipeline
-from ...abc import FxEffect, FxRenderer
+from ...abc import PostFxEffect, SpecializedPostFxRenderer
 
 from dataclasses import dataclass
 from numbers import Real
@@ -41,7 +41,7 @@ void main() {
 
 # ======================================== EFFECT ========================================
 @dataclass(slots=True, frozen=True)
-class Pixelate(FxEffect):
+class Pixelate(PostFxEffect):
     """Effet post-processing: pixelisation
 
     Réduit la résolution apparente du framebuffer en regroupant les pixels
@@ -62,11 +62,11 @@ class Pixelate(FxEffect):
             positive(self.block_size, include=False)
 
 # ======================================== RENDERER ========================================
-class PixelateFxRenderer(FxRenderer):
+class PixelateFxRenderer(SpecializedPostFxRenderer):
     """Renderer spécialisé pour l'effet ``Pixelate``"""
     __slots__ = tuple()
 
-    _HANDLES: ClassVar[frozenset[type[FxEffect]]] = frozenset({Pixelate})
+    _HANDLES: ClassVar[frozenset[type[PostFxEffect]]] = frozenset({Pixelate})
 
     _program: ClassVar[ShaderProgram | None] = None
 

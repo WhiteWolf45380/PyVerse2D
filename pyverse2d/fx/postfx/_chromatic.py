@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from ..._internal import positive
 from ..._rendering import Pipeline
-from ...abc import FxEffect, FxRenderer
+from ...abc import PostFxEffect, SpecializedPostFxRenderer
 
 from dataclasses import dataclass
 from numbers import Real
@@ -43,7 +43,7 @@ void main() {
 
 # ======================================== EFFECT ========================================
 @dataclass(slots=True, frozen=True)
-class Chromatic(FxEffect):
+class Chromatic(PostFxEffect):
     """Effet post-processing: aberration chromatique
 
     Args:
@@ -64,11 +64,11 @@ class Chromatic(FxEffect):
             positive(self.strength, include=True)
 
 # ======================================== RENDERER ========================================
-class ChromaticFxRenderer(FxRenderer):
+class ChromaticFxRenderer(SpecializedPostFxRenderer):
     """Renderer spécialisé pour l'effet ``Chromatic``"""
     __slots__ = tuple()
 
-    _HANDLES: ClassVar[frozenset[type[FxEffect]]] = frozenset({Chromatic})
+    _HANDLES: ClassVar[frozenset[type[PostFxEffect]]] = frozenset({Chromatic})
 
     _program: ClassVar[ShaderProgram | None] = None
 
