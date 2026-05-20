@@ -3,7 +3,9 @@ from __future__ import annotations
 
 from ..._internal import positive
 from ..._rendering import Pipeline
-from ...abc import PostFxEffect, SpecializedPostFxRenderer
+from ...abc import PostFxEffect
+
+from ._specialized_renderer import SpecializedPostFxRenderer
 
 from pyglet.graphics.shader import Shader, ShaderProgram
 

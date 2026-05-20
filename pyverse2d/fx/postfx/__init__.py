@@ -6,6 +6,7 @@ from ._wave import Wave, WavePostFxRenderer
 
 from ._zone import PostFxZone
 
+from ._specialized_renderer import SpecializedPostFxRenderer
 from ._renderer import PostFxRenderer
 
 # ======================================== EXPORTS ========================================
@@ -17,5 +18,6 @@ __all__ = [
 
     "PostFxZone",
 
+    "SpecializedPostFxRenderer",
     "PostFxRenderer",
 ]

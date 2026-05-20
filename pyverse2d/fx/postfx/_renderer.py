@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 from ..._rendering import Pipeline
-from ...abc import PostFxEffect, SpecializedPostFxRenderer
+from ...abc import PostFxEffect
 from ...shape import Circle, Rect
 
+from ._specialized_renderer import SpecializedPostFxRenderer
 from ._zone import PostFxZone
 
 from typing import Type, ClassVar
