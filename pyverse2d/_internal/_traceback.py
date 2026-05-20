@@ -4,7 +4,11 @@ from traceback import TracebackException
 from pathlib import Path
 
 # ======================================== CONSTANTS ========================================
-_ENGINE_ROOT = Path(__file__).resolve().parent.parent
+_ENGINE_ROOT: Path = Path(__file__).resolve().parent.parent
+
+# ======================================== GLOBAL ========================================
+_enabled: bool = False
+_original_excepthook = sys.excepthook
 
 # ======================================== EXCPECT HOOK ========================================
 def excepthook(exc_type: type[BaseException], exc: BaseException, tb: TracebackException):
@@ -32,9 +36,28 @@ def excepthook(exc_type: type[BaseException], exc: BaseException, tb: TracebackE
 
     print(f"{exc_type.__name__}: {exc}")
 
-def install():
-    """Configuration du hook"""
+def enable():
+    """Activation du traceback personnalisé"""
+    global _enabled
+    if sys.excepthook is excepthook:
+        return
     sys.excepthook = excepthook
+    _enabled = True
+
+def disable():
+    """Désactivation du traceback personnalisé"""
+    global _enabled
+    if not _enabled:
+        return
+    sys.excepthook = _original_excepthook
+    _enabled = False
+
+def set_enabled(value: bool):
+    """Basculement du traceback personnalisé"""
+    if value:
+        enable()
+    else:
+        disable()
 
 # ======================================== INTERNALS ========================================
 def _is_engine_related(tb: TracebackException) -> bool:
@@ -60,5 +83,8 @@ def _should_hide(tb: TracebackException) -> bool:
 # ======================================== EXPORTS ========================================
 __all__ = [
     "excepthook",
-    "install",
+
+    "enable",
+    "disable",
+    "set_enabled",
 ]
