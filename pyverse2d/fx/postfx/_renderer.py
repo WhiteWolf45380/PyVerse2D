@@ -94,7 +94,7 @@ class PostFxRenderer:
 
         match zone.shape:
             case Circle():
-                r = pipeline.scale_to_screen(zone.shape.radius)
+                r = pipeline.scale_to_framebuffer(zone.shape.radius)
                 dist = ((sx - cx) ** 2 + (sy - cy) ** 2) ** 0.5
                 inner_r = r
                 outer_r = r + zone.blend
@@ -105,8 +105,7 @@ class PostFxRenderer:
                 return 1.0 - (dist - inner_r) / zone.blend
 
             case Rect():
-                hw = pipeline.scale_to_screen(zone.shape.half_width)
-                hh = pipeline.scale_to_screen(zone.shape.half_height)
+                hw, hh = pipeline.scale_to_framebuffer(width=zone.shape.half_width, height=zone.shape.half_height)
                 dx = max(abs(sx - cx) - hw, 0.0)
                 dy = max(abs(sy - cy) - hh, 0.0)
                 dist = (dx ** 2 + dy ** 2) ** 0.5
