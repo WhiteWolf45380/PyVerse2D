@@ -1,6 +1,7 @@
 # ======================================== IMPORTS ========================================
 import sys
-from traceback import TracebackException
+import traceback
+import linecache
 from pathlib import Path
 
 # ======================================== CONSTANTS ========================================
@@ -11,7 +12,7 @@ _enabled: bool = False
 _original_excepthook = sys.excepthook
 
 # ======================================== EXCPECT HOOK ========================================
-def excepthook(exc_type: type[BaseException], exc: BaseException, tb: TracebackException):
+def excepthook(exc_type: type[BaseException], exc: BaseException, tb: traceback.TracebackType | None):
     """Hook d'exception"""
     if not _is_engine_related(tb):
         return sys.__excepthook__(exc_type, exc, tb)
@@ -28,11 +29,19 @@ def excepthook(exc_type: type[BaseException], exc: BaseException, tb: TracebackE
         frame = tb.tb_frame
         code = frame.f_code
 
+        filename = code.co_filename
+        lineno = tb.tb_lineno
+        func = code.co_name
+
+        line = linecache.getline(filename, lineno).strip()
+
         print(
-            f'  File "{code.co_filename}", '
-            f'line {tb.tb_lineno}, '
-            f'in {code.co_name}'
+            f'  File "{filename}", '
+            f'line {lineno}, in {func}'
         )
+
+        if line:
+            print(f"   >>> {line}")
 
     print(f"{exc_type.__name__}: {exc}")
 
@@ -60,7 +69,7 @@ def set_enabled(value: bool):
         disable()
 
 # ======================================== INTERNALS ========================================
-def _is_engine_related(tb: TracebackException) -> bool:
+def _is_engine_related(tb: traceback.TracebackType) -> bool:
     """Vérification que l'erreur est relative à l'engine"""
     while tb:
         filename = Path(tb.tb_frame.f_code.co_filename)
@@ -72,7 +81,7 @@ def _is_engine_related(tb: TracebackException) -> bool:
         tb = tb.tb_next
     return False
 
-def _should_hide(tb: TracebackException) -> bool:
+def _should_hide(tb: traceback.TracebackType) -> bool:
     """Tri des frames"""
     frame = tb.tb_frame
     if frame.f_locals.get("__tracebackhide__"):
