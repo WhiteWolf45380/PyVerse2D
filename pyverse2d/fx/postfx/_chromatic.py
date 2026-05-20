@@ -12,7 +12,6 @@ from numbers import Real
 from typing import ClassVar
 import math
 
-import pyglet.gl as gl
 from pyglet.graphics.shader import Shader, ShaderProgram
 
 # ======================================== SHADERS ========================================
@@ -63,7 +62,7 @@ class Chromatic(PostFxEffect):
         object.__setattr__(self, "angle", float(self.angle))
 
         if __debug__:
-            positive(self.strength, include=True)
+            positive(self.strength)
 
 # ======================================== RENDERER ========================================
 class ChromaticPostFxRenderer(SpecializedPostFxRenderer):

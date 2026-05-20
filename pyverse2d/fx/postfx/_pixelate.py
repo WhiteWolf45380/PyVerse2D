@@ -1,7 +1,7 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from ..._internal import positive
+from ..._internal import over
 from ..._rendering import Pipeline
 from ...abc import PostFxEffect
 
@@ -61,7 +61,7 @@ class Pixelate(PostFxEffect):
         object.__setattr__(self, "block_size", float(self.block_size))
 
         if __debug__:
-            positive(self.block_size, include=False)
+            over(self.block_size, 0, include=False)
 
 # ======================================== RENDERER ========================================
 class PixelatePostFxRenderer(SpecializedPostFxRenderer):

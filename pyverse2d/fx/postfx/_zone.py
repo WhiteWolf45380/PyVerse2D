@@ -97,7 +97,7 @@ class PostFxZone(Positionable):
     def blend(self, value: Real) -> None:
         value = float(value)
         if __debug__:
-            positive(value, include=True)
+            positive(value)
         self._blend = value
 
     # ======================================== PREDICATES ========================================

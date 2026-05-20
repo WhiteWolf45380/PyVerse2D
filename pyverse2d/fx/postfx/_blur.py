@@ -1,7 +1,7 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from ..._internal import positive
+from ..._internal import over
 from ..._rendering import Pipeline
 from ...abc import PostFxEffect
 
@@ -69,8 +69,8 @@ class Blur(PostFxEffect):
         object.__setattr__(self, "passes", int(self.passes))
 
         if __debug__:
-            positive(self.radius, include=False)
-            positive(self.passes, include=False)
+            over(self.radius, 0, include=False)
+            over(self.passes, 1, include=True)
 
 # ======================================== RENDERER ========================================
 class BlurPostFxRenderer(SpecializedPostFxRenderer):

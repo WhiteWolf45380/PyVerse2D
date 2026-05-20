@@ -1,7 +1,7 @@
 # ======================================== IMPORTS ========================================
 from __future__ import annotations
 
-from ..._internal import positive
+from ..._internal import positive, over
 from ..._rendering import Pipeline
 from ...abc import PostFxEffect
 
@@ -74,11 +74,11 @@ class Wave(PostFxEffect):
         object.__setattr__(self, "speed", float(self.speed))
 
         if __debug__:
-            positive(self.amplitude_x, include=True)
-            positive(self.amplitude_y, include=True)
+            positive(self.amplitude_x)
+            positive(self.amplitude_y)
             positive(self.frequency_x, include=False)
-            positive(self.frequency_y, include=False)
-            positive(self.speed, include=False)
+            over(self.frequency_y, 0, include=False)
+            over(self.speed, 0, include=False)
 
 # ======================================== RENDERER ========================================
 class WavePostFxRenderer(SpecializedPostFxRenderer):
