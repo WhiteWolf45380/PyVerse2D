@@ -33,4 +33,9 @@ __all__ = [
     "PointEmitter", "CircleEmitter", "LineEmitter", "ConeEmitter",
     "Gravity", "Wind", "Drag", "Attractor",
     "ParticleRenderer",
+
+    "postfx",
+    "PostFxZone",
+    "Blur", "Chromatic", "Pixelate", "Wave",
+    "PostFxRenderer",
 ]
