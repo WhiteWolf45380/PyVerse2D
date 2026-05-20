@@ -10,6 +10,9 @@ import sys
 from typing import Callable
 from numbers import Real
 
+# ======================================== TRACEBACK CONFIGURATION ========================================
+_install_traceback()
+
 # ======================================== PRIMITIVES ========================================
 from . import typing, abc, math, shape, asset
 
