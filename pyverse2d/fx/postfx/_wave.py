@@ -48,9 +48,6 @@ void main() {
 class Wave(FxEffect):
     """Effet post-processing: distorsion ondulatoire
 
-    Déforme le framebuffer avec une onde sinusoïdale animée dans le temps.
-    L'onde peut être orientée horizontalement, verticalement, ou dans les deux axes.
-
     Args:
         amplitude_x: amplitude horizontale en fraction de l'écran *[0, 1]*
         amplitude_y: amplitude verticale en fraction de l'écran *[0, 1]*
