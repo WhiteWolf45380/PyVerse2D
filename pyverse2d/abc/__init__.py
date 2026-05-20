@@ -59,7 +59,7 @@ __all__ = [
 
     "LightSource", "LightEffect",
     "ParticleEmitter", "ParticleModifier",
-    "PostFxEffect", "SpecializedPostFxRenderer",
+    "PostFxEffect",
 
     "Layer",
     
