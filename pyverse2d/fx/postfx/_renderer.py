@@ -90,7 +90,7 @@ class PostFxRenderer:
             float: intensité *[0, 1]*
         """
         cx, cy = pipeline.world_to_framebuffer(zone.x, zone.y)
-        sx, sy = pipeline.screen.center()
+        sx, sy = pipeline.screen.center
 
         match zone.shape:
             case Circle():
