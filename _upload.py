@@ -1,19 +1,16 @@
+# ======================================== IMPORTS ========================================
 import re
 import sys
 import subprocess
 from pathlib import Path
 
-# ------------------------------
-# Arguments
-# ------------------------------
+# ======================================== ARGS ========================================
 bump = sys.argv[1] if len(sys.argv) > 1 else "patch"
 
 version_file = Path(__file__).parent / "pyverse2d" / "_version.py"
 pyproject_file = Path(__file__).parent / "pyproject.toml"
 
-# ------------------------------
-# Lecture version actuelle
-# ------------------------------
+# ======================================== VERSION READING ========================================
 with open(version_file, "r") as f:
     content = f.read()
 
@@ -23,9 +20,7 @@ if not match:
 
 major, minor, patch_num = map(int, match.groups())
 
-# ------------------------------
-# Bump version
-# ------------------------------
+# ======================================== BUMP VERSION ========================================
 if bump == "patch":
     patch_num += 1
 elif bump == "minor":
@@ -40,9 +35,7 @@ else:
 
 new_version = f"{major}.{minor}.{patch_num}"
 
-# ------------------------------
-# Update _version.py
-# ------------------------------
+# ======================================== UPDATE VERSION ========================================
 new_content = re.sub(
     r'__version__\s*=\s*"\d+\.\d+\.\d+"',
     f'__version__ = "{new_version}"',
@@ -54,9 +47,7 @@ with open(version_file, "w") as f:
 
 print(f"[+] _version.py → {new_version}")
 
-# ------------------------------
-# Update pyproject.toml
-# ------------------------------
+# ======================================== UPDATE TOML ========================================
 with open(pyproject_file, "r") as f:
     pyproject_content = f.read()
 
@@ -71,9 +62,7 @@ with open(pyproject_file, "w") as f:
 
 print(f"[+] pyproject.toml → {new_version}")
 
-# ------------------------------
-# Git automation (TRIGGER CI)
-# ------------------------------
+# ======================================== GIT AUTOMATION ========================================
 subprocess.run(["git", "add", "."])
 
 subprocess.run([
@@ -87,10 +76,5 @@ subprocess.run(["git", "push", "origin", "main"])
 subprocess.run(["git", "push", "origin", f"v{new_version}"])
 
 print(f"""
-[✓] Version {new_version} publiée sur GitHub
-
-➡ GitHub Actions va maintenant :
-   - build le package
-   - publier sur PyPI
-   - utiliser Trusted Publishing
+[✓] Version {new_version} publiée
 """)

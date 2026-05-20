@@ -14,6 +14,13 @@ from .particle import (
     ParticleRenderer,
 )
 
+from . import postfx
+from .postfx import (
+    Blur, Chromatic, Pixelate, Wave,
+    PostFxZone,
+    PostFxRenderer,
+)
+
 # ======================================== EXPORTS ========================================
 __all__ = [
     "light",
