@@ -82,19 +82,20 @@ class PostFxRenderer:
         """
         cx, cy = pipeline.world_to_framebuffer(zone.x, zone.y)
         sx, sy = pipeline.screen.center
+        blend = pipeline.scale_to_framebuffer(blend)
 
         match zone.shape:
             case Circle():
                 r = pipeline.scale_to_framebuffer(zone.shape.radius)
                 dist = ((sx - cx) ** 2 + (sy - cy) ** 2) ** 0.5
-                if dist >= r + zone.blend:
+                if dist >= r + blend:
                     return None
                 return MaskData(
                     type=1,
                     center_x=cx,
                     center_y=cy,
                     radius=r,
-                    blend=zone.blend,
+                    blend=blend,
                 )
 
             case Rect():
@@ -102,10 +103,10 @@ class PostFxRenderer:
                 dx = max(abs(sx - cx) - hw, 0.0)
                 dy = max(abs(sy - cy) - hh, 0.0)
                 dist = (dx ** 2 + dy ** 2) ** 0.5
-                if zone.blend <= 0.0:
+                if blend <= 0.0:
                     if dx > 0.0 or dy > 0.0:
                         return None
-                elif dist >= zone.blend:
+                elif dist >= blend:
                     return None
                 return MaskData(
                     type=2,
@@ -113,7 +114,7 @@ class PostFxRenderer:
                     center_y=cy,
                     half_w=hw,
                     half_h=hh,
-                    blend=zone.blend,
+                    blend=blend,
                 )
 
             case _:
