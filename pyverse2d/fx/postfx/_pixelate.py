@@ -64,7 +64,7 @@ class Pixelate(PostFxEffect):
             positive(self.block_size, include=False)
 
 # ======================================== RENDERER ========================================
-class PixelateFxRenderer(SpecializedPostFxRenderer):
+class PixelatePostFxRenderer(SpecializedPostFxRenderer):
     """Renderer spécialisé pour l'effet ``Pixelate``"""
     __slots__ = tuple()
 

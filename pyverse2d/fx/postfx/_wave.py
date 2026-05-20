@@ -81,7 +81,7 @@ class Wave(PostFxEffect):
             positive(self.speed, include=False)
 
 # ======================================== RENDERER ========================================
-class WaveFxRenderer(SpecializedPostFxRenderer):
+class WavePostFxRenderer(SpecializedPostFxRenderer):
     """Renderer spécialisé pour l'effet ``Wave``"""
     __slots__ = tuple()
 

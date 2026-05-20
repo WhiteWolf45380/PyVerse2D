@@ -66,7 +66,7 @@ class Chromatic(PostFxEffect):
             positive(self.strength, include=True)
 
 # ======================================== RENDERER ========================================
-class ChromaticFxRenderer(SpecializedPostFxRenderer):
+class ChromaticPostFxRenderer(SpecializedPostFxRenderer):
     """Renderer spécialisé pour l'effet ``Chromatic``"""
     __slots__ = tuple()
 

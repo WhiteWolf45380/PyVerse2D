@@ -73,7 +73,7 @@ class Blur(PostFxEffect):
             positive(self.passes, include=False)
 
 # ======================================== RENDERER ========================================
-class BlurFxRenderer(SpecializedPostFxRenderer):
+class BlurPostFxRenderer(SpecializedPostFxRenderer):
     """Renderer spécialisé pour l'effet ``Blur``"""
     __slots__ = tuple()
 
