@@ -24,11 +24,15 @@ class PostFxLayer(Layer):
     _IS_FX: ClassVar[bool] = True
 
     def __init__(self, camera: Camera = None):
+        # Initialisation du layer
         super().__init__(camera)
 
-        self._zones:        set[PostFxZone]  = set()
+        # Attributs internes
+        self._zones: set[PostFxZone] = set()
         self._active_zones: list[PostFxZone] = []
-        self._renderer:     PostFxRenderer   = PostFxRenderer()
+
+        # Renderer
+        self._renderer: PostFxRenderer = PostFxRenderer()
 
     # ======================================== ZONES ========================================
     def add_zone(self, zone: PostFxZone) -> None:
@@ -82,7 +86,6 @@ class PostFxLayer(Layer):
             dt: delta-time
         """
         WavePostFxRenderer.tick(dt)
-
         for zone in self._zones:
             state: Activity = zone.update(dt)
             if state is Activity.DEFAULT:
