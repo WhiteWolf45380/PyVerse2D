@@ -27,7 +27,7 @@ from ._gui import (
 from ._fx import (
     LightSource, LightEffect,
     ParticleEmitter, ParticleModifier,
-    PostFxEffect, SpecializedPostFxRenderer,
+    PostFxEffect,
 )
 
 from ._layer import Layer
