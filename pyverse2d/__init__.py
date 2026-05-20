@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from ._version import __version__
 from ._internal import ProfiledRun as _ProfiledRun
+from ._internal import install as _install_traceback
 
 import pyglet
 import sys

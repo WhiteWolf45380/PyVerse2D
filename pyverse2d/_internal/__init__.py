@@ -1,4 +1,9 @@
 # ======================================== IMPORTS ========================================
+from ._traceback import (
+    excepthook,
+    install,
+)
+
 from ._profiler import (
     profile_section,
     Profiler,
@@ -24,6 +29,9 @@ from ._tools import (
 
 # ======================================== EXPORTS ========================================
 __all__ = [
+    "excepthook",
+    "install",
+
     "profile_section",
     "Profiler",
     "ProfiledRun",
